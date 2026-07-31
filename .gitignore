@@ -1,0 +1,26 @@
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Build, test, and generated output
+build/
+dist/
+coverage/
+.tmp/
+tmp/
+*.log
+
+# Dependency and compiler output
+node_modules/
+target/
+**/dist/
+*.tsbuildinfo

@@ -1,0 +1,26 @@
+{
+  "name": "riskmulator-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline-first risk simulation studio",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @riskmulator/studio",
+    "build": "npm run build --workspace @riskmulator/studio",
+    "format": "prettier --write \"apps/studio/**/*.{js,json,ts,tsx,css,html}\" \"*.json\" \".github/**/*.{yml,yaml}\" && cargo fmt --all",
+    "format:check": "prettier --check \"apps/studio/**/*.{js,json,ts,tsx,css,html}\" \"*.json\" \".github/**/*.{yml,yaml}\" && cargo fmt --all --check",
+    "lint": "npm run lint --workspace @riskmulator/studio && cargo clippy --workspace --all-targets --all-features -- -D warnings",
+    "test": "npm run test --workspace @riskmulator/studio && cargo test --workspace --all-targets --all-features",
+    "tauri": "npm run tauri --workspace @riskmulator/studio"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@11.4.2"
+}
