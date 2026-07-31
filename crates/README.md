@@ -1,10 +1,11 @@
 # Core Modules
 
-Each folder is an independent Rust library crate exposing a deliberately empty interface. The interfaces establish compile-time module boundaries without committing to behavior before the requirements are approved.
+Each folder is an independent Rust library crate. Milestone 1 implements local persistence in `studio-core` and a lifecycle-only Simulation Engine; all other engine crates remain empty marker interfaces.
 
 | Crate | Boundary |
 | --- | --- |
-| `simulation-engine` | Deterministic simulation orchestration |
+| `studio-core` | Local user, workspace, and scenario persistence |
+| `simulation-engine` | Deterministic lifecycle skeleton |
 | `rule-engine` | Configurable rule evaluation |
 | `event-engine` | Deterministic event scheduling and dispatch |
 | `asset-engine` | Simulated asset definitions and state |

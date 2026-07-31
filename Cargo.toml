@@ -11,6 +11,7 @@ members = [
   "crates/reporting-engine",
   "crates/rule-engine",
   "crates/simulation-engine",
+  "crates/studio-core",
 ]
 
 [workspace.package]

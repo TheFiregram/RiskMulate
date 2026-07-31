@@ -4,7 +4,7 @@ RiskMulator Studio is an offline-first desktop environment for safe risk-simulat
 
 ## Foundation status
 
-This repository contains an initialized application foundation, module interfaces, and engineering tooling. It intentionally contains no simulation business logic, scenario rules, integrations, persistence implementation, or production data.
+Milestone 1 provides a working local workflow for user profiles, workspaces, scenario CRUD, and a deterministic Simulation Engine lifecycle skeleton. It intentionally contains no scenario evaluation rules, external integrations, production data, or live-system connectivity.
 
 ## Technology stack
 
@@ -24,7 +24,8 @@ apps/
     ├── src/                 React presentation shell
     └── src-tauri/           Tauri desktop host and packaging
 crates/
-├── simulation-engine/       Deterministic orchestration interface
+├── studio-core/             Local SQLite CRUD and migrations
+├── simulation-engine/       Deterministic lifecycle skeleton
 ├── rule-engine/             Configurable rule interface
 ├── event-engine/            Event scheduling interface
 ├── asset-engine/            Simulated asset interface
@@ -40,7 +41,7 @@ tools/                       Reserved offline development tooling
 docs/studio-bible/           Governing specification
 ```
 
-The Tauri host is the composition root. Core crates are framework-independent libraries and currently expose marker interfaces only. No core crate depends on another core crate or on the desktop application. Future adapters will implement approved interfaces at the application boundary.
+The Tauri host is the composition root. `studio-core` owns local SQLite persistence, while `simulation-engine` owns lifecycle state. The remaining core crates are framework-independent marker interfaces. Core crates do not depend on the desktop application. See the [Milestone 1 design](docs/milestones/01-foundation.md) for data ownership, lifecycle, and safety details.
 
 ## Safety and dependency rules
 
