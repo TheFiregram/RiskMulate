@@ -8,9 +8,11 @@ use rusqlite::{Connection, OptionalExtension, params};
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{NewScenario, NewUser, NewWorkspace, Scenario, User, Workspace};
+use crate::{NewScenario, NewUser, NewWorkspace, Scenario, SessionRecord, User, Workspace};
+use riskmulator_simulation_engine::SimulationRun;
 
 /// Errors returned by the local application store.
+#[allow(missing_docs)]
 #[derive(Debug, Error)]
 pub enum StoreError {
     #[error("{field} must not be empty")]
@@ -27,7 +29,7 @@ pub enum StoreError {
     Serialization(#[from] serde_json::Error),
 }
 
-/// Thread-safe access to the on-device SQLite database.
+/// Thread-safe access to the on-device `SQLite` database.
 pub struct Database {
     connection: Mutex<Connection>,
 }
@@ -104,6 +106,30 @@ impl Database {
             )?;
             transaction.execute(
                 "INSERT INTO schema_migrations(version, applied_at) VALUES (1, ?1)",
+                [now()],
+            )?;
+        }
+        let sessions_applied = transaction
+            .query_row(
+                "SELECT version FROM schema_migrations WHERE version = 2",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?;
+        if sessions_applied.is_none() {
+            transaction.execute_batch(
+                "CREATE TABLE sessions (
+                   id TEXT PRIMARY KEY,
+                   workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                   scenario_id TEXT NOT NULL REFERENCES scenarios(id) ON DELETE RESTRICT,
+                   status TEXT NOT NULL,
+                   state TEXT NOT NULL CHECK(json_valid(state)),
+                   updated_at INTEGER NOT NULL
+                 );
+                 CREATE INDEX sessions_workspace_idx ON sessions(workspace_id, updated_at DESC);",
+            )?;
+            transaction.execute(
+                "INSERT INTO schema_migrations(version, applied_at) VALUES (2, ?1)",
                 [now()],
             )?;
         }
@@ -284,6 +310,51 @@ impl Database {
         ).optional()?.ok_or(StoreError::NotFound)
     }
 
+    /// Inserts or atomically updates the durable state of a simulation.
+    pub fn save_session(
+        &self,
+        workspace_id: &str,
+        run: &SimulationRun,
+    ) -> Result<SessionRecord, StoreError> {
+        let updated_at = now();
+        let state = serde_json::to_string(run)?;
+        self.connection()?.execute(
+            "INSERT INTO sessions(id, workspace_id, scenario_id, status, state, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(id) DO UPDATE SET status=excluded.status, state=excluded.state, updated_at=excluded.updated_at",
+            params![run.id, workspace_id, run.scenario_id, format!("{:?}", run.status), state, updated_at],
+        )?;
+        Ok(SessionRecord {
+            workspace_id: workspace_id.to_owned(),
+            run: run.clone(),
+            updated_at,
+        })
+    }
+
+    /// Lists durable sessions with newest activity first.
+    pub fn list_sessions(&self, workspace_id: &str) -> Result<Vec<SessionRecord>, StoreError> {
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            "SELECT workspace_id, state, updated_at FROM sessions WHERE workspace_id = ?1 ORDER BY updated_at DESC, id",
+        )?;
+        let rows = statement.query_map([workspace_id], |row| {
+            let state: String = row.get(1)?;
+            let run = serde_json::from_str(&state).map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    1,
+                    rusqlite::types::Type::Text,
+                    Box::new(error),
+                )
+            })?;
+            Ok(SessionRecord {
+                workspace_id: row.get(0)?,
+                run,
+                updated_at: row.get(2)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<_, _>>()?)
+    }
+
     fn connection(&self) -> Result<std::sync::MutexGuard<'_, Connection>, StoreError> {
         self.connection
             .lock()
@@ -291,6 +362,7 @@ impl Database {
     }
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn required(field: &'static str, value: String) -> Result<String, StoreError> {
     let value = value.trim().to_owned();
     if value.is_empty() {
@@ -362,6 +434,7 @@ fn scenario_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Scenario> {
 
 #[cfg(test)]
 mod tests {
+    use riskmulator_simulation_engine::{InMemorySimulationEngine, SimulationEngine};
     use serde_json::json;
     use tempfile::tempdir;
 
@@ -483,5 +556,36 @@ mod tests {
         database.delete_user(&user.id).unwrap();
         assert!(database.list_workspaces(&user.id).unwrap().is_empty());
         assert!(database.list_scenarios(&workspace.id).unwrap().is_empty());
+    }
+
+    #[test]
+    fn simulation_state_is_saved_and_reloaded() {
+        let database = Database::in_memory().unwrap();
+        let user = database
+            .create_user(NewUser {
+                display_name: "Instructor".into(),
+            })
+            .unwrap();
+        let workspace = database
+            .create_workspace(NewWorkspace {
+                owner_id: user.id,
+                name: "Lab".into(),
+            })
+            .unwrap();
+        let scenario = database
+            .create_scenario(NewScenario {
+                workspace_id: workspace.id.clone(),
+                name: "Outage".into(),
+                description: String::new(),
+                configuration: json!({}),
+            })
+            .unwrap();
+        let mut engine = InMemorySimulationEngine::default();
+        let run = engine.create_run(scenario.id, 42);
+        let run = engine.start(&run.id).unwrap();
+        database.save_session(&workspace.id, &run).unwrap();
+        let saved = database.list_sessions(&workspace.id).unwrap();
+        assert_eq!(saved.len(), 1);
+        assert_eq!(saved[0].run, run);
     }
 }

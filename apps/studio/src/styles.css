@@ -31,6 +31,22 @@ header {
   padding-bottom: 2rem;
   border-bottom: 1px solid #26354a;
 }
+.safety {
+  display: inline-flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.55rem 0.75rem;
+  color: #b8c8dc;
+  border: 1px solid #29483f;
+  border-radius: 999px;
+  background: #0e201c;
+  font-size: 0.75rem;
+}
+.safety strong {
+  color: #55d6be;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 .eyebrow {
   color: #55d6be;
   font-size: 0.75rem;
@@ -90,6 +106,14 @@ textarea {
   border: 1px solid #344761;
   border-radius: 0.4rem;
   background: #111d2c;
+}
+.config-field {
+  flex-basis: 100%;
+}
+.config-field textarea {
+  min-height: 8rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
 }
 textarea {
   min-height: 3rem;
@@ -174,12 +198,64 @@ article.selected {
   border-radius: 0.5rem;
   background: #10251f;
   box-shadow: 0 1rem 3rem #0008;
+  width: min(430px, calc(100% - 3rem));
+  max-height: calc(100vh - 3rem);
+  overflow: auto;
+}
+.run > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.run .close {
+  padding: 0.1rem 0.5rem;
+  color: #a7cfc4;
+  border: 0;
+  background: transparent;
+  font-size: 1.4rem;
 }
 .run span {
   color: #a7cfc4;
   font-family: ui-monospace, monospace;
   font-size: 0.75rem;
   text-transform: capitalize;
+}
+.run-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+.run-controls button {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.75rem;
+}
+.audit {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid #29483f;
+  list-style: none;
+  font-size: 0.75rem;
+}
+.audit li {
+  display: flex;
+  gap: 0.6rem;
+  color: #d6e3e0;
+}
+.audit li span {
+  min-width: 2rem;
+  color: #55d6be;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
 }
 
 @media (max-width: 640px) {

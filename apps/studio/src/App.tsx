@@ -48,6 +48,9 @@ export function App() {
   const [editingWorkspace, setEditingWorkspace] = useState("");
   const [scenarioName, setScenarioName] = useState("");
   const [scenarioDescription, setScenarioDescription] = useState("");
+  const [scenarioConfig, setScenarioConfig] = useState(
+    '{\n  "durationTicks": 30,\n  "objectives": []\n}',
+  );
   const [editingScenario, setEditingScenario] = useState<Scenario | null>(null);
   const [run, setRun] = useState<SimulationRun | null>(null);
   const [error, setError] = useState("");
@@ -125,12 +128,25 @@ export function App() {
   const saveScenario = (event: FormEvent) => {
     event.preventDefault();
     void execute(async () => {
+      const configuration = JSON.parse(scenarioConfig) as Record<string, unknown>;
       if (editingScenario)
-        await studioApi.updateScenario(editingScenario, scenarioName, scenarioDescription);
-      else await studioApi.createScenario(selectedWorkspace, scenarioName, scenarioDescription);
+        await studioApi.updateScenario(
+          editingScenario,
+          scenarioName,
+          scenarioDescription,
+          configuration,
+        );
+      else
+        await studioApi.createScenario(
+          selectedWorkspace,
+          scenarioName,
+          scenarioDescription,
+          configuration,
+        );
       setScenarioName("");
       setScenarioDescription("");
       setEditingScenario(null);
+      setScenarioConfig('{\n  "durationTicks": 30,\n  "objectives": []\n}');
       await loadScenarios();
     });
   };
@@ -141,6 +157,10 @@ export function App() {
         <p className="eyebrow">Offline simulation workspace</p>
         <h1>RiskMulator Studio</h1>
         <p>Local milestone workspace. Data never leaves this device.</p>
+        <div className="safety">
+          <strong>Sandbox mode</strong>
+          <span>Network disabled · deterministic execution · local audit trail</span>
+        </div>
       </header>
       {error && (
         <div className="error" role="alert">
@@ -287,6 +307,14 @@ export function App() {
                   onChange={(event) => setScenarioName(event.target.value)}
                 />
               </label>
+              <label className="config-field">
+                <span>Scenario configuration (JSON)</span>
+                <textarea
+                  value={scenarioConfig}
+                  onChange={(event) => setScenarioConfig(event.target.value)}
+                  spellCheck={false}
+                />
+              </label>
               <label>
                 <span>Description</span>
                 <textarea
@@ -319,11 +347,17 @@ export function App() {
                     <button
                       onClick={() =>
                         void execute(async () =>
-                          setRun(await studioApi.startSimulation(scenario.id, 1)),
+                          setRun(
+                            await studioApi.startSimulation(
+                              selectedWorkspace,
+                              scenario.id,
+                              Date.now() % 1_000_000,
+                            ),
+                          ),
                         )
                       }
                     >
-                      Start skeleton
+                      Start simulation
                     </button>
                     <button
                       className="secondary"
@@ -331,6 +365,7 @@ export function App() {
                         setEditingScenario(scenario);
                         setScenarioName(scenario.name);
                         setScenarioDescription(scenario.description);
+                        setScenarioConfig(JSON.stringify(scenario.configuration, null, 2));
                       }}
                     >
                       Edit
@@ -357,10 +392,74 @@ export function App() {
       </section>
       {run && (
         <aside className="run" aria-live="polite">
-          <strong>Simulation skeleton running</strong>
+          <div>
+            <strong>Live simulation</strong>
+            <button className="close" aria-label="Close session panel" onClick={() => setRun(null)}>
+              ×
+            </button>
+          </div>
           <span>
-            Seed {run.seed} · Tick {run.tick} · {run.status}
+            Seed {run.seed} · Tick {run.tick} · Score {run.score} · {run.status}
           </span>
+          <div className="run-controls">
+            {run.status === "running" && (
+              <button
+                onClick={() =>
+                  void execute(async () =>
+                    setRun(await studioApi.pauseSimulation(selectedWorkspace, run.id)),
+                  )
+                }
+              >
+                Pause
+              </button>
+            )}
+            {run.status === "paused" && (
+              <button
+                onClick={() =>
+                  void execute(async () =>
+                    setRun(await studioApi.resumeSimulation(selectedWorkspace, run.id)),
+                  )
+                }
+              >
+                Resume
+              </button>
+            )}
+            {run.status === "running" && (
+              <button
+                className="secondary"
+                onClick={() =>
+                  void execute(async () =>
+                    setRun(await studioApi.stepSimulation(selectedWorkspace, run.id)),
+                  )
+                }
+              >
+                Advance tick
+              </button>
+            )}
+            {(run.status === "running" || run.status === "paused") && (
+              <button
+                className="danger"
+                onClick={() =>
+                  void execute(async () =>
+                    setRun(await studioApi.completeSimulation(selectedWorkspace, run.id)),
+                  )
+                }
+              >
+                End session
+              </button>
+            )}
+          </div>
+          <ol className="audit">
+            {run.audit
+              .slice(-4)
+              .reverse()
+              .map((entry) => (
+                <li key={entry.sequence}>
+                  <span>T{entry.tick}</span>
+                  {entry.message}
+                </li>
+              ))}
+          </ol>
         </aside>
       )}
     </main>

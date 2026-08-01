@@ -1,3 +1,4 @@
+use riskmulator_simulation_engine::SimulationRun;
 use serde::{Deserialize, Serialize};
 
 /// A local Studio user profile. Milestone 1 profiles do not contain credentials.
@@ -69,4 +70,14 @@ pub struct NewScenario {
 
 fn default_configuration() -> serde_json::Value {
     serde_json::json!({})
+}
+
+/// A durable simulation run with its complete replayable state.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionRecord {
+    pub workspace_id: String,
+    pub run: SimulationRun,
+    pub updated_at: i64,
 }
