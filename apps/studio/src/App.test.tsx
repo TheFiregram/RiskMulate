@@ -1,35 +1,41 @@
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-
-const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
-vi.mock("@tauri-apps/api/core", () => ({ invoke }));
-
-beforeEach(() => {
-  invoke.mockReset();
-  invoke.mockImplementation((command: string) => {
-    if (command.startsWith("list_")) return Promise.resolve([]);
-    if (command === "create_user")
-      return Promise.resolve({ id: "u1", displayName: "Ada", createdAt: 1, updatedAt: 1 });
-    return Promise.resolve(undefined);
-  });
-});
-
-describe("App", () => {
-  it("shows the local milestone workflow", async () => {
+vi.mock("./rendering/CommandCentre", () => ({
+  CommandCentre: class {
+    constructor(host: HTMLElement) {
+      const canvas = document.createElement("canvas");
+      canvas.dataset.renderer = "three";
+      host.appendChild(canvas);
+    }
+    dispose() {}
+    setAlert() {}
+    setQuality() {}
+    setReducedMotion() {}
+    focus() {}
+  },
+}));
+beforeEach(() => localStorage.clear());
+describe("RiskMulator Studio", () => {
+  it("launches directly into the cinematic", () => {
     render(<App />);
-    expect(screen.getByRole("heading", { name: "RiskMulator Studio" })).toBeVisible();
-    expect(screen.getByText(/data never leaves this device/i)).toBeVisible();
-    await waitFor(() => expect(invoke).toHaveBeenCalledWith("list_users"));
+    expect(screen.getByText("OPERATION", { exact: false })).toBeVisible();
+    expect(screen.getByRole("button", { name: /assume command/i })).toBeVisible();
   });
-
-  it("creates a local user through the command boundary", async () => {
+  it("enters the playable command centre and opens a station", () => {
     render(<App />);
-    fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Ada" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add user" }));
-    await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("create_user", { input: { displayName: "Ada" } }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /assume command/i }));
+    expect(screen.getByLabelText(/3d crisis command centre/i)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /open evidence board/i }));
+    expect(screen.getByText("2.4 GB outbound transfer")).toBeVisible();
+  });
+  it("applies a meaningful action and persists it", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /assume command/i }));
+    fireEvent.click(screen.getByRole("button", { name: /open evidence board/i }));
+    fireEvent.click(screen.getByRole("button", { name: /preserve transfer image/i }));
+    expect(screen.getByText(/forensic image sealed/i)).toBeVisible();
+    expect(localStorage.getItem("riskmulator.black-ledger.v1")).toContain("preserve");
   });
 });
