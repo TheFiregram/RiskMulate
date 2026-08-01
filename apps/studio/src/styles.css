@@ -1021,3 +1021,127 @@ select {
   color: #dbeaf0;
   margin-top: 5px;
 }
+/* Physical-interaction rebuild: the canvas is the interface; HTML is limited to diegetic overlays. */
+.world .station {
+  display: none !important;
+}
+.risk-strip {
+  display: none;
+}
+.topbar {
+  left: 24px;
+  right: auto;
+  top: 22px;
+  width: 310px;
+  height: 58px;
+  border: 1px solid #38505b;
+  background: #061018b8;
+  padding: 0 15px;
+}
+.topbar .brand,
+.topbar .icon {
+  display: none;
+}
+.topbar .phase {
+  border: 0;
+  padding: 0;
+}
+.clock {
+  margin-left: auto;
+}
+.objectives {
+  top: 94px;
+  background: #0610189c;
+}
+.dialogue {
+  bottom: 24px;
+}
+.station-interface,
+.panel {
+  inset: 8vh 8vw 8vh auto;
+  width: min(720px, 84vw);
+  border: 8px solid #17262d;
+  border-left: 8px solid #17262d;
+  background: linear-gradient(145deg, #07151bf8, #0b2029f8);
+  box-shadow:
+    0 0 0 100vmax #0005,
+    0 20px 80px #000;
+  clip-path: polygon(0 0, 96% 0, 100% 5%, 100% 100%, 4% 100%, 0 95%);
+}
+.interaction-prompt {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  bottom: 118px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 15px;
+  background: #061117dc;
+  border: 1px solid #6f96a7;
+  font: 11px monospace;
+  letter-spacing: 0.12em;
+}
+.interaction-prompt kbd {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e9a039;
+  color: #e9a039;
+  background: #152028;
+}
+.opening-scene .world:after {
+  background:
+    linear-gradient(#0002, #0000 45%, #0009), radial-gradient(circle, transparent 50%, #000b);
+}
+.opening-briefing {
+  position: absolute;
+  z-index: 5;
+  left: 6vw;
+  bottom: 14vh;
+  width: 470px;
+  padding: 22px;
+  background: #02080ab8;
+  border-left: 3px solid #dd9227;
+  animation: openingStory 9s ease both;
+}
+.opening-briefing .date {
+  margin: 12px 0;
+}
+.opening-briefing h1 {
+  font-size: 54px;
+}
+.opening-briefing .role,
+.opening-briefing .subtitle {
+  margin: 12px 0;
+}
+.opening-briefing .enter {
+  margin-top: 10px;
+}
+.opening-scene .letterbox {
+  z-index: 6;
+}
+@keyframes openingStory {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  18%,
+  62% {
+    opacity: 1;
+    transform: none;
+  }
+  72% {
+    border-color: #d33;
+    background: #180408d9;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+.three-host canvas {
+  cursor: crosshair;
+}

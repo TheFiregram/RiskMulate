@@ -2,8 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { initialRisks, outcome, stations } from "./scenario";
 vi.mock("./rendering/CommandCentre", () => ({
   CommandCentre: class {
+    onPrompt?: (value: unknown) => void;
+    onInteract?: (value: unknown) => void;
     constructor(host: HTMLElement) {
       const canvas = document.createElement("canvas");
       canvas.dataset.renderer = "three";
@@ -14,28 +17,26 @@ vi.mock("./rendering/CommandCentre", () => ({
     setQuality() {}
     setReducedMotion() {}
     focus() {}
+    playOpening() {}
   },
 }));
 beforeEach(() => localStorage.clear());
-describe("RiskMulator Studio", () => {
-  it("launches directly into the cinematic", () => {
+describe("physical command-centre experience", () => {
+  it("opens on a procedural Three.js cinematic", () => {
     render(<App />);
-    expect(screen.getByText("OPERATION", { exact: false })).toBeVisible();
-    expect(screen.getByRole("button", { name: /assume command/i })).toBeVisible();
+    expect(document.querySelector('canvas[data-renderer="three"]')).toBeInTheDocument();
+    expect(screen.getByText(/operation/i)).toBeVisible();
   });
-  it("enters the playable command centre and opens a station", () => {
+  it("enters first-person play without floating station buttons", () => {
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /assume command/i }));
+    fireEvent.click(screen.getByRole("button", { name: /skip cinematic/i }));
     expect(screen.getByLabelText(/3d crisis command centre/i)).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: /open evidence board/i }));
-    expect(screen.getByText("2.4 GB outbound transfer")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /open evidence/i })).not.toBeInTheDocument();
+    expect(Object.keys(stations)).toHaveLength(8);
   });
-  it("applies a meaningful action and persists it", () => {
-    render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /assume command/i }));
-    fireEvent.click(screen.getByRole("button", { name: /open evidence board/i }));
-    fireEvent.click(screen.getByRole("button", { name: /preserve transfer image/i }));
-    expect(screen.getByText(/forensic image sealed/i)).toBeVisible();
-    expect(localStorage.getItem("riskmulator.black-ledger.v1")).toContain("preserve");
+  it("branches the coordinated-threat ending from investigation actions", () => {
+    expect(outcome(["preserve", "verify", "isolate"], initialRisks).title).toBe(
+      "COORDINATED THREAT",
+    );
   });
 });

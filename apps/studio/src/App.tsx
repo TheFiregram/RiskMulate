@@ -44,47 +44,43 @@ function RiskStrip({ risks }: { risks: RiskState }) {
 }
 
 function World({
-  selected,
   onSelect,
   crisis,
   quality,
   reducedMotion,
+  cinematic = false,
+  onPrompt,
 }: {
-  selected: StationId | null;
   onSelect: (id: StationId) => void;
   crisis: boolean;
   quality: Quality;
   reducedMotion: boolean;
+  cinematic?: boolean;
+  onPrompt?: (station: StationId | null) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const world = useRef<CommandCentre | null>(null);
   const initialQuality = useRef(quality);
+  // The renderer owns a single lifecycle; live preferences are forwarded by the effects below.
   useEffect(() => {
     if (!host.current) return;
     world.current = new CommandCentre(host.current, initialQuality.current);
+    world.current.onPrompt = onPrompt;
+    world.current.onInteract = (id) => {
+      world.current?.focus(id);
+      onSelect(id);
+    };
+    if (cinematic) world.current.playOpening();
     return () => world.current?.dispose();
+    // Renderer construction intentionally occurs once; callbacks are bound to this scene lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => world.current?.setAlert(crisis), [crisis]);
   useEffect(() => world.current?.setQuality(quality), [quality]);
   useEffect(() => world.current?.setReducedMotion(reducedMotion), [reducedMotion]);
-  const select = (id: StationId) => {
-    world.current?.focus(id);
-    onSelect(id);
-  };
   return (
     <div className={`world ${crisis ? "crisis" : ""}`} aria-label="3D crisis command centre">
       <div className="three-host" ref={host} />
-      {(Object.keys(stations) as StationId[]).map((id, index) => (
-        <button
-          key={id}
-          className={`station station-${index + 1} ${selected === id ? "active" : ""}`}
-          onClick={() => select(id)}
-          aria-label={`Open ${stations[id].label}`}
-        >
-          <span>＋</span>
-          <b>{stations[id].label}</b>
-        </button>
-      ))}
       <div className="hologram">
         <i />
         <span>
@@ -124,6 +120,7 @@ export function App() {
   const [muted, setMuted] = useState(true);
   const [quality, setQuality] = useState<Quality>("HIGH");
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [nearby, setNearby] = useState<StationId | null>(null);
   useEffect(() => {
     if (mode !== "command" || paused) return;
     const t = window.setInterval(() => setElapsed((x) => x + 1), 1000);
@@ -151,6 +148,11 @@ export function App() {
     addEventListener("keydown", key);
     return () => removeEventListener("keydown", key);
   }, [mode]);
+  useEffect(() => {
+    if (mode !== "opening") return;
+    const timer = window.setTimeout(() => setMode("command"), reducedMotion ? 2500 : 9000);
+    return () => window.clearTimeout(timer);
+  }, [mode, reducedMotion]);
   const act = (id: string) => {
     if (completed.includes(id)) return;
     const action = actions.find((a) => a.id === id)!;
@@ -174,12 +176,16 @@ export function App() {
     elapsed < 40 ? "01 / FIRST WARNING" : elapsed < 90 ? "02 / INVESTIGATION" : "03 / ESCALATION";
   if (mode === "opening")
     return (
-      <main className="opening">
-        <div className="cinematic-bg">
-          <div className="skyline" />
-        </div>
+      <main className="game opening-scene">
+        <World
+          onSelect={() => undefined}
+          crisis={false}
+          quality={quality}
+          reducedMotion={reducedMotion}
+          cinematic
+        />
         <div className="letterbox top" />
-        <section className="briefing">
+        <section className="briefing opening-briefing">
           <div className="aegis-mark">
             <i />
             AEGIS DYNAMICS
@@ -193,7 +199,7 @@ export function App() {
           <p className="role">INCIDENT RESPONSE DIRECTOR</p>
           <p className="subtitle">“A normal morning just became a live corporate crisis.”</p>
           <button className="enter" onClick={() => setMode("command")}>
-            {saved ? "CONTINUE INCIDENT" : "ASSUME COMMAND"}
+            {saved ? "CONTINUE INCIDENT" : "SKIP CINEMATIC"}
             <small>ENTER</small>
           </button>
         </section>
@@ -275,11 +281,11 @@ export function App() {
   return (
     <main className="game">
       <World
-        selected={selected}
         onSelect={setSelected}
         crisis={elapsed > 75}
         quality={quality}
         reducedMotion={reducedMotion}
+        onPrompt={setNearby}
       />
       <header className="topbar">
         <div className="brand">
@@ -321,10 +327,16 @@ export function App() {
         </div>
       </div>
       <div className="controls">
-        WASD <span>MOVE</span> · CLICK <span>INTERACT</span> · SPACE <span>PAUSE</span>
+        WASD <span>MOVE</span> · DRAG <span>LOOK</span> · ESC <span>PAUSE</span>
       </div>
+      {nearby && !selected && (
+        <div className="interaction-prompt">
+          <kbd>E</kbd>
+          <span>USE {stations[nearby].label.toUpperCase()}</span>
+        </div>
+      )}
       {selected && (
-        <section className="panel">
+        <section className="panel station-interface">
           <button
             className="close"
             onClick={() => {

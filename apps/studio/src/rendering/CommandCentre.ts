@@ -25,8 +25,15 @@ export class CommandCentre {
   private lastX = 0;
   private alert = false;
   private reducedMotion = false;
+  private cinematicStart = 0;
+  private controlEnabled = true;
+  private target: StationId | null = null;
+  onPrompt?: (station: StationId | null) => void;
+  onInteract?: (station: StationId) => void;
   private onKeyDown = (event: KeyboardEvent) => {
     this.keys.add(event.code);
+    if ((event.code === "KeyE" || event.code === "Enter") && this.controlEnabled && this.target)
+      this.onInteract?.(this.target);
   };
   private onKeyUp = (event: KeyboardEvent) => {
     this.keys.delete(event.code);
@@ -75,6 +82,8 @@ export class CommandCentre {
     this.scene.add(key);
     this.mesh(new THREE.BoxGeometry(22, 0.3, 24), 0x111a20, 0, -0.2, -3);
     this.mesh(new THREE.BoxGeometry(22, 8, 0.3), 0x09141c, 0, 4, -10);
+    this.mesh(new THREE.BoxGeometry(0.3, 8, 24), 0x071219, -11, 4, -3);
+    this.mesh(new THREE.BoxGeometry(0.3, 8, 24), 0x071219, 11, 4, -3);
     for (let x = -10; x <= 10; x += 2)
       this.mesh(new THREE.BoxGeometry(0.025, 0.02, 22), 0x244553, x, 0.01, -3, 0x1b789b);
     for (let z = -13; z <= 8; z += 2)
@@ -105,6 +114,19 @@ export class CommandCentre {
     }
     const table = this.mesh(new THREE.CylinderGeometry(3.2, 3.5, 0.28, 16), 0x1b2b32, 0, 0.65, -1);
     table.rotation.y = 0.2;
+    // Visible staff give the command centre scale and react to the crisis lighting.
+    for (const [x, z, color] of [
+      [-2.8, -2.3, 0xd8a36d],
+      [2.7, -2.5, 0x8f6652],
+      [-6, -4.5, 0xb78363],
+    ] as const) {
+      this.mesh(new THREE.CylinderGeometry(0.24, 0.31, 1.25, 8), color, x, 1.15, z);
+      this.mesh(new THREE.BoxGeometry(0.48, 0.72, 0.28), 0x263844, x, 0.62, z);
+    }
+    // Maya Chen's persistent call monitor and the server bank are physical scene objects.
+    this.mesh(new THREE.BoxGeometry(2.4, 1.5, 0.18), 0x163e50, -8.2, 3.9, -9.7, 0x43c7f2);
+    for (let x = -1.8; x <= 1.8; x += 0.9)
+      this.mesh(new THREE.BoxGeometry(0.68, 2.7, 0.75), 0x111d24, x, 1.35, -9.4, 0x1b789b);
   }
   private bind() {
     addEventListener("resize", () => this.resize());
@@ -133,7 +155,14 @@ export class CommandCentre {
   private frame() {
     const dt = Math.min(0.04, this.clock.getDelta()),
       speed = 3.2 * dt;
-    if (this.keys.has("KeyA")) this.camera.position.x -= speed;
+    if (this.cinematicStart) {
+      const t = (performance.now() - this.cinematicStart) / 1000;
+      this.camera.position.x = Math.sin(t * 0.35) * (t < 4 ? 6 : 1.2);
+      this.camera.position.y = t < 4 ? 3.4 : 2.1;
+      this.camera.position.z = 12 - Math.min(10, t * 1.25);
+      this.yaw = Math.sin(t * 0.3) * 0.13;
+      if (t > 6) this.setAlert(true);
+    } else if (this.keys.has("KeyA")) this.camera.position.x -= speed;
     if (this.keys.has("KeyD")) this.camera.position.x += speed;
     if (this.keys.has("KeyW")) {
       this.camera.position.x -= Math.sin(this.yaw) * speed;
@@ -146,6 +175,27 @@ export class CommandCentre {
     this.camera.position.x = Math.max(-8, Math.min(8, this.camera.position.x));
     this.camera.position.z = Math.max(-7, Math.min(8, this.camera.position.z));
     this.camera.rotation.y = this.yaw;
+    if (!this.cinematicStart) {
+      let best: StationId | null = null,
+        bestScore = Number.POSITIVE_INFINITY;
+      for (const [id, [x, , z]] of Object.entries(stationPositions) as [
+        StationId,
+        [number, number, number],
+      ][]) {
+        const dx = x - this.camera.position.x,
+          dz = z - this.camera.position.z,
+          angle = Math.abs(Math.atan2(-dx, -dz) - this.yaw);
+        const score = angle * 8 + Math.hypot(dx, dz) * 0.035;
+        if (angle < 0.38 && score < bestScore) {
+          best = id;
+          bestScore = score;
+        }
+      }
+      if (best !== this.target) {
+        this.target = best;
+        this.onPrompt?.(best);
+      }
+    }
     const t = performance.now() * 0.002;
     this.screens.forEach((s, i) => {
       const m = s.material;
@@ -160,6 +210,16 @@ export class CommandCentre {
       this.camera.position.z = Math.max(z + 5, -2);
       this.yaw = Math.atan2(-x * 0.52, -z - this.camera.position.z);
     }
+  }
+  playOpening() {
+    this.controlEnabled = false;
+    this.cinematicStart = performance.now();
+  }
+  grantControl() {
+    this.cinematicStart = 0;
+    this.controlEnabled = true;
+    this.setAlert(true);
+    this.camera.position.set(0, 2.1, 3.5);
   }
   setAlert(active: boolean) {
     this.alert = active;
