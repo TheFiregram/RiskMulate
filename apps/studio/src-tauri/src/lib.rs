@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use riskmulator_simulation_engine::{InMemorySimulationEngine, SimulationEngine, SimulationRun};
 use riskmulator_studio_core::{
-    Database, NewScenario, NewUser, NewWorkspace, Scenario, User, Workspace,
+    Database, NewScenario, NewUser, NewWorkspace, Scenario, SessionRecord, User, Workspace,
 };
 use tauri::{Manager, State};
 
@@ -94,6 +94,7 @@ fn delete_scenario(state: State<'_, AppState>, id: String) -> CommandResult<()> 
 #[tauri::command]
 fn start_simulation(
     state: State<'_, AppState>,
+    workspace_id: String,
     scenario_id: String,
     seed: u64,
 ) -> CommandResult<SimulationRun> {
@@ -102,7 +103,75 @@ fn start_simulation(
         .lock()
         .map_err(|_| "simulation engine lock is unavailable".to_owned())?;
     let run = engine.create_run(scenario_id, seed);
-    engine.start(&run.id).map_err(message)
+    let run = engine.start(&run.id).map_err(message)?;
+    state
+        .database
+        .save_session(&workspace_id, &run)
+        .map_err(message)?;
+    Ok(run)
+}
+
+fn update_simulation(
+    state: &State<'_, AppState>,
+    workspace_id: &str,
+    operation: impl FnOnce(
+        &mut InMemorySimulationEngine,
+    ) -> Result<SimulationRun, riskmulator_simulation_engine::SimulationError>,
+) -> CommandResult<SimulationRun> {
+    let mut engine = state
+        .simulations
+        .lock()
+        .map_err(|_| "simulation engine lock is unavailable".to_owned())?;
+    let run = operation(&mut engine).map_err(message)?;
+    state
+        .database
+        .save_session(workspace_id, &run)
+        .map_err(message)?;
+    Ok(run)
+}
+
+#[tauri::command]
+fn pause_simulation(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    id: String,
+) -> CommandResult<SimulationRun> {
+    update_simulation(&state, &workspace_id, |engine| engine.pause(&id))
+}
+
+#[tauri::command]
+fn resume_simulation(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    id: String,
+) -> CommandResult<SimulationRun> {
+    update_simulation(&state, &workspace_id, |engine| engine.resume(&id))
+}
+
+#[tauri::command]
+fn step_simulation(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    id: String,
+) -> CommandResult<SimulationRun> {
+    update_simulation(&state, &workspace_id, |engine| engine.step(&id))
+}
+
+#[tauri::command]
+fn complete_simulation(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    id: String,
+) -> CommandResult<SimulationRun> {
+    update_simulation(&state, &workspace_id, |engine| engine.complete(&id))
+}
+
+#[tauri::command]
+fn list_sessions(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> CommandResult<Vec<SessionRecord>> {
+    state.database.list_sessions(&workspace_id).map_err(message)
 }
 
 /// Starts the desktop composition root.
@@ -134,6 +203,11 @@ pub fn run() {
             update_scenario,
             delete_scenario,
             start_simulation,
+            pause_simulation,
+            resume_simulation,
+            step_simulation,
+            complete_simulation,
+            list_sessions,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run RiskMulator Studio");
