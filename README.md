@@ -1,47 +1,30 @@
 # RiskMulator Studio
 
-RiskMulator Studio is an offline-first desktop environment for safe risk-simulation training, education, and decision practice. The [Studio Bible](docs/studio-bible/README.md), governed by [Document 00](docs/studio-bible/00-project-charter.md), is the authoritative specification.
+RiskMulator Studio is an offline-capable browser-based Three.js serious game. The player directs Aegis Dynamics through the insider-risk crisis **Operation Black Ledger**. React renders only the HUD and menus; the command centre has its own Three.js scene, camera, input, lighting, and animation loop.
 
-## Foundation status
+## Browser architecture
 
-Milestone 1 provides a working local workflow for user profiles, workspaces, scenario CRUD, and a deterministic Simulation Engine lifecycle skeleton. It intentionally contains no scenario evaluation rules, external integrations, production data, or live-system connectivity.
+- **Runtime:** Vite, TypeScript, and a Three.js WebGL scene.
+- **HUD:** React 19 for readable overlays, station panels, dialogue, settings, and debrief.
+- **Scenario:** typed evidence, actions, consequences, risk state, and branching endings.
+- **Persistence:** browser localStorage; no native database is required.
+- **Desktop:** the historical Tauri host remains optional legacy packaging and is not needed to develop, build, or play the game.
+- **Quality:** Low, Medium, and High render scales, capped pixel ratio, reduced motion, static station navigation, Vitest, ESLint, and TypeScript strict mode.
 
-## Technology stack
+## Run the game
 
-- **Desktop:** Tauri 2, using the operating system webview for a small distributable and a Rust security boundary.
-- **Interface:** React 19 and TypeScript 5, built by Vite.
-- **Core:** Rust 2024 workspace crates with strict lint configuration and no unsafe code.
-- **Dependency management:** npm workspaces for the interface and Cargo workspaces for the desktop host and core crates.
-- **Quality:** Prettier, ESLint, TypeScript strict mode, Vitest, rustfmt, Clippy, and Cargo test.
+Node.js 22 and npm 10 or newer are the only required runtime prerequisites.
 
-Tauri keeps the application installable and executable offline, while the split workspace prevents presentation and desktop concerns from becoming simulation-domain dependencies.
-
-## Architecture
-
-```text
-apps/
-└── studio/
-    ├── src/                 React presentation shell
-    └── src-tauri/           Tauri desktop host and packaging
-crates/
-├── studio-core/             Local SQLite CRUD and migrations
-├── simulation-engine/       Deterministic lifecycle skeleton
-├── rule-engine/             Configurable rule interface
-├── event-engine/            Event scheduling interface
-├── asset-engine/            Simulated asset interface
-├── ai-engine/               Sandboxed actor interface
-├── plugin-manager/          Offline extension interface
-├── analytics-engine/        Measurement interface
-├── replay-engine/           Deterministic replay interface
-└── reporting-engine/        Offline reporting interface
-schemas/                     Reserved versioned data contracts
-examples/                    Reserved synthetic scenario fixtures
-tests/                       Reserved cross-cutting assurance suites
-tools/                       Reserved offline development tooling
-docs/studio-bible/           Governing specification
+```bash
+npm install
+npm run dev
 ```
 
-The Tauri host is the composition root. `studio-core` owns local SQLite persistence, while `simulation-engine` owns lifecycle state. The remaining core crates are framework-independent marker interfaces. Core crates do not depend on the desktop application. See the [Milestone 1 design](docs/milestones/01-foundation.md) for data ownership, lifecycle, and safety details.
+The production browser bundle is emitted at repository-root `dist/`:
+
+```bash
+npm run build
+```
 
 ## Safety and dependency rules
 
@@ -53,16 +36,7 @@ The Tauri host is the composition root. `studio-core` owns local SQLite persiste
 6. Important actions must be locally auditable; telemetry must not export user or simulation data.
 7. Scenario behavior belongs in validated configuration, not application source code.
 
-## Development
-
-Prerequisites are Node.js 22 or newer, npm 10 or newer, the stable Rust toolchain, and the [Tauri platform prerequisites](https://tauri.app/start/prerequisites/) for the target operating system.
-
-```bash
-npm install
-npm run tauri dev
-```
-
-Quality commands:
+## Quality checks
 
 ```bash
 npm run format:check
@@ -71,4 +45,18 @@ npm test
 npm run build
 ```
 
-Dependency installation may require Internet access during development or packaging; the installed application and simulation runtime must not.
+The installed browser simulation requires no network connection.
+
+## RiskMulator Studio game
+
+The Studio now launches into **Operation Black Ledger**, an offline corporate-crisis simulation. Run `npm install` then `npm run dev` and open the displayed local URL. Assume command, select the eight stations in the room, inspect and tag evidence, take operational actions, then convene the executive response to see the ending your decisions produced. Progress is saved locally in the browser.
+
+Controls: click a station to focus it; use the pause control to stop simulation time; use the settings control for quality and accessibility preferences. The WebGL command centre is keyboard accessible and honours reduced-motion preferences.
+
+### Media authoring
+
+Future MP4/WebM scenes should be placed under `public/media/scenarios/operation-black-ledger/`. Scenario playback must define a procedural fallback before media is enabled so offline or missing assets never produce an empty panel. Keep scenario facts and consequences in `src/scenario.ts`, separate from the player interface.
+
+### Current limitations
+
+The game uses an offline Three.js-compatible WebGL runtime vendored in the repository because the build environment blocks public registries. Sound controls are present, but generated Web Audio ambience is not yet enabled. Save data uses localStorage and is device-local.

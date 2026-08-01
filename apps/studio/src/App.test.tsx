@@ -1,35 +1,42 @@
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-
-const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
-vi.mock("@tauri-apps/api/core", () => ({ invoke }));
-
-beforeEach(() => {
-  invoke.mockReset();
-  invoke.mockImplementation((command: string) => {
-    if (command.startsWith("list_")) return Promise.resolve([]);
-    if (command === "create_user")
-      return Promise.resolve({ id: "u1", displayName: "Ada", createdAt: 1, updatedAt: 1 });
-    return Promise.resolve(undefined);
-  });
-});
-
-describe("App", () => {
-  it("shows the local milestone workflow", async () => {
+import { initialRisks, outcome, stations } from "./scenario";
+vi.mock("./rendering/CommandCentre", () => ({
+  CommandCentre: class {
+    onPrompt?: (value: unknown) => void;
+    onInteract?: (value: unknown) => void;
+    constructor(host: HTMLElement) {
+      const canvas = document.createElement("canvas");
+      canvas.dataset.renderer = "three";
+      host.appendChild(canvas);
+    }
+    dispose() {}
+    setAlert() {}
+    setQuality() {}
+    setReducedMotion() {}
+    focus() {}
+    playOpening() {}
+  },
+}));
+beforeEach(() => localStorage.clear());
+describe("physical command-centre experience", () => {
+  it("opens on a procedural Three.js cinematic", () => {
     render(<App />);
-    expect(screen.getByRole("heading", { name: "RiskMulator Studio" })).toBeVisible();
-    expect(screen.getByText(/data never leaves this device/i)).toBeVisible();
-    await waitFor(() => expect(invoke).toHaveBeenCalledWith("list_users"));
+    expect(document.querySelector('canvas[data-renderer="three"]')).toBeInTheDocument();
+    expect(screen.getByText(/operation/i)).toBeVisible();
   });
-
-  it("creates a local user through the command boundary", async () => {
+  it("enters first-person play without floating station buttons", () => {
     render(<App />);
-    fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Ada" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add user" }));
-    await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("create_user", { input: { displayName: "Ada" } }),
+    fireEvent.click(screen.getByRole("button", { name: /skip cinematic/i }));
+    expect(screen.getByLabelText(/3d crisis command centre/i)).toBeVisible();
+    expect(screen.queryByRole("button", { name: /open evidence/i })).not.toBeInTheDocument();
+    expect(Object.keys(stations)).toHaveLength(8);
+  });
+  it("branches the coordinated-threat ending from investigation actions", () => {
+    expect(outcome(["preserve", "verify", "isolate"], initialRisks).title).toBe(
+      "COORDINATED THREAT",
     );
   });
 });
