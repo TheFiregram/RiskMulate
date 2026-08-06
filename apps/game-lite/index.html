@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RiskMulate: Plant Walkdown</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#eef3f7;background:#0b1117}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(#17232d 0 46%,#1f2b24 46%)}button,input,select,textarea{font:inherit}.app{max-width:1180px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center}.brand{font-weight:800;letter-spacing:.08em}.score{background:#101820;border:1px solid #314351;border-radius:12px;padding:10px 14px}.scene{margin-top:18px;min-height:330px;position:relative;overflow:hidden;border:1px solid #3b4b56;border-radius:18px;background:linear-gradient(165deg,#657988 0 38%,#8c785b 38% 40%,#4d5b49 40%);box-shadow:0 20px 50px #0008}.sky{position:absolute;inset:0 0 44%;background:linear-gradient(#6b8598,#b5c2c8)}.ground{position:absolute;inset:44% 0 0;background:linear-gradient(12deg,#334137,#64705a)}.plant{position:absolute;left:8%;bottom:12%;width:84%;height:54%}.tank{position:absolute;bottom:0;width:130px;height:150px;border-radius:55px 55px 10px 10px;background:linear-gradient(90deg,#6d7478,#a8afb1,#575f62);border:4px solid #41494d}.tank:before{content:"";position:absolute;top:35px;left:-35px;width:200px;height:16px;background:#39464b;box-shadow:0 42px #39464b}.tank.a{left:6%}.tank.b{right:8%;height:180px}.pipe{position:absolute;left:22%;right:20%;bottom:55px;height:22px;background:#b86832;border:4px solid #6e4129}.pipe:after{content:"";position:absolute;right:10%;bottom:0;width:22px;height:110px;background:#b86832;border:4px solid #6e4129}.shed{position:absolute;left:38%;bottom:0;width:250px;height:125px;background:#49545b;border:5px solid #303a40;clip-path:polygon(0 18%,50% 0,100% 18%,100% 100%,0 100%)}.hazard{position:absolute;left:47%;bottom:10%;width:82px;height:82px;border:3px solid #ffcf55;background:#251f12cc;border-radius:50%;display:grid;place-items:center;font-size:40px;cursor:pointer;animation:pulse 1.5s infinite}@keyframes pulse{50%{transform:scale(1.08);box-shadow:0 0 0 12px #ffcf5522}}.hud{position:absolute;left:16px;top:16px;background:#071016cc;border:1px solid #81909a66;border-radius:12px;padding:12px;max-width:380px}.controls{display:grid;grid-template-columns:1.3fr .7fr;gap:18px;margin-top:18px}.panel{background:#111a22;border:1px solid #314351;border-radius:16px;padding:18px}.steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.step{padding:7px 10px;border-radius:999px;background:#1a2731;color:#91a4b2;font-size:13px}.step.active{background:#d88935;color:#111;font-weight:800}.step.done{background:#244b3b;color:#bdf5cf}.question{font-size:20px;font-weight:750;margin:8px 0}.options{display:grid;gap:9px}.option{border:1px solid #425564;background:#18232c;color:#eef3f7;border-radius:10px;padding:12px;text-align:left;cursor:pointer}.option:hover{border-color:#e3a255}.feedback{margin-top:12px;padding:12px;border-radius:10px;background:#0c141a;border-left:4px solid #d88935;min-height:48px}.register{width:100%;border-collapse:collapse;font-size:13px}.register td,.register th{padding:8px;border-bottom:1px solid #2b3944;text-align:left}.heat{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:12px}.cell{aspect-ratio:1;border-radius:5px;display:grid;place-items:center;color:#111;font-weight:800;background:hsl(calc(120 - var(--r)*10),70%,55%)}.footer{margin-top:12px;color:#91a4b2;font-size:13px}@media(max-width:800px){.controls{grid-template-columns:1fr}.scene{min-height:280px}.tank{transform:scale(.8);transform-origin:bottom}.shed{left:30%;width:190px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><div><div class="brand">RISKMULATE</div><small>Plant Walkdown Training Slice</small></div><div class="score">Score: <strong id="score">0</strong> · Stage: <strong id="stageName">Context</strong></div></div>
+  <section class="scene" aria-label="industrial inspection scene">
+    <div class="sky"></div><div class="ground"></div>
+    <div class="plant"><div class="tank a"></div><div class="tank b"></div><div class="pipe"></div><div class="shed"></div><button class="hazard" id="hazard" aria-label="Inspect leaking pipe">!</button></div>
+    <div class="hud"><strong>Objective</strong><div id="objective">Keep the blending plant operational without harming people, environment, schedule, or product quality.</div></div>
+  </section>
+  <div class="controls">
+    <section class="panel">
+      <div class="steps" id="steps"></div>
+      <div class="question" id="question">Select the highlighted inspection point.</div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback">Inspect the scene to begin.</div>
+    </section>
+    <aside class="panel">
+      <strong>Risk Register</strong>
+      <table class="register"><thead><tr><th>Risk</th><th>Inherent</th><th>Residual</th><th>Status</th></tr></thead><tbody id="register"><tr><td colspan="4">No risk recorded yet.</td></tr></tbody></table>
+      <strong style="display:block;margin-top:16px">5 × 5 Matrix</strong><div class="heat" id="heat"></div>
+      <div class="footer">Likelihood and impact are scored separately. Risk score = likelihood × impact.</div>
+    </aside>
+  </div>
+</div>
+<script>
+const stages=['Context','Identify','Analyze','Evaluate','Treat','Monitor'];
+const questions=[
+ {q:'Which statement best defines the inspection objective?',a:0,o:['Maintain safe, compliant production and protect schedule and product quality.','Find every physical defect in the plant.','Eliminate all uncertainty before production starts.'],f:'Good context setting links risk work to objectives. Risk is the effect of uncertainty on objectives.'},
+ {q:'Which risk statement has a clear cause → event → consequence chain?',a:1,o:['The pipe is dangerous.','Because flange bolts may be under-torqued, solvent could leak, causing worker exposure, fire, shutdown, and delay.','A leak might happen and be bad.'],f:'A useful risk statement separates cause, uncertain event, and consequences.'},
+ {q:'Assess the inherent risk before added controls.',a:2,o:['Likelihood 1, Impact 2','Likelihood 3, Impact 2','Likelihood 4, Impact 5'],f:'A solvent leak near ignition sources is plausible and may cause severe harm and shutdown. Inherent score: 20.'},
+ {q:'The acceptance threshold is 9. What is the correct decision?',a:1,o:['Accept the risk without action.','Treat the risk before startup.','Remove it from the register.'],f:'A score of 20 exceeds the threshold. The risk requires treatment and escalation.'},
+ {q:'Which treatment is strongest for this scenario?',a:0,o:['Isolate the line, replace the gasket, torque-test the flange, verify gas readings, then restart under permit.','Add a warning sign beside the leak.','Transfer the risk to an insurer and continue production.'],f:'This package reduces likelihood through engineering and procedural controls. Insurance does not control the hazardous event.'},
+ {q:'After treatment, likelihood is 2 and impact remains 5. What should happen next?',a:2,o:['Close the risk permanently.','Lower impact to 2 without evidence.','Record residual score 10, seek approval, monitor gas readings and flange condition.'],f:'Residual risk remains above the threshold. Record it, assign ownership, gain approval, and monitor indicators.'}
+];
+let stage=-1,score=0,found=false;
+const $=id=>document.getElementById(id);
+function renderSteps(){ $('steps').innerHTML=stages.map((s,i)=>`<span class="step ${i===stage?'active':i<stage?'done':''}">${s}</span>`).join(''); $('stageName').textContent=stage<0?'Inspection':stages[stage]; }
+function renderHeat(){let h='';for(let impact=5;impact>=1;impact--)for(let likelihood=1;likelihood<=5;likelihood++){const r=likelihood*impact;h+=`<div class="cell" style="--r:${Math.min(r,12)}" title="L${likelihood} × I${impact} = ${r}">${r}</div>`}$('heat').innerHTML=h}
+function start(){if(found)return;found=true;stage=0;$('hazard').style.animation='none';ask();}
+function ask(){renderSteps();const item=questions[stage];$('question').textContent=item.q;$('options').innerHTML=item.o.map((x,i)=>`<button class="option" onclick="answer(${i})">${x}</button>`).join('');$('feedback').textContent='Choose the strongest risk-management response.'}
+window.answer=i=>{const item=questions[stage];document.querySelectorAll('.option').forEach(b=>b.disabled=true);if(i===item.a){score+=100;$('feedback').textContent='Correct. '+item.f;}else{score=Math.max(0,score-25);$('feedback').textContent='Review: '+item.f;}$('score').textContent=score;updateRegister();setTimeout(()=>{stage++;if(stage<questions.length)ask();else finish()},900)};
+function updateRegister(){if(stage<1)return;const residual=stage>=5?'10':'—';const status=stage>=5?'Monitor / approve':stage>=4?'Treatment selected':'Open';$('register').innerHTML=`<tr><td>Solvent flange leak</td><td>20</td><td>${residual}</td><td>${status}</td></tr>`}
+function finish(){renderSteps();$('stageName').textContent='Debrief';$('question').textContent='Scenario complete';$('options').innerHTML='<button class="option" onclick="location.reload()">Replay scenario</button>';$('feedback').textContent=`Debrief: You linked the risk to objectives, recorded a cause–event–consequence statement, assessed inherent risk, compared it with criteria, selected controls, and recorded residual risk. Final score: ${score}/600.`}
+$('hazard').addEventListener('click',start);renderSteps();renderHeat();
+</script>
+</body>
+</html>
