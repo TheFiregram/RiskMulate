@@ -1,5 +1,6 @@
 let cachedMaterials;
 const animatedDrops = [];
+let rackNormalized = false;
 
 function seededRandom(seed) {
   let value = seed >>> 0;
@@ -100,6 +101,16 @@ export function getIndustrialMaterials(THREE) {
       transparent: true,
       opacity: 0.72,
     }),
+    support: new THREE.MeshStandardMaterial({
+      color: 0x424c51,
+      roughness: 0.7,
+      metalness: 0.48,
+    }),
+    supportDark: new THREE.MeshStandardMaterial({
+      color: 0x293238,
+      roughness: 0.76,
+      metalness: 0.5,
+    }),
   };
   return cachedMaterials;
 }
@@ -129,7 +140,104 @@ function addWasher(THREE, group, x, y, z, material) {
   return washer;
 }
 
+function addWorldPipe(THREE, scene, material, x, y, z, length, radius) {
+  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 16), material);
+  orientAlongX(pipe);
+  pipe.position.set(x, y, z);
+  pipe.userData.organizedPipe = true;
+  scene.add(pipe);
+  return pipe;
+}
+
+function addWorldBox(THREE, scene, material, x, y, z, width, height, depth) {
+  const object = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
+  object.position.set(x, y, z);
+  object.userData.pipeRackSupport = true;
+  scene.add(object);
+  return object;
+}
+
+function near(value, target, tolerance = 0.08) {
+  return Math.abs(value - target) <= tolerance;
+}
+
+function removeLegacyPipeGeometry(scene, materials) {
+  const oldPipes = scene.children.filter(
+    (child) => child.isMesh
+      && child.geometry?.type === 'CylinderGeometry'
+      && child.material === materials.pipe
+      && !child.userData.organizedPipe,
+  );
+
+  for (const pipe of oldPipes) {
+    scene.remove(pipe);
+    pipe.geometry?.dispose?.();
+  }
+
+  const oldSupports = scene.children.filter((child) => {
+    if (!child.isMesh || child.geometry?.type !== 'BoxGeometry') return false;
+    const leftSupport = near(child.position.x, -3.4) && near(child.position.y, 1.3) && near(child.position.z, -6.8);
+    const rightSupport = near(child.position.x, 5.8) && near(child.position.y, 1.3) && near(child.position.z, -6.8);
+    return leftSupport || rightSupport;
+  });
+
+  for (const support of oldSupports) {
+    scene.remove(support);
+    support.geometry?.dispose?.();
+  }
+}
+
+function buildOrganizedPipeRack(THREE, scene, materials) {
+  if (rackNormalized) return;
+  rackNormalized = true;
+
+  removeLegacyPipeGeometry(scene, materials);
+
+  const rackZ = -7.6;
+  const lowerY = 2.05;
+  const upperY = 3.2;
+
+  // Two clean, parallel process lines replace the previous crossing and disconnected runs.
+  addWorldPipe(THREE, scene, materials.pipe, 0, lowerY, rackZ, 22, 0.25);
+  addWorldPipe(THREE, scene, materials.pipe, 0, upperY, rackZ, 21, 0.23);
+
+  // Repeated T-frames give both lines a readable structural rhythm.
+  for (const supportX of [-7.4, 0, 7.4]) {
+    addWorldBox(THREE, scene, materials.support, supportX, 1.5, rackZ - 0.38, 0.28, 3.0, 0.28);
+    addWorldBox(THREE, scene, materials.supportDark, supportX, 1.78, rackZ, 0.3, 0.12, 1.35);
+    addWorldBox(THREE, scene, materials.supportDark, supportX, 2.94, rackZ, 0.3, 0.12, 1.35);
+    addWorldBox(THREE, scene, materials.supportDark, supportX, 0.06, rackZ - 0.38, 0.58, 0.12, 0.58);
+  }
+}
+
+function resolveLegacyPlacement(options) {
+  const placement = { ...options };
+
+  // These mappings migrate the original prototype positions into the cleaner rack layout.
+  if (options.leaking) {
+    return { ...placement, x: 4.25, y: 2.05, z: -7.6, axis: 'x', scale: 0.82 };
+  }
+
+  if (near(options.x ?? 0, -4.4) && near(options.y ?? 0, 2.05) && near(options.z ?? 0, -6.8)) {
+    return { ...placement, x: -5.1, y: 2.05, z: -7.6, axis: 'x', scale: 0.8 };
+  }
+
+  if (near(options.x ?? 0, 0.4) && near(options.y ?? 0, 3.2) && near(options.z ?? 0, -10.5)) {
+    return { ...placement, x: 4.9, y: 3.2, z: -7.6, axis: 'x', scale: 0.76 };
+  }
+
+  if (near(options.x ?? 0, 4.2) && near(options.y ?? 0, 1.2) && near(options.z ?? 0, -4.7)) {
+    return { ...placement, x: -2.75, y: 3.2, z: -7.6, axis: 'x', scale: 0.76 };
+  }
+
+  return placement;
+}
+
 export function createIndustrialFlange(THREE, scene, options = {}) {
+  const materials = getIndustrialMaterials(THREE);
+  buildOrganizedPipeRack(THREE, scene, materials);
+
+  const resolved = resolveLegacyPlacement(options);
   const {
     x = 0,
     y = 0,
@@ -139,9 +247,8 @@ export function createIndustrialFlange(THREE, scene, options = {}) {
     interactive = false,
     label = 'Inspect flange',
     scale = 1,
-  } = options;
+  } = resolved;
 
-  const materials = getIndustrialMaterials(THREE);
   const group = new THREE.Group();
   group.position.set(x, y, z);
   group.scale.setScalar(scale);
@@ -151,19 +258,15 @@ export function createIndustrialFlange(THREE, scene, options = {}) {
     group.userData.label = label;
   }
 
-  // Short rusty pipe sleeves match the approved flange reference and visually
-  // bridge the detailed joint into the lower-poly plant pipe network.
   addCylinder(THREE, group, 0.268, 0.82, materials.pipe, -0.45, 0, 0, 14);
   addCylinder(THREE, group, 0.268, 0.82, materials.pipe, 0.45, 0, 0, 14);
 
-  // Twin steel flange plates with the compressed gasket visible between them.
   addCylinder(THREE, group, 0.515, 0.145, materials.flange, -0.095, 0, 0, 18);
   addCylinder(THREE, group, 0.515, 0.145, materials.flange, 0.095, 0, 0, 18);
   addCylinder(THREE, group, 0.435, 0.036, materials.gasket, 0, 0, 0, 18);
   addCylinder(THREE, group, 0.405, 0.19, materials.flangeEdge, -0.205, 0, 0, 16);
   addCylinder(THREE, group, 0.405, 0.19, materials.flangeEdge, 0.205, 0, 0, 16);
 
-  // Eight bolt sets reproduce the heavy industrial joint visible in the approved asset.
   const boltRadius = 0.39;
   for (let i = 0; i < 8; i += 1) {
     const angle = (i / 8) * Math.PI * 2;
@@ -177,7 +280,6 @@ export function createIndustrialFlange(THREE, scene, options = {}) {
   }
 
   if (leaking) {
-    // Dark wet streak at the failed gasket edge.
     const stain = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.31, 3, 6), materials.stain);
     stain.position.set(0.02, -0.48, 0.24);
     stain.rotation.z = 0.08;
@@ -200,9 +302,8 @@ export function createIndustrialFlange(THREE, scene, options = {}) {
   }
 
   if (interactive) {
-    // Invisible hit volume makes the detailed joint easy to inspect on touch screens.
     const hit = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.64, 0.64, 0.82, 12),
+      new THREE.CylinderGeometry(0.7, 0.7, 0.92, 12),
       new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
     );
     orientAlongX(hit);
