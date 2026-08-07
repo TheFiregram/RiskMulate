@@ -1,4 +1,4 @@
-//! Interface boundary for the RiskMulator plugin manager.
+//! Interface boundary for the `RiskMulator` plugin manager.
 
 /// Marker interface for the plugin manager boundary.
 ///

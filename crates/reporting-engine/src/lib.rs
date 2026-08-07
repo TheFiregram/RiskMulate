@@ -1,4 +1,4 @@
-//! Interface boundary for the RiskMulator reporting engine.
+//! Interface boundary for the `RiskMulator` reporting engine.
 
 /// Marker interface for the reporting engine boundary.
 ///
