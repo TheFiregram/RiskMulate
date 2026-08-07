@@ -7,11 +7,12 @@
   <title>RiskMulate — Chemical Plant Walkdown</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./tablet-ui.css" />
+  <link rel="stylesheet" href="./tablet-nav.css" />
+  <link rel="stylesheet" href="./hud-compact.css" />
 </head>
 <body>
   <main id="game" aria-label="RiskMulate first-person chemical plant simulation"></main>
 
-  <!-- Existing runtime writes to these nodes. The presentation HUD reads them and keeps score out of field view. -->
   <div class="hud-state-sink" aria-hidden="true">
     <span id="score">0</span>
     <span id="stage">Inspection</span>
@@ -47,8 +48,8 @@
   </div>
 
   <div class="hud field-readout" aria-label="Field status">
-    <div><span>RISKS</span><strong id="hudRiskCount">0/1</strong></div>
-    <div><span>EVIDENCE</span><strong id="hudEvidenceCount">0/1</strong></div>
+    <div><span>RISK</span><strong id="hudRiskCount">0/1</strong></div>
+    <div><span>EVID</span><strong id="hudEvidenceCount">0/1</strong></div>
     <div class="field-time"><span>TIME</span><strong id="hudElapsed">00:00</strong></div>
   </div>
 
@@ -78,10 +79,6 @@
   </section>
 
   <section class="tablet" id="tablet" aria-label="RiskMulate field risk tablet">
-    <span class="tablet-screw tablet-screw-a" aria-hidden="true"></span>
-    <span class="tablet-screw tablet-screw-b" aria-hidden="true"></span>
-    <span class="tablet-screw tablet-screw-c" aria-hidden="true"></span>
-    <span class="tablet-screw tablet-screw-d" aria-hidden="true"></span>
     <div class="tablet-screen">
       <header class="tablet-head">
         <div class="tablet-brand-lockup">
@@ -93,108 +90,83 @@
         </div>
         <div class="tablet-session">
           <strong id="tabletClock">--:--</strong>
-          <span>FIELD UNIT 03 · SESSION ACTIVE</span>
+          <span>FIELD UNIT 03</span>
         </div>
         <div class="tablet-device-status">
           <span class="tablet-signal">● LINK</span>
-          <span>81%</span>
           <button class="close-tablet" type="button" onclick="closeTablet()" aria-label="Close field tablet">Close</button>
         </div>
       </header>
 
-      <div class="tablet-layout">
-        <aside class="tablet-nav" aria-label="Tablet sections">
-          <div class="tablet-nav-stack">
-            <div class="tablet-nav-item active"><span>▦</span> Overview</div>
-            <div class="tablet-nav-item"><span>▤</span> Risk Register</div>
-            <div class="tablet-nav-item"><span>▦</span> Risk Matrix</div>
-            <div class="tablet-nav-item"><span>✓</span> Assessments</div>
-            <div class="tablet-nav-item"><span>⌁</span> Treatment Plan</div>
-            <div class="tablet-nav-item"><span>◉</span> Monitoring</div>
-            <div class="tablet-nav-item"><span>▧</span> Evidence Vault</div>
+      <main class="tablet-main-panel" id="tabletMainPanel" data-tablet-view="overview">
+        <div class="tablet-toolbar">
+          <div class="tablet-view-heading">
+            <span id="tabletViewEyebrow">FIELD STATUS</span>
+            <strong id="tabletViewTitle">Overview</strong>
           </div>
+          <nav class="tablet-view-nav" id="tabletViewNav" aria-label="Tablet pages">
+            <button type="button" data-tablet-view="overview" aria-selected="true">Overview</button>
+            <button type="button" data-tablet-view="assess">Assess</button>
+            <button type="button" data-tablet-view="matrix">Matrix</button>
+            <button type="button" data-tablet-view="register">Register</button>
+            <button type="button" data-tablet-view="debrief">Debrief</button>
+          </nav>
+        </div>
 
-          <div class="tablet-scenario-card">
-            <span>CURRENT SCENARIO</span>
-            <strong>Chemical Plant Walkdown</strong>
-            <small id="tabletPhase">Inspection</small>
-            <div class="tablet-progress-track"><i id="tabletScenarioBar"></i></div>
-            <b id="tabletScenarioPct">0%</b>
+        <section class="tablet-statusbar" aria-label="Scenario status">
+          <div class="tablet-stat">
+            <span>RISKS</span>
+            <strong id="tabletRiskCount">0</strong>
           </div>
-        </aside>
-
-        <main class="tablet-main-panel">
-          <div class="tablet-title-row">
-            <div>
-              <span class="tablet-eyebrow">SITUATION AT A GLANCE</span>
-              <h2>Risk Overview</h2>
-            </div>
-            <div class="tablet-context-chip">STARTUP READINESS</div>
+          <div class="tablet-stat">
+            <span>INHERENT</span>
+            <strong id="tabletInherent">—</strong>
           </div>
-
-          <div class="tablet-kpis" aria-label="Scenario risk summary">
-            <article class="tablet-kpi">
-              <span>RECORDED RISKS</span>
-              <div><strong id="tabletRiskCount">0</strong><small>current scenario</small></div>
-            </article>
-            <article class="tablet-kpi">
-              <span>INHERENT RISK</span>
-              <div><strong id="tabletInherent">—</strong><em class="risk-tag high">HIGH</em></div>
-              <small>before added controls</small>
-            </article>
-            <article class="tablet-kpi">
-              <span>RESIDUAL RISK</span>
-              <div><strong id="tabletResidual">—</strong><em class="risk-tag high">HIGH</em></div>
-              <small>after treatment</small>
-            </article>
-            <article class="tablet-kpi">
-              <span>ASSESSMENT PROGRESS</span>
-              <div><strong id="tabletTreatmentPct">0%</strong><span class="radial-meter" id="tabletRadialMeter"></span></div>
-              <small id="tabletProgressDetail">Inspect evidence to begin</small>
-            </article>
+          <div class="tablet-stat">
+            <span>RESIDUAL</span>
+            <strong id="tabletResidual">—</strong>
           </div>
+          <div class="tablet-stat tablet-stat-progress">
+            <span>PROGRESS</span>
+            <strong id="tabletTreatmentPct">0%</strong>
+          </div>
+        </section>
 
-          <section class="tablet-workspace">
-            <div class="tablet-workspace-head">
-              <div>
-                <span class="tablet-eyebrow">RISK PROCESS</span>
-                <strong id="tabletWorkspaceTitle">Field assessment</strong>
-              </div>
-              <nav class="tabs" id="tabletTabs" aria-label="Risk management stages"></nav>
-            </div>
-            <div class="tablet-body" id="tabletBody">
-              <div class="question">Inspect the highlighted flange in the plant to begin the assessment.</div>
-            </div>
-          </section>
-        </main>
-
-        <aside class="tablet-side-panel">
-          <section class="tablet-side-card">
-            <header><b>MY TASKS</b><span id="tabletTaskCount">3 OPEN</span></header>
-            <div class="tablet-task" id="tabletTaskInspect"><i></i><div><strong>Inspect flange evidence</strong><span>Field walkdown · Priority</span></div></div>
-            <div class="tablet-task" id="tabletTaskAssess"><i></i><div><strong>Complete risk assessment</strong><span>Likelihood × impact</span></div></div>
-            <div class="tablet-task" id="tabletTaskTreat"><i></i><div><strong>Record treatment decision</strong><span>Control and residual risk</span></div></div>
-          </section>
-
-          <section class="tablet-side-card">
-            <header><b>STARTUP GATES</b><span>LIVE</span></header>
-            <div class="tablet-event"><span class="event-icon">01</span><div><strong>Hazard review</strong><small>Evidence and assessment</small></div></div>
-            <div class="tablet-event"><span class="event-icon">02</span><div><strong>Risk acceptance</strong><small>Threshold: 9</small></div></div>
-            <div class="tablet-event"><span class="event-icon">03</span><div><strong>Restart decision</strong><small>Residual approval required</small></div></div>
-          </section>
-
-          <section class="tablet-side-card tablet-update-card">
-            <header><b>RECENT UPDATE</b><span>NOW</span></header>
+        <section class="tablet-overview-panel" id="tabletOverviewPanel">
+          <div class="tablet-overview-focus">
+            <span class="tablet-eyebrow">CURRENT POSITION</span>
+            <strong id="tabletOverviewStatus">Field inspection</strong>
             <p id="tabletUpdate">No field evidence recorded yet. Inspect the highlighted asset to start the risk cycle.</p>
-          </section>
-        </aside>
-      </div>
+          </div>
+          <div class="tablet-overview-progress">
+            <div>
+              <span id="tabletPhase">Inspection</span>
+              <b id="tabletScenarioPct">0%</b>
+            </div>
+            <div class="tablet-progress-track"><i id="tabletScenarioBar"></i></div>
+          </div>
+          <div class="tablet-overview-actions">
+            <button type="button" data-jump-view="assess">Continue assessment</button>
+            <button type="button" data-jump-view="matrix">Open risk matrix</button>
+          </div>
+        </section>
+
+        <section class="tablet-workspace" id="tabletWorkspace">
+          <div class="tablet-workspace-head">
+            <div>
+              <span class="tablet-eyebrow">RISK PROCESS</span>
+              <strong id="tabletWorkspaceTitle">Field assessment</strong>
+            </div>
+            <nav class="tabs" id="tabletTabs" aria-label="Risk management stages"></nav>
+          </div>
+          <div class="tablet-body view-assess" id="tabletBody">
+            <div class="question">Inspect the highlighted flange in the plant to begin the assessment.</div>
+          </div>
+        </section>
+      </main>
 
       <footer class="tablet-foot">
-        <span><b>HOME</b></span>
-        <span>COMMUNICATIONS</span>
-        <span>EVIDENCE</span>
-        <span>ANNOTATIONS</span>
+        <span id="tabletNavHint">Tap a page · swipe left/right</span>
         <span class="tablet-sync">● DEVICE SYNCED</span>
       </footer>
     </div>
