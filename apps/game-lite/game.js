@@ -5,6 +5,7 @@ import {
   getIndustrialMaterials,
   updateFlangeEffects,
 } from './flanges.js';
+import { buildConcretePerimeter } from './walls.js';
 
 const coarsePointer = matchMedia('(pointer: coarse)').matches;
 const gameRoot = document.querySelector('#game');
@@ -59,6 +60,7 @@ const materials = {
 
 const obstacles = [];
 const interactables = [];
+const playableHalfSize = 26.65;
 
 function mesh(geometry, material, x, y, z, rotation = [0, 0, 0]) {
   const object = new THREE.Mesh(geometry, material);
@@ -104,16 +106,7 @@ function addPipe(x, y, z, length, radius = 0.24, axis = 'x') {
   return pipe;
 }
 
-function addFenceLine(startX, endX, z) {
-  const length = Math.abs(endX - startX);
-  addBox((startX + endX) / 2, 1, z, length, 2, 0.08, materials.darkMetal);
-  for (let x = startX; x <= endX; x += 3) {
-    addBox(x, 1.15, z, 0.09, 2.3, 0.09, materials.darkMetal);
-  }
-}
-
 function addFlangeNetwork() {
-  // The approved rusty, bolted joint is now the canonical flange language.
   const leakingFlange = createIndustrialFlange(THREE, scene, {
     x: 2.4,
     y: 2.05,
@@ -126,7 +119,6 @@ function addFlangeNetwork() {
   });
   interactables.push(leakingFlange);
 
-  // Matching non-failed joints make the visual language consistent across the plant.
   createIndustrialFlange(THREE, scene, {
     x: -4.4,
     y: 2.05,
@@ -180,9 +172,12 @@ function buildPlant() {
     addBox(-19 + i * 2.1, 0.45, 7.8, 1.3, 0.9, 1.1, materials.darkMetal, true);
   }
 
-  addFenceLine(-25, 25, -24);
-  addFenceLine(-25, -5, 24);
-  addFenceLine(6, 25, 24);
+  // Straight and 90-degree concrete modules now form every surrounding wall.
+  buildConcretePerimeter(THREE, scene, {
+    halfSize: 27.2,
+    segmentLength: 4,
+    height: 2.5,
+  });
 
   for (let i = 0; i < 24; i += 1) {
     const size = 0.15 + Math.random() * 0.3;
@@ -234,7 +229,9 @@ function syncHud() {
 }
 
 function canOccupy(x, z) {
-  if (x < -27 || x > 27 || z < -27 || z > 27) return false;
+  if (x < -playableHalfSize || x > playableHalfSize || z < -playableHalfSize || z > playableHalfSize) {
+    return false;
+  }
   for (const obstacle of obstacles) {
     const halfW = obstacle.w / 2 + player.radius;
     const halfD = obstacle.d / 2 + player.radius;
