@@ -6,52 +6,151 @@ const BUILDING_GRID = 1;
 
 let cachedBuildingMaterials;
 
-function makeTextureCanvas(baseColor, seed = 1, size = 256) {
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
+function seededRandom(seed) {
   let value = seed >>> 0;
-  const random = () => {
+  return () => {
     value = (value * 1664525 + 1013904223) >>> 0;
     return value / 4294967296;
   };
+}
+
+function createCanvas(size = 512) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  return canvas;
+}
+
+function createGenericTextureCanvas(baseColor, seed = 1, size = 256) {
+  const canvas = createCanvas(size);
+  const ctx = canvas.getContext('2d');
+  const random = seededRandom(seed);
 
   ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, size, size);
 
   for (let i = 0; i < 3800; i += 1) {
-    const tone = 66 + Math.floor(random() * 36);
-    ctx.globalAlpha = 0.02 + random() * 0.07;
-    ctx.fillStyle = `rgb(${tone},${tone + 4},${tone + 7})`;
-    const s = 0.4 + random() * 1.8;
+    const tone = 56 + Math.floor(random() * 42);
+    ctx.globalAlpha = 0.02 + random() * 0.06;
+    ctx.fillStyle = `rgb(${tone},${tone + 3},${tone + 4})`;
+    const s = 0.35 + random() * 1.7;
     ctx.fillRect(random() * size, random() * size, s, s);
   }
 
-  ctx.globalAlpha = 0.16;
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-  ctx.lineWidth = 1;
-  for (const y of [size * 0.33, size * 0.66]) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(size, y);
-    ctx.stroke();
-  }
-
-  for (let i = 0; i < 40; i += 1) {
-    const x = random() * size;
-    const y = random() * size * 0.75;
-    const h = size * (0.05 + random() * 0.2);
-    const w = 1 + random() * 4;
-    const grad = ctx.createLinearGradient(x, y, x, y + h);
-    grad.addColorStop(0, 'rgba(0,0,0,0)');
-    grad.addColorStop(0.4, 'rgba(15,18,20,0.45)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(x, y, w, h);
-  }
-
   ctx.globalAlpha = 1;
+  return canvas;
+}
+
+function createCinderBlockAlbedoCanvas(size = 512, seed = 8808) {
+  const canvas = createCanvas(size);
+  const ctx = canvas.getContext('2d');
+  const random = seededRandom(seed);
+
+  ctx.fillStyle = '#a19f96';
+  ctx.fillRect(0, 0, size, size);
+
+  for (let i = 0; i < 6400; i += 1) {
+    const tone = 138 + Math.floor(random() * 40);
+    ctx.globalAlpha = 0.03 + random() * 0.08;
+    ctx.fillStyle = `rgb(${tone},${tone},${Math.max(0, tone - 5)})`;
+    const s = 0.5 + random() * 2.2;
+    ctx.fillRect(random() * size, random() * size, s, s);
+  }
+
+  const cols = 4;
+  const rows = 8;
+  const blockW = size / cols;
+  const rowH = size / rows;
+  const mortar = Math.max(4, Math.round(size * 0.008));
+
+  for (let row = 0; row < rows; row += 1) {
+    const y = row * rowH;
+    const offset = row % 2 === 0 ? 0 : blockW / 2;
+    ctx.fillStyle = '#c4c0b6';
+    ctx.globalAlpha = 0.95;
+    ctx.fillRect(0, y, size, mortar);
+
+    for (let col = -1; col < cols + 1; col += 1) {
+      const x = col * blockW + offset;
+      ctx.fillRect(x - mortar / 2, y, mortar, rowH);
+    }
+
+    for (let col = -1; col < cols + 1; col += 1) {
+      const x = col * blockW + offset + mortar * 0.5;
+      const w = blockW - mortar;
+      if (x >= size || x + w <= 0) continue;
+
+      const shade = 148 + Math.floor(random() * 18) - row * 2;
+      ctx.globalAlpha = 0.11;
+      ctx.fillStyle = `rgb(${shade},${shade},${shade - 4})`;
+      ctx.fillRect(x, y + mortar, w, rowH - mortar);
+
+      ctx.globalAlpha = 0.07;
+      ctx.strokeStyle = 'rgba(70,64,58,0.65)';
+      ctx.strokeRect(x + 1, y + mortar + 1, w - 2, rowH - mortar - 2);
+
+      if (random() > 0.45) {
+        ctx.globalAlpha = 0.1;
+        const stainX = x + random() * w;
+        const stainY = y + random() * rowH * 0.4;
+        const stainH = rowH * (0.2 + random() * 0.45);
+        const grad = ctx.createLinearGradient(stainX, stainY, stainX, stainY + stainH);
+        grad.addColorStop(0, 'rgba(90,80,67,0)');
+        grad.addColorStop(0.35, 'rgba(90,80,67,0.8)');
+        grad.addColorStop(1, 'rgba(90,80,67,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(stainX, stainY, 2 + random() * 5, stainH);
+      }
+    }
+  }
+
+  const groundGrime = ctx.createLinearGradient(0, size * 0.68, 0, size);
+  groundGrime.addColorStop(0, 'rgba(82,72,60,0)');
+  groundGrime.addColorStop(1, 'rgba(82,72,60,0.32)');
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = groundGrime;
+  ctx.fillRect(0, size * 0.68, size, size * 0.32);
+
+  return canvas;
+}
+
+function createCinderBlockHeightCanvas(size = 512, seed = 8817) {
+  const canvas = createCanvas(size);
+  const ctx = canvas.getContext('2d');
+  const random = seededRandom(seed);
+  const cols = 4;
+  const rows = 8;
+  const blockW = size / cols;
+  const rowH = size / rows;
+  const mortar = Math.max(4, Math.round(size * 0.008));
+
+  ctx.fillStyle = 'rgb(152,152,152)';
+  ctx.fillRect(0, 0, size, size);
+
+  for (let row = 0; row < rows; row += 1) {
+    const y = row * rowH;
+    const offset = row % 2 === 0 ? 0 : blockW / 2;
+
+    ctx.fillStyle = 'rgb(118,118,118)';
+    ctx.fillRect(0, y, size, mortar);
+
+    for (let col = -1; col < cols + 1; col += 1) {
+      const x = col * blockW + offset;
+      ctx.fillRect(x - mortar / 2, y, mortar, rowH);
+    }
+
+    for (let col = -1; col < cols + 1; col += 1) {
+      const x = col * blockW + offset + mortar * 0.5;
+      const w = blockW - mortar;
+      if (x >= size || x + w <= 0) continue;
+      const tone = 160 + Math.floor(random() * 10);
+      ctx.fillStyle = `rgb(${tone},${tone},${tone})`;
+      ctx.fillRect(x, y + mortar, w, rowH - mortar);
+      ctx.strokeStyle = 'rgba(185,185,185,0.45)';
+      ctx.strokeRect(x + 1, y + mortar + 1, w - 2, rowH - mortar - 2);
+    }
+  }
+
   return canvas;
 }
 
@@ -62,22 +161,31 @@ function createTexture(THREE, canvas, repeatX = 1, repeatY = 1) {
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(repeatX, repeatY);
   texture.anisotropy = 2;
+  texture.needsUpdate = true;
   return texture;
 }
 
 export function getBuildingWallMaterials(THREE) {
   if (cachedBuildingMaterials) return cachedBuildingMaterials;
 
-  const mainMap = createTexture(THREE, makeTextureCanvas('#445055', 3011), 1.6, 1.4);
-  const trimMap = createTexture(THREE, makeTextureCanvas('#262d31', 3017), 1.2, 0.5);
-  const plinthMap = createTexture(THREE, makeTextureCanvas('#626864', 3023), 1.6, 0.6);
-  const glassMap = createTexture(THREE, makeTextureCanvas('#6d8794', 3031), 1, 1);
-  const louverMap = createTexture(THREE, makeTextureCanvas('#2b3338', 3049), 1, 1);
+  const cinderBlockMap = createTexture(THREE, createCinderBlockAlbedoCanvas(512, 8808), 1.15, 1.15);
+  const cinderBlockBump = createTexture(THREE, createCinderBlockHeightCanvas(512, 8817), 1.15, 1.15);
+  const trimMap = createTexture(THREE, createGenericTextureCanvas('#262d31', 3017), 1.2, 0.5);
+  const plinthMap = createTexture(THREE, createGenericTextureCanvas('#747067', 3023), 1.3, 0.65);
+  const glassMap = createTexture(THREE, createGenericTextureCanvas('#6d8794', 3031), 1, 1);
+  const louverMap = createTexture(THREE, createGenericTextureCanvas('#2b3338', 3049), 1, 1);
 
   cachedBuildingMaterials = {
-    facade: new THREE.MeshStandardMaterial({ color: 0xffffff, map: mainMap, roughness: 0.9, metalness: 0.05 }),
+    facade: new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      map: cinderBlockMap,
+      bumpMap: cinderBlockBump,
+      bumpScale: 0.022,
+      roughness: 0.95,
+      metalness: 0.02,
+    }),
     trim: new THREE.MeshStandardMaterial({ color: 0xffffff, map: trimMap, roughness: 0.72, metalness: 0.22 }),
-    plinth: new THREE.MeshStandardMaterial({ color: 0xffffff, map: plinthMap, roughness: 0.93, metalness: 0.03 }),
+    plinth: new THREE.MeshStandardMaterial({ color: 0xffffff, map: plinthMap, roughness: 0.94, metalness: 0.02 }),
     glass: new THREE.MeshStandardMaterial({ color: 0xffffff, map: glassMap, roughness: 0.22, metalness: 0.08, transparent: true, opacity: 0.92 }),
     louver: new THREE.MeshStandardMaterial({ color: 0xffffff, map: louverMap, roughness: 0.78, metalness: 0.28 }),
   };
