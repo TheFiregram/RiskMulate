@@ -4,16 +4,17 @@ function getMaterials(THREE) {
   if (cachedMaterials) return cachedMaterials;
 
   cachedMaterials = {
-    concrete: new THREE.MeshStandardMaterial({ color: 0x7d7b73, roughness: 0.96, metalness: 0.02 }),
-    concreteDark: new THREE.MeshStandardMaterial({ color: 0x53524d, roughness: 0.98, metalness: 0.01 }),
-    steel: new THREE.MeshStandardMaterial({ color: 0x515859, roughness: 0.72, metalness: 0.56 }),
-    steelDark: new THREE.MeshStandardMaterial({ color: 0x2b3031, roughness: 0.76, metalness: 0.58 }),
-    yellow: new THREE.MeshStandardMaterial({ color: 0xcaa630, roughness: 0.88, metalness: 0.04 }),
-    wood: new THREE.MeshStandardMaterial({ color: 0x7a5534, roughness: 0.94, metalness: 0.01 }),
-    woodDark: new THREE.MeshStandardMaterial({ color: 0x523823, roughness: 0.96, metalness: 0.01 }),
-    cable: new THREE.MeshStandardMaterial({ color: 0x202222, roughness: 0.96, metalness: 0.02 }),
-    slab: new THREE.MeshStandardMaterial({ color: 0x55544e, roughness: 1, metalness: 0 }),
-    stain: new THREE.MeshStandardMaterial({ color: 0x302f2b, roughness: 1, metalness: 0, transparent: true, opacity: 0.26 }),
+    concrete: new THREE.MeshStandardMaterial({ color: 0x85827a, roughness: 0.97, metalness: 0.01 }),
+    concreteDark: new THREE.MeshStandardMaterial({ color: 0x54534f, roughness: 0.99, metalness: 0.01 }),
+    steel: new THREE.MeshStandardMaterial({ color: 0x555d5e, roughness: 0.72, metalness: 0.56 }),
+    steelDark: new THREE.MeshStandardMaterial({ color: 0x2a2f30, roughness: 0.76, metalness: 0.58 }),
+    yellow: new THREE.MeshStandardMaterial({ color: 0xc6a537, roughness: 0.9, metalness: 0.03 }),
+    yellowWorn: new THREE.MeshStandardMaterial({ color: 0xa88931, roughness: 0.96, metalness: 0.01 }),
+    wood: new THREE.MeshStandardMaterial({ color: 0x785234, roughness: 0.95, metalness: 0.01 }),
+    woodDark: new THREE.MeshStandardMaterial({ color: 0x4f3523, roughness: 0.97, metalness: 0.01 }),
+    cable: new THREE.MeshStandardMaterial({ color: 0x202323, roughness: 0.97, metalness: 0.01 }),
+    slab: new THREE.MeshStandardMaterial({ color: 0x5b5a54, roughness: 1, metalness: 0 }),
+    stain: new THREE.MeshStandardMaterial({ color: 0x302f2b, roughness: 1, metalness: 0, transparent: true, opacity: 0.2 }),
   };
 
   return cachedMaterials;
@@ -42,12 +43,12 @@ function addWheelStop(THREE, group, materials, x, z, rotationY = 0) {
   stop.rotation.y = rotationY;
   group.add(stop);
 
-  box(THREE, stop, 1.8, 0.12, 0.22, materials.concrete, 0, 0.06, 0);
-  box(THREE, stop, 1.62, 0.07, 0.16, materials.concrete, 0, 0.145, 0);
-  box(THREE, stop, 0.1, 0.09, 0.225, materials.concreteDark, -0.85, 0.065, 0);
-  box(THREE, stop, 0.1, 0.09, 0.225, materials.concreteDark, 0.85, 0.065, 0);
-  cylinder(THREE, stop, 0.025, 0.025, materials.steelDark, -0.58, 0.205, 0, 'y', 10);
-  cylinder(THREE, stop, 0.025, 0.025, materials.steelDark, 0.58, 0.205, 0, 'y', 10);
+  box(THREE, stop, 1.7, 0.11, 0.2, materials.concrete, 0, 0.055, 0);
+  box(THREE, stop, 1.52, 0.055, 0.14, materials.concrete, 0, 0.138, 0);
+  box(THREE, stop, 0.08, 0.075, 0.205, materials.concreteDark, -0.8, 0.06, 0);
+  box(THREE, stop, 0.08, 0.075, 0.205, materials.concreteDark, 0.8, 0.06, 0);
+  cylinder(THREE, stop, 0.02, 0.02, materials.steelDark, -0.54, 0.185, 0, 'y', 10);
+  cylinder(THREE, stop, 0.02, 0.02, materials.steelDark, 0.54, 0.185, 0, 'y', 10);
 }
 
 function addBollard(THREE, group, materials, x, z) {
@@ -55,48 +56,49 @@ function addBollard(THREE, group, materials, x, z) {
   bollard.position.set(x, 0, z);
   group.add(bollard);
 
-  box(THREE, bollard, 0.26, 0.035, 0.26, materials.steelDark, 0, 0.0175, 0);
-  cylinder(THREE, bollard, 0.075, 0.95, materials.yellow, 0, 0.51, 0, 'y', 18);
-  cylinder(THREE, bollard, 0.082, 0.07, materials.steelDark, 0, 0.985, 0, 'y', 18);
-  cylinder(THREE, bollard, 0.078, 0.07, materials.steelDark, 0, 0.31, 0, 'y', 18);
-  cylinder(THREE, bollard, 0.078, 0.07, materials.steelDark, 0, 0.67, 0, 'y', 18);
+  // Slimmer guard posts fit the pedestrian-scale electrical service area.
+  box(THREE, bollard, 0.19, 0.026, 0.19, materials.steelDark, 0, 0.013, 0);
+  cylinder(THREE, bollard, 0.055, 0.78, materials.yellow, 0, 0.415, 0, 'y', 18);
+  cylinder(THREE, bollard, 0.059, 0.04, materials.steelDark, 0, 0.815, 0, 'y', 18);
+  cylinder(THREE, bollard, 0.058, 0.035, materials.steelDark, 0, 0.28, 0, 'y', 18);
+  cylinder(THREE, bollard, 0.058, 0.035, materials.steelDark, 0, 0.57, 0, 'y', 18);
 
-  for (const bx of [-0.09, 0.09]) {
-    for (const bz of [-0.09, 0.09]) {
-      cylinder(THREE, bollard, 0.012, 0.018, materials.steelDark, bx, 0.047, bz, 'y', 10);
+  for (const bx of [-0.065, 0.065]) {
+    for (const bz of [-0.065, 0.065]) {
+      cylinder(THREE, bollard, 0.008, 0.012, materials.steelDark, bx, 0.034, bz, 'y', 8);
     }
   }
 }
 
 function addUtilityCover(THREE, group, materials, x, z, rotationY = 0) {
   const cover = new THREE.Group();
-  cover.position.set(x, 0.018, z);
+  cover.position.set(x, 0.016, z);
   cover.rotation.y = rotationY;
   group.add(cover);
 
-  box(THREE, cover, 1.0, 0.045, 0.76, materials.steelDark, 0, 0.0225, 0);
-  box(THREE, cover, 0.9, 0.055, 0.66, materials.steel, 0, 0.0525, 0);
-  for (const rx of [-0.34, -0.17, 0, 0.17, 0.34]) {
-    box(THREE, cover, 0.035, 0.018, 0.58, materials.steelDark, rx, 0.09, 0);
+  box(THREE, cover, 0.92, 0.038, 0.68, materials.steelDark, 0, 0.019, 0);
+  box(THREE, cover, 0.84, 0.045, 0.6, materials.steel, 0, 0.045, 0);
+  for (const rx of [-0.3, -0.15, 0, 0.15, 0.3]) {
+    box(THREE, cover, 0.028, 0.014, 0.52, materials.steelDark, rx, 0.076, 0);
   }
-  for (const rz of [-0.22, 0, 0.22]) {
-    box(THREE, cover, 0.78, 0.018, 0.028, materials.steelDark, 0, 0.091, rz);
+  for (const rz of [-0.19, 0, 0.19]) {
+    box(THREE, cover, 0.72, 0.014, 0.024, materials.steelDark, 0, 0.077, rz);
   }
 }
 
 function addDrain(THREE, group, materials, x, z, rotationY = 0) {
   const drain = new THREE.Group();
-  drain.position.set(x, 0.01, z);
+  drain.position.set(x, 0.008, z);
   drain.rotation.y = rotationY;
   group.add(drain);
 
-  box(THREE, drain, 1.4, 0.055, 0.34, materials.concreteDark, 0, 0.0275, 0);
-  box(THREE, drain, 1.28, 0.025, 0.25, materials.steelDark, 0, 0.07, 0);
-  for (let i = -6; i <= 6; i += 1) {
-    box(THREE, drain, 0.035, 0.025, 0.22, materials.steel, i * 0.097, 0.09, 0);
+  box(THREE, drain, 1.25, 0.045, 0.28, materials.concreteDark, 0, 0.0225, 0);
+  box(THREE, drain, 1.16, 0.02, 0.2, materials.steelDark, 0, 0.057, 0);
+  for (let i = -5; i <= 5; i += 1) {
+    box(THREE, drain, 0.028, 0.02, 0.18, materials.steel, i * 0.1, 0.073, 0);
   }
-  box(THREE, drain, 1.26, 0.028, 0.025, materials.steel, 0, 0.09, -0.105);
-  box(THREE, drain, 1.26, 0.028, 0.025, materials.steel, 0, 0.09, 0.105);
+  box(THREE, drain, 1.14, 0.02, 0.02, materials.steel, 0, 0.073, -0.085);
+  box(THREE, drain, 1.14, 0.02, 0.02, materials.steel, 0, 0.073, 0.085);
 }
 
 function addCableReel(THREE, group, materials, x, z, rotationY = 0) {
@@ -105,14 +107,14 @@ function addCableReel(THREE, group, materials, x, z, rotationY = 0) {
   reel.rotation.y = rotationY;
   group.add(reel);
 
-  cylinder(THREE, reel, 0.055, 0.72, materials.steelDark, 0, 0.45, 0, 'x', 16);
-  for (const rx of [-0.31, 0.31]) {
-    cylinder(THREE, reel, 0.48, 0.075, materials.wood, rx, 0.45, 0, 'x', 18);
-    cylinder(THREE, reel, 0.11, 0.09, materials.woodDark, rx * 1.03, 0.45, 0, 'x', 16);
+  cylinder(THREE, reel, 0.045, 0.62, materials.steelDark, 0, 0.38, 0, 'x', 16);
+  for (const rx of [-0.265, 0.265]) {
+    cylinder(THREE, reel, 0.4, 0.065, materials.wood, rx, 0.38, 0, 'x', 18);
+    cylinder(THREE, reel, 0.09, 0.075, materials.woodDark, rx * 1.03, 0.38, 0, 'x', 16);
   }
-  cylinder(THREE, reel, 0.3, 0.56, materials.cable, 0, 0.45, 0, 'x', 24);
-  box(THREE, reel, 0.28, 0.1, 0.16, materials.woodDark, -0.22, 0.05, 0);
-  box(THREE, reel, 0.28, 0.1, 0.16, materials.woodDark, 0.22, 0.05, 0);
+  cylinder(THREE, reel, 0.255, 0.46, materials.cable, 0, 0.38, 0, 'x', 22);
+  box(THREE, reel, 0.24, 0.08, 0.14, materials.woodDark, -0.18, 0.04, 0);
+  box(THREE, reel, 0.24, 0.08, 0.14, materials.woodDark, 0.18, 0.04, 0);
 }
 
 function addPalletConduit(THREE, group, materials, x, z, rotationY = 0) {
@@ -122,21 +124,21 @@ function addPalletConduit(THREE, group, materials, x, z, rotationY = 0) {
   group.add(pallet);
 
   for (let i = -2; i <= 3; i += 1) {
-    box(THREE, pallet, 1.2, 0.055, 0.11, materials.wood, 0, 0.16, i * 0.136 - 0.068);
+    box(THREE, pallet, 1.05, 0.045, 0.09, materials.wood, 0, 0.13, i * 0.115 - 0.058);
   }
-  for (const px of [-0.48, 0, 0.48]) {
-    box(THREE, pallet, 0.12, 0.12, 0.86, materials.woodDark, px, 0.075, 0);
+  for (const px of [-0.42, 0, 0.42]) {
+    box(THREE, pallet, 0.1, 0.1, 0.72, materials.woodDark, px, 0.06, 0);
   }
 
-  for (const zLevel of [0.245, 0.335]) {
-    const offsets = zLevel < 0.3 ? [-0.39, -0.13, 0.13, 0.39] : [-0.3, 0, 0.3];
+  for (const yLevel of [0.205, 0.28]) {
+    const offsets = yLevel < 0.24 ? [-0.32, -0.11, 0.11, 0.32] : [-0.24, 0, 0.24];
     for (const conduitZ of offsets) {
-      cylinder(THREE, pallet, 0.035, 1.05, materials.steel, 0, zLevel, conduitZ, 'x', 12);
+      cylinder(THREE, pallet, 0.028, 0.92, materials.steel, 0, yLevel, conduitZ, 'x', 12);
     }
   }
 
-  for (const sx of [-0.32, 0.32]) {
-    box(THREE, pallet, 0.035, 0.02, 0.82, materials.steelDark, sx, 0.39, 0);
+  for (const sx of [-0.27, 0.27]) {
+    box(THREE, pallet, 0.028, 0.018, 0.68, materials.steelDark, sx, 0.325, 0);
   }
 }
 
@@ -145,16 +147,17 @@ function addKeepClearMarking(THREE, group, materials, centerX, centerZ) {
   marking.position.set(centerX, 0.026, centerZ);
   group.add(marking);
 
-  const width = 4.5;
-  const depth = 2.8;
-  box(THREE, marking, width, 0.012, 0.08, materials.yellow, 0, 0, -depth / 2);
-  box(THREE, marking, width, 0.012, 0.08, materials.yellow, 0, 0, depth / 2);
-  box(THREE, marking, 0.08, 0.012, depth, materials.yellow, -width / 2, 0, 0);
-  box(THREE, marking, 0.08, 0.012, depth, materials.yellow, width / 2, 0, 0);
+  // Electrical panel clearance zone: compact border with restrained hatch marks.
+  const width = 3.65;
+  const depth = 1.7;
+  const line = 0.045;
+  box(THREE, marking, width, 0.009, line, materials.yellow, 0, 0, -depth / 2);
+  box(THREE, marking, width, 0.009, line, materials.yellow, 0, 0, depth / 2);
+  box(THREE, marking, line, 0.009, depth, materials.yellow, -width / 2, 0, 0);
+  box(THREE, marking, line, 0.009, depth, materials.yellow, width / 2, 0, 0);
 
-  for (let i = -4; i <= 4; i += 1) {
-    const stripe = box(THREE, marking, 0.08, 0.01, 2.45, materials.yellow, i * 0.48, 0.002, 0, Math.PI / 4);
-    stripe.material = materials.yellow;
+  for (const stripeX of [-1.05, -0.35, 0.35, 1.05]) {
+    box(THREE, marking, 0.04, 0.007, 1.28, materials.yellowWorn, stripeX, 0.002, 0, Math.PI / 4);
   }
 }
 
@@ -179,33 +182,35 @@ export function createServiceYardProps(THREE, scene, options = {}) {
   const group = new THREE.Group();
   group.userData.assetType = 'rear-service-yard';
 
-  // Dark maintenance apron behind the electrical-panel wall.
-  box(THREE, group, 10.2, 0.018, 8.4, materials.slab, buildingX, 0.019, buildingBackZ + 4.3);
+  // A tighter maintenance apron keeps the rear yard from reading like a car park.
+  box(THREE, group, 9.0, 0.016, 6.8, materials.slab, buildingX, 0.018, buildingBackZ + 3.6);
 
-  // Oil/wear patches break up the slab without adding large textures.
   for (const [sx, sz, sw, sd] of [
-    [buildingX - 2.9, buildingBackZ + 3.0, 1.3, 0.6],
-    [buildingX + 1.8, buildingBackZ + 5.7, 1.1, 0.5],
-    [buildingX - 0.3, buildingBackZ + 6.7, 1.6, 0.7],
+    [buildingX - 2.4, buildingBackZ + 3.7, 0.95, 0.35],
+    [buildingX + 1.75, buildingBackZ + 4.9, 0.75, 0.3],
+    [buildingX - 0.4, buildingBackZ + 5.8, 1.15, 0.4],
   ]) {
-    box(THREE, group, sw, 0.006, sd, materials.stain, sx, 0.032, sz);
+    box(THREE, group, sw, 0.005, sd, materials.stain, sx, 0.03, sz);
   }
 
-  addKeepClearMarking(THREE, group, materials, buildingX, buildingBackZ + 1.65);
-  addBollard(THREE, group, materials, buildingX - 2.05, buildingBackZ + 1.45);
-  addBollard(THREE, group, materials, buildingX + 2.05, buildingBackZ + 1.45);
+  addKeepClearMarking(THREE, group, materials, buildingX, buildingBackZ + 1.05);
 
-  addWheelStop(THREE, group, materials, buildingX - 3.25, buildingBackZ + 4.1, Math.PI / 2);
-  addWheelStop(THREE, group, materials, buildingX + 3.25, buildingBackZ + 4.1, Math.PI / 2);
+  // Guards now flank the panel bank instead of sitting in the center of the walkway.
+  addBollard(THREE, group, materials, buildingX - 1.68, buildingBackZ + 1.15);
+  addBollard(THREE, group, materials, buildingX + 1.68, buildingBackZ + 1.15);
 
-  addUtilityCover(THREE, group, materials, buildingX + 0.6, buildingBackZ + 4.4, 0.08);
+  addWheelStop(THREE, group, materials, buildingX - 3.0, buildingBackZ + 3.9, Math.PI / 2);
+  addWheelStop(THREE, group, materials, buildingX + 3.0, buildingBackZ + 3.9, Math.PI / 2);
+
+  addUtilityCover(THREE, group, materials, buildingX + 0.55, buildingBackZ + 3.8, 0.05);
 
   for (let i = -2; i <= 2; i += 1) {
-    addDrain(THREE, group, materials, buildingX + i * 1.32, buildingBackZ + 6.1, 0);
+    addDrain(THREE, group, materials, buildingX + i * 1.18, buildingBackZ + 5.25, 0);
   }
 
-  addCableReel(THREE, group, materials, buildingX - 2.7, buildingBackZ + 6.9, Math.PI / 2);
-  addPalletConduit(THREE, group, materials, buildingX + 2.6, buildingBackZ + 6.8, -0.12);
+  // Storage props sit against the rear edge, leaving the service path open.
+  addCableReel(THREE, group, materials, buildingX - 2.55, buildingBackZ + 6.0, Math.PI / 2);
+  addPalletConduit(THREE, group, materials, buildingX + 2.45, buildingBackZ + 5.95, -0.08);
 
   scene.add(group);
   removeRockPlaceholders(scene);
