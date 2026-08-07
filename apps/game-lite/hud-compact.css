@@ -1,0 +1,85 @@
+/* Minimal field HUD: keep situational data visible without covering the plant. */
+.mission-chip{
+  top:calc(var(--safe-top) + 2px);
+  left:10px;
+  padding:2px 5px 3px 6px;
+  border-left-width:1px;
+  background:linear-gradient(90deg,rgba(3,9,13,.42),rgba(3,9,13,.08),transparent 95%);
+}
+.mission-chip .mission-kicker{font-size:5px;letter-spacing:.14em;color:#82949d}
+.mission-chip strong{font-size:7px;letter-spacing:.11em}
+.phase-chip{
+  top:calc(var(--safe-top) + 2px);
+  right:9px;
+  gap:4px;
+  padding:2px 4px;
+  background:rgba(3,9,13,.22);
+  border-radius:3px;
+}
+.phase-chip span{font-size:5px}
+.phase-chip strong{font-size:6px}
+.risk-cycle{
+  top:calc(var(--safe-top) + 3px);
+  padding:3px 5px;
+  gap:4px;
+  border:0;
+  background:rgba(3,9,13,.18);
+  box-shadow:none;
+}
+.cycle-step{font-size:5px;letter-spacing:.08em}
+.risk-cycle i{width:5px}
+.objective-toast{
+  top:calc(var(--safe-top) + 29px);
+  left:10px;
+  width:min(245px,calc(100vw - 20px));
+  padding:5px 7px;
+  border-left-width:1px;
+  background:linear-gradient(100deg,rgba(4,11,15,.62),rgba(4,11,15,.18),transparent);
+}
+.objective-toast>span{font-size:5px}
+.objective-toast p{font-size:7px;line-height:1.35}
+.field-readout{
+  left:10px;
+  bottom:calc(var(--safe-bottom) + 2px);
+  width:auto;
+  display:flex;
+  gap:3px;
+}
+.field-readout>div{
+  min-width:45px;
+  min-height:18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:5px;
+  padding:3px 5px;
+  border-left-width:1px;
+  border-bottom:0;
+  background:rgba(3,11,15,.46);
+  box-shadow:none;
+  backdrop-filter:blur(3px);
+}
+.field-readout span{font-size:4.5px;letter-spacing:.08em}
+.field-readout strong{font-size:6px}
+.prompt{font-size:6px;padding:3px 5px;max-width:min(250px,68vw)}
+
+body:has(.tablet.open) .mission-chip,
+body:has(.tablet.open) .risk-cycle,
+body:has(.tablet.open) .phase-chip,
+body:has(.tablet.open) .objective-toast,
+body:has(.tablet.open) .field-readout,
+body:has(.tablet.open) .prompt{opacity:0!important}
+
+@media(max-width:900px){.risk-cycle{display:none}}
+@media(max-width:850px),(pointer:coarse){
+  .mission-chip{left:8px}
+  .phase-chip{right:8px}
+  .field-readout{left:8px;bottom:calc(var(--safe-bottom) + 1px)}
+  .field-readout>div{min-width:40px;min-height:16px;padding:2px 4px}
+  .field-readout span{font-size:4px}
+  .field-readout strong{font-size:5.5px}
+  .mobile-actions{right:9px;bottom:calc(var(--safe-bottom) + 1px);gap:4px}
+  .mobile-actions button{min-width:62px;height:28px;padding:0 7px;gap:5px}
+  .mobile-actions svg{width:12px;height:12px}
+  .mobile-actions span{font-size:5px}
+}
