@@ -6,6 +6,7 @@ import {
   updateFlangeEffects,
 } from './flanges.js';
 import { buildConcretePerimeter } from './walls.js';
+import { buildIndustrialFloor } from './floors.js';
 
 const coarsePointer = matchMedia('(pointer: coarse)').matches;
 const gameRoot = document.querySelector('#game');
@@ -53,8 +54,6 @@ const materials = {
   orange: industrialMaterials.pipe,
   building: new THREE.MeshStandardMaterial({ color: 0x4c5a61, roughness: 0.8, metalness: 0.18 }),
   roof: new THREE.MeshStandardMaterial({ color: 0x343d43, roughness: 0.78, metalness: 0.2 }),
-  road: new THREE.MeshStandardMaterial({ color: 0x30383a, roughness: 1 }),
-  grass: new THREE.MeshStandardMaterial({ color: 0x53634a, roughness: 1 }),
   glass: new THREE.MeshStandardMaterial({ color: 0x7696a4, roughness: 0.2, metalness: 0.1 }),
 };
 
@@ -143,10 +142,7 @@ function addFlangeNetwork() {
 }
 
 function buildPlant() {
-  mesh(new THREE.PlaneGeometry(90, 90), materials.grass, 0, 0, 0, [-Math.PI / 2, 0, 0]);
-  addBox(0, 0.055, 4, 12, 0.1, 70, materials.road);
-  addBox(-13, 0.08, -8, 16, 0.16, 22, materials.concrete);
-  addBox(13, 0.08, -9, 17, 0.16, 23, materials.concrete);
+  buildIndustrialFloor(THREE, scene);
 
   addTank(-15, -12, 2.8, 6.2);
   addTank(-8.3, -13.5, 2.2, 5.1);
@@ -172,7 +168,6 @@ function buildPlant() {
     addBox(-19 + i * 2.1, 0.45, 7.8, 1.3, 0.9, 1.1, materials.darkMetal, true);
   }
 
-  // Straight and 90-degree concrete modules now form every surrounding wall.
   buildConcretePerimeter(THREE, scene, {
     halfSize: 27.2,
     segmentLength: 4,
