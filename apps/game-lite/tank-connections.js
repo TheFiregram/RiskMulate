@@ -139,10 +139,9 @@ function addTubePath(THREE, scene, material, points, radius) {
 function addLowerTankConnection(THREE, scene, materials) {
   const tankX = -8.3;
   const rackZ = -7.6;
-  const tankFrontZ = -11.3;
   const y = 2.05;
 
-  // Branch off the lower process line into the front-facing tank nozzle.
+  // Branch off the lower process line into the centre-left tank nozzle.
   addCylinder(THREE, scene, 0.21, 3.2, materials.pipe, tankX, y, -9.15, 'z', 14);
   addFlangeRing(THREE, scene, materials, tankX, y, -10.42, 'z', 0.84);
   addValve(THREE, scene, materials, tankX, y, -9.58, 'z', 0.82);
@@ -152,6 +151,81 @@ function addLowerTankConnection(THREE, scene, materials) {
   addFlangeRing(THREE, scene, materials, tankX, y, -10.78, 'z', 0.88);
 
   addSupport(THREE, scene, materials, tankX, rackZ - 1.15, 1.78);
+}
+
+function addWestTankConnection(THREE, scene, materials) {
+  const tankX = -15;
+  const tankZ = -12;
+
+  // The two west ends previously stopped in open air. Route both into the large
+  // left tank as a paired feed/return arrangement with separate nozzle elevations.
+  const lines = [
+    {
+      y: 3.2,
+      startX: -10.15,
+      turnX: -12.35,
+      approachZ: -9.55,
+      spoolCenterX: -13.0,
+      nozzleCenterX: -13.52,
+      flangeX: -13.28,
+      valveX: -12.72,
+      radius: 0.2,
+      scale: 0.8,
+    },
+    {
+      y: 2.05,
+      startX: -10.65,
+      turnX: -12.15,
+      approachZ: -10.45,
+      spoolCenterX: -12.62,
+      nozzleCenterX: -13.05,
+      flangeX: -12.84,
+      valveX: -12.34,
+      radius: 0.21,
+      scale: 0.82,
+    },
+  ];
+
+  for (const line of lines) {
+    addTubePath(
+      THREE,
+      scene,
+      materials.pipe,
+      [
+        [line.startX, line.y, -7.6],
+        [line.turnX + 0.65, line.y, -7.6],
+        [line.turnX, line.y, -8.15],
+        [line.turnX, line.y, line.approachZ],
+        [line.spoolCenterX + 0.35, line.y, line.approachZ],
+      ],
+      line.radius,
+    );
+
+    // Final horizontal spool, valve and nozzle are aligned with the tank shell.
+    addCylinder(
+      THREE,
+      scene,
+      line.radius,
+      Math.abs(line.nozzleCenterX - (line.spoolCenterX + 0.35)) + 0.5,
+      materials.pipe,
+      line.spoolCenterX,
+      line.y,
+      line.approachZ,
+      'x',
+      14,
+    );
+    addValve(THREE, scene, materials, line.valveX, line.y, line.approachZ, 'x', line.scale);
+    addFlangeRing(THREE, scene, materials, line.flangeX, line.y, line.approachZ, 'x', line.scale);
+    addCylinder(THREE, scene, line.radius + 0.02, 0.5, materials.pipe, line.nozzleCenterX, line.y, line.approachZ, 'x', 14);
+
+    // The nozzle neck reaches slightly inside the tank radius so no daylight gap is visible.
+    const nozzleDistance = Math.hypot(line.nozzleCenterX - tankX, line.approachZ - tankZ);
+    if (nozzleDistance > 2.8) {
+      addCylinder(THREE, scene, line.radius + 0.025, 0.28, materials.pipe, line.nozzleCenterX - 0.14, line.y, line.approachZ, 'x', 14);
+    }
+  }
+
+  addSupport(THREE, scene, materials, -11.85, -8.8, 2.92);
 }
 
 function addUpperTankConnection(THREE, scene, materials) {
@@ -188,5 +262,6 @@ export function buildTankConnections(THREE, scene, industrialMaterials) {
 
   const materials = getConnectionMaterials(THREE, industrialMaterials);
   addLowerTankConnection(THREE, scene, materials);
+  addWestTankConnection(THREE, scene, materials);
   addUpperTankConnection(THREE, scene, materials);
 }
