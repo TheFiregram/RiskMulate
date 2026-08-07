@@ -11,14 +11,45 @@
 <body>
   <main id="game" aria-label="RiskMulate first-person chemical plant simulation"></main>
 
-  <div class="hud topbar">
-    <div class="badge"><span class="brand">RISKMULATE</span><br /><span>Chemical Plant Walkdown</span></div>
-    <div class="badge">Score <strong id="score">0</strong> · <strong id="stage">Inspection</strong></div>
+  <!-- Existing runtime writes to these nodes. The presentation HUD reads them and keeps score out of field view. -->
+  <div class="hud-state-sink" aria-hidden="true">
+    <span id="score">0</span>
+    <span id="stage">Inspection</span>
   </div>
 
-  <div class="hud objective">
-    <strong>FIELD OBJECTIVE</strong>
-    Keep the blending plant operational without harming people, the environment, schedule, or product quality.
+  <div class="hud mission-chip" aria-label="Current scenario">
+    <span class="mission-kicker">PLANT WALKDOWN 01</span>
+    <strong>CHEMICAL PLANT</strong>
+  </div>
+
+  <div class="hud risk-cycle" id="riskCycle" aria-label="Risk management cycle">
+    <span class="cycle-step" data-stage="Context">Context</span>
+    <i></i>
+    <span class="cycle-step" data-stage="Identify">Identify</span>
+    <i></i>
+    <span class="cycle-step" data-stage="Analyze">Analyze</span>
+    <i></i>
+    <span class="cycle-step" data-stage="Evaluate">Evaluate</span>
+    <i></i>
+    <span class="cycle-step" data-stage="Treat">Treat</span>
+    <i></i>
+    <span class="cycle-step" data-stage="Monitor & Review">Review</span>
+  </div>
+
+  <div class="hud phase-chip" aria-live="polite">
+    <span id="phaseOrdinal">FIELD</span>
+    <strong id="phaseName">Inspection</strong>
+  </div>
+
+  <div class="hud objective-toast" id="objectiveToast" role="status">
+    <span>FIELD OBJECTIVE</span>
+    <p>Keep the blending plant operational without harming people, the environment, schedule, or product quality.</p>
+  </div>
+
+  <div class="hud field-readout" aria-label="Field status">
+    <div><span>RISKS</span><strong id="hudRiskCount">0/1</strong></div>
+    <div><span>EVIDENCE</span><strong id="hudEvidenceCount">0/1</strong></div>
+    <div class="field-time"><span>TIME</span><strong id="hudElapsed">00:00</strong></div>
   </div>
 
   <div class="hud crosshair" aria-hidden="true">
@@ -33,11 +64,12 @@
 
   <section class="start" id="start">
     <div class="start-card">
+      <span class="start-eyebrow">RISK OFFICER · FIELD UNIT 03</span>
       <h1>Plant Walkdown 01</h1>
       <p>You are the risk analyst assigned to inspect a chemical blending facility before startup. Walk the site, inspect evidence, then document your assessment on the field tablet.</p>
       <ul>
         <li>Desktop: WASD to move, mouse to look, E to inspect, Tab for tablet, Shift to sprint.</li>
-        <li>Phone/tablet: left control to move, drag the right side to look, use Inspect and Tablet buttons.</li>
+        <li>Phone/tablet: left control to move, drag the right side to look, use the contextual inspect control and tablet icon.</li>
         <li>Your assessment progress is saved in this browser.</li>
       </ul>
       <button class="primary" id="startButton">Enter Facility</button>
@@ -170,14 +202,24 @@
 
   <div class="mobile" aria-label="Touch controls">
     <div class="look-zone" id="lookZone"></div>
-    <div class="stick-zone" id="stickZone"><div class="stick-knob" id="stickKnob"></div></div>
+    <div class="stick-zone" id="stickZone" aria-hidden="true">
+      <span class="stick-ring"></span>
+      <div class="stick-knob" id="stickKnob"></div>
+    </div>
     <div class="mobile-actions">
-      <button id="mobileInteract" type="button">Inspect</button>
-      <button id="mobileTablet" type="button">Tablet</button>
+      <button class="mobile-interact" id="mobileInteract" type="button" aria-label="Inspect targeted object">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 0 4.8 12.1L21 21l1-1-4.2-4.2A7 7 0 0 0 12 5Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"/></svg>
+        <span>Inspect</span>
+      </button>
+      <button class="mobile-tablet" id="mobileTablet" type="button" aria-label="Open field tablet">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm0 2v16h12V4H6Zm5 13h2v1h-2v-1Z"/></svg>
+        <span>Tablet</span>
+      </button>
     </div>
   </div>
 
   <script type="module" src="./bootstrap.js"></script>
   <script type="module" src="./tablet-ui.js"></script>
+  <script type="module" src="./hud.js"></script>
 </body>
 </html>
