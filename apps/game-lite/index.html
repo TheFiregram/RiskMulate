@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./tablet-ui.css" />
   <link rel="stylesheet" href="./tablet-nav.css" />
+  <link rel="stylesheet" href="./tablet-motion.css" />
   <link rel="stylesheet" href="./hud-compact.css" />
 </head>
 <body>
@@ -82,6 +83,9 @@
     <div class="tablet-screen">
       <header class="tablet-head">
         <div class="tablet-brand-lockup">
+          <button class="tablet-back-icon" id="tabletBackIcon" type="button" aria-label="Go to previous tablet page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5-1.4 1.4L5.2 12l8.9-8.9 1.4 1.4Z"/></svg>
+          </button>
           <span class="tablet-mark" aria-hidden="true">RM</span>
           <div>
             <b>RISKMULATE</b>
@@ -113,56 +117,58 @@
           </nav>
         </div>
 
-        <section class="tablet-statusbar" aria-label="Scenario status">
-          <div class="tablet-stat">
-            <span>RISKS</span>
-            <strong id="tabletRiskCount">0</strong>
-          </div>
-          <div class="tablet-stat">
-            <span>INHERENT</span>
-            <strong id="tabletInherent">—</strong>
-          </div>
-          <div class="tablet-stat">
-            <span>RESIDUAL</span>
-            <strong id="tabletResidual">—</strong>
-          </div>
-          <div class="tablet-stat tablet-stat-progress">
-            <span>PROGRESS</span>
-            <strong id="tabletTreatmentPct">0%</strong>
-          </div>
-        </section>
-
-        <section class="tablet-overview-panel" id="tabletOverviewPanel">
-          <div class="tablet-overview-focus">
-            <span class="tablet-eyebrow">CURRENT POSITION</span>
-            <strong id="tabletOverviewStatus">Field inspection</strong>
-            <p id="tabletUpdate">No field evidence recorded yet. Inspect the highlighted asset to start the risk cycle.</p>
-          </div>
-          <div class="tablet-overview-progress">
-            <div>
-              <span id="tabletPhase">Inspection</span>
-              <b id="tabletScenarioPct">0%</b>
+        <div class="tablet-page-stage" id="tabletPageStage">
+          <section class="tablet-statusbar" aria-label="Scenario status">
+            <div class="tablet-stat">
+              <span>RISKS</span>
+              <strong id="tabletRiskCount">0</strong>
             </div>
-            <div class="tablet-progress-track"><i id="tabletScenarioBar"></i></div>
-          </div>
-          <div class="tablet-overview-actions">
-            <button type="button" data-jump-view="assess">Continue assessment</button>
-            <button type="button" data-jump-view="matrix">Open risk matrix</button>
-          </div>
-        </section>
-
-        <section class="tablet-workspace" id="tabletWorkspace">
-          <div class="tablet-workspace-head">
-            <div>
-              <span class="tablet-eyebrow">RISK PROCESS</span>
-              <strong id="tabletWorkspaceTitle">Field assessment</strong>
+            <div class="tablet-stat">
+              <span>INHERENT</span>
+              <strong id="tabletInherent">—</strong>
             </div>
-            <nav class="tabs" id="tabletTabs" aria-label="Risk management stages"></nav>
-          </div>
-          <div class="tablet-body view-assess" id="tabletBody">
-            <div class="question">Inspect the highlighted flange in the plant to begin the assessment.</div>
-          </div>
-        </section>
+            <div class="tablet-stat">
+              <span>RESIDUAL</span>
+              <strong id="tabletResidual">—</strong>
+            </div>
+            <div class="tablet-stat tablet-stat-progress">
+              <span>PROGRESS</span>
+              <strong id="tabletTreatmentPct">0%</strong>
+            </div>
+          </section>
+
+          <section class="tablet-overview-panel" id="tabletOverviewPanel">
+            <div class="tablet-overview-focus">
+              <span class="tablet-eyebrow">CURRENT POSITION</span>
+              <strong id="tabletOverviewStatus">Field inspection</strong>
+              <p id="tabletUpdate">No field evidence recorded yet. Inspect the highlighted asset to start the risk cycle.</p>
+            </div>
+            <div class="tablet-overview-progress">
+              <div>
+                <span id="tabletPhase">Inspection</span>
+                <b id="tabletScenarioPct">0%</b>
+              </div>
+              <div class="tablet-progress-track"><i id="tabletScenarioBar"></i></div>
+            </div>
+            <div class="tablet-overview-actions">
+              <button type="button" data-jump-view="assess">Continue assessment</button>
+              <button type="button" data-jump-view="matrix">Open risk matrix</button>
+            </div>
+          </section>
+
+          <section class="tablet-workspace" id="tabletWorkspace">
+            <div class="tablet-workspace-head">
+              <div>
+                <span class="tablet-eyebrow">RISK PROCESS</span>
+                <strong id="tabletWorkspaceTitle">Field assessment</strong>
+              </div>
+              <nav class="tabs" id="tabletTabs" aria-label="Risk management stages"></nav>
+            </div>
+            <div class="tablet-body view-assess" id="tabletBody">
+              <div class="question">Inspect the highlighted flange in the plant to begin the assessment.</div>
+            </div>
+          </section>
+        </div>
       </main>
 
       <footer class="tablet-foot">
