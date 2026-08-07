@@ -9,7 +9,7 @@
 .mission-chip .mission-kicker{font-size:5px;letter-spacing:.14em;color:#82949d}
 .mission-chip strong{font-size:7px;letter-spacing:.11em}
 .phase-chip{
-  top:calc(var(--safe-top) + 2px);
+  top:calc(var(--safe-top) + 126px);
   right:9px;
   gap:4px;
   padding:2px 4px;
@@ -19,7 +19,7 @@
 .phase-chip span{font-size:5px}
 .phase-chip strong{font-size:6px}
 .risk-cycle{
-  top:calc(var(--safe-top) + 3px);
+  top:calc(var(--safe-top) + 35px);
   padding:3px 5px;
   gap:4px;
   border:0;
@@ -63,23 +63,204 @@
 .field-readout strong{font-size:6px}
 .prompt{font-size:6px;padding:3px 5px;max-width:min(250px,68vw)}
 
+/* Live cardinal tape tied to the first-person camera heading. */
+.navigation-compass{
+  top:calc(var(--safe-top) + 1px);
+  left:50%;
+  width:min(390px,46vw);
+  height:31px;
+  transform:translateX(-50%);
+  overflow:hidden;
+  color:#e8eff2;
+  text-shadow:0 1px 4px rgba(0,0,0,.9);
+}
+.navigation-compass::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(3,9,13,.12) 18%,rgba(3,9,13,.24) 50%,rgba(3,9,13,.12) 82%,transparent 100%);
+}
+.compass-tape{
+  position:absolute;
+  left:0;
+  right:0;
+  top:1px;
+  height:18px;
+  overflow:hidden;
+}
+.compass-tape span{
+  position:absolute;
+  top:0;
+  transform:translateX(-50%);
+  min-width:28px;
+  text-align:center;
+  white-space:nowrap;
+  letter-spacing:.08em;
+  color:#aab8be;
+}
+.compass-tape span::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:13px;
+  width:1px;
+  height:4px;
+  background:rgba(226,237,241,.36);
+}
+.compass-tape .cardinal{font-size:8px;font-weight:850;color:#f3f6f7}
+.compass-tape .ordinal{font-size:6px;font-weight:730;color:#9cabb2}
+.compass-index{
+  position:absolute;
+  left:50%;
+  top:17px;
+  width:0;
+  height:0;
+  transform:translateX(-50%);
+  border-left:3px solid transparent;
+  border-right:3px solid transparent;
+  border-top:5px solid #efaa58;
+  filter:drop-shadow(0 0 3px rgba(227,160,82,.5));
+}
+.compass-heading{
+  position:absolute;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  font-size:5px;
+  letter-spacing:.08em;
+  color:#d4dee2;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+
+/* Compact top-down facility map. The shapes are a lightweight scene schematic. */
+.minimap-shell{
+  top:calc(var(--safe-top) + 2px);
+  right:9px;
+  width:112px;
+  height:116px;
+  padding:18px 5px 5px;
+  border:1px solid rgba(204,220,227,.28);
+  border-radius:5px;
+  background:rgba(3,9,13,.48);
+  box-shadow:0 5px 18px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.025);
+  backdrop-filter:blur(4px);
+}
+.minimap-head{
+  position:absolute;
+  left:6px;
+  right:6px;
+  top:4px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:4.5px;
+  letter-spacing:.12em;
+  color:#9faeb5;
+  font-weight:820;
+}
+.minimap-head b{font-size:6px;color:#f3f6f7}
+.minimap-grid{
+  position:relative;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  border:1px solid rgba(207,224,231,.24);
+  background:
+    linear-gradient(rgba(205,221,228,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(205,221,228,.045) 1px,transparent 1px),
+    rgba(8,14,18,.54);
+  background-size:12px 12px;
+}
+.minimap-grid i{position:absolute;display:block}
+.map-building{
+  border:1px solid rgba(219,229,233,.42);
+  background:rgba(184,202,210,.08);
+}
+.map-building-left{left:11%;top:50%;width:21%;height:19%}
+.map-building-right{left:66%;top:45%;width:22%;height:25%}
+.map-tank{
+  border:1px solid rgba(216,226,230,.38);
+  border-radius:50%;
+  background:rgba(183,201,208,.07);
+}
+.map-tank-one{left:17%;top:18%;width:13%;height:13%}
+.map-tank-two{left:34%;top:18%;width:10%;height:10%}
+.map-tank-three{left:72%;top:16%;width:14%;height:14%}
+.map-pipeline-main{
+  left:26%;
+  top:37%;
+  width:45%;
+  height:1px;
+  background:rgba(227,160,82,.34);
+  box-shadow:0 0 3px rgba(227,160,82,.18);
+}
+.map-objective{
+  left:54.5%;
+  top:37.2%;
+  width:7px;
+  height:7px;
+  transform:translate(-50%,-50%) rotate(45deg);
+  border:1px solid #f0ad5c;
+  background:rgba(227,160,82,.2);
+  box-shadow:0 0 5px rgba(227,160,82,.38);
+}
+.map-objective::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:2px;
+  height:2px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:#ffd08e;
+}
+.map-player{
+  width:8px;
+  height:10px;
+  clip-path:polygon(50% 0,100% 100%,50% 72%,0 100%);
+  background:#f5f8f9;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));
+  transform-origin:50% 50%;
+  will-change:left,top,transform;
+}
+
 body:has(.tablet.open) .mission-chip,
 body:has(.tablet.open) .risk-cycle,
 body:has(.tablet.open) .phase-chip,
 body:has(.tablet.open) .objective-toast,
 body:has(.tablet.open) .field-readout,
+body:has(.tablet.open) .navigation-compass,
+body:has(.tablet.open) .minimap-shell,
 body:has(.tablet.open) .prompt{opacity:0!important}
 
 @media(max-width:900px){.risk-cycle{display:none}}
 @media(max-width:850px),(pointer:coarse){
   .mission-chip{left:8px}
-  .phase-chip{right:8px}
+  .phase-chip{top:calc(var(--safe-top) + 95px);right:8px}
   .field-readout{left:8px;bottom:calc(var(--safe-bottom) + 1px)}
   .field-readout>div{min-width:40px;min-height:16px;padding:2px 4px}
   .field-readout span{font-size:4px}
   .field-readout strong{font-size:5.5px}
+  .navigation-compass{width:42vw;min-width:150px;max-width:235px;height:28px}
+  .compass-tape .cardinal{font-size:7px}
+  .compass-tape .ordinal{font-size:5px}
+  .compass-heading{font-size:4.5px}
+  .minimap-shell{right:8px;width:82px;height:88px;padding:15px 4px 4px}
+  .minimap-head{left:5px;right:5px;top:3px;font-size:3.7px}
+  .minimap-head b{font-size:5px}
+  .minimap-grid{background-size:9px 9px}
+  .map-objective{width:6px;height:6px}
+  .map-player{width:7px;height:9px}
   .mobile-actions{right:9px;bottom:calc(var(--safe-bottom) + 1px);gap:4px}
   .mobile-actions button{min-width:62px;height:28px;padding:0 7px;gap:5px}
   .mobile-actions svg{width:12px;height:12px}
   .mobile-actions span{font-size:5px}
+}
+
+@media(max-width:520px){
+  .navigation-compass{top:calc(var(--safe-top) + 1px);width:39vw;min-width:132px}
+  .compass-tape span{min-width:24px}
+  .phase-chip{display:none}
 }
