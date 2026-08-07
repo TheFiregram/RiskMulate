@@ -1,1 +1,0 @@
-Refined rear service yard: slimmer bollards, compact keep-clear marking, smaller props, clearer maintenance lane.
