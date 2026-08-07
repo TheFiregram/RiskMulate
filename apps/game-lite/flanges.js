@@ -1,3 +1,5 @@
+import { buildTankConnections } from './tank-connections.js';
+
 let cachedMaterials;
 const animatedDrops = [];
 let rackNormalized = false;
@@ -197,23 +199,22 @@ function buildOrganizedPipeRack(THREE, scene, materials) {
   const lowerY = 2.05;
   const upperY = 3.2;
 
-  // Two clean, parallel process lines replace the previous crossing and disconnected runs.
   addWorldPipe(THREE, scene, materials.pipe, 0, lowerY, rackZ, 22, 0.25);
   addWorldPipe(THREE, scene, materials.pipe, 0, upperY, rackZ, 21, 0.23);
 
-  // Repeated T-frames give both lines a readable structural rhythm.
   for (const supportX of [-7.4, 0, 7.4]) {
     addWorldBox(THREE, scene, materials.support, supportX, 1.5, rackZ - 0.38, 0.28, 3.0, 0.28);
     addWorldBox(THREE, scene, materials.supportDark, supportX, 1.78, rackZ, 0.3, 0.12, 1.35);
     addWorldBox(THREE, scene, materials.supportDark, supportX, 2.94, rackZ, 0.3, 0.12, 1.35);
     addWorldBox(THREE, scene, materials.supportDark, supportX, 0.06, rackZ - 0.38, 0.58, 0.12, 0.58);
   }
+
+  buildTankConnections(THREE, scene, materials);
 }
 
 function resolveLegacyPlacement(options) {
   const placement = { ...options };
 
-  // These mappings migrate the original prototype positions into the cleaner rack layout.
   if (options.leaking) {
     return { ...placement, x: 4.25, y: 2.05, z: -7.6, axis: 'x', scale: 0.82 };
   }
