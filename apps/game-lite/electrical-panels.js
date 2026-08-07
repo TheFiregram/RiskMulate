@@ -1,3 +1,5 @@
+import { createServiceYardProps } from './service-yard-props.js';
+
 let cachedMaterials;
 
 function seededRandom(seed) {
@@ -184,7 +186,6 @@ export function createElectricalPanelCluster(THREE, scene, options = {}) {
   group.scale.setScalar(scale);
   group.userData.assetType = 'electrical-panel-cluster';
 
-  // Three weathered cabinets echo panel set 5 from the approved utility-area concept.
   addCabinet(THREE, group, materials, {
     x: -1.08,
     y: 0.06,
@@ -208,7 +209,6 @@ export function createElectricalPanelCluster(THREE, scene, options = {}) {
     warning: true,
   });
 
-  // Junction box and service isolator below the main cabinets.
   addCabinet(THREE, group, materials, {
     x: 0.1,
     y: -0.76,
@@ -217,7 +217,6 @@ export function createElectricalPanelCluster(THREE, scene, options = {}) {
     depth: 0.2,
   });
 
-  // Conduit drops to the floor and shared horizontal cable route.
   const conduitXs = [-1.28, -0.96, -0.36, -0.04, 0.58, 0.86, 1.06];
   for (const conduitX of conduitXs) {
     cylinder(THREE, group, 0.025, 1.26, materials.conduit, conduitX, -1.08, 0.03, 'y');
@@ -226,11 +225,16 @@ export function createElectricalPanelCluster(THREE, scene, options = {}) {
   cylinder(THREE, group, 0.03, 2.55, materials.conduit, -0.05, -1.68, 0.03, 'x');
   cylinder(THREE, group, 0.024, 1.72, materials.cable, -0.18, 0.86, -0.03, 'x');
 
-  // Small top-entry conduits make the cluster feel integrated into the building services.
   for (const topX of [-0.4, 0.7, 0.94]) {
     cylinder(THREE, group, 0.024, 0.62, materials.conduit, topX, 1.02, -0.02, 'y');
   }
 
   scene.add(group);
+
+  createServiceYardProps(THREE, scene, {
+    buildingX: x,
+    buildingBackZ: z,
+  });
+
   return group;
 }
