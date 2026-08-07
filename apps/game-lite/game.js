@@ -7,6 +7,7 @@ import {
 } from './flanges.js';
 import { buildConcretePerimeter } from './walls.js';
 import { buildIndustrialFloor } from './floors.js';
+import { createElectricalPanelCluster } from './electrical-panels.js';
 
 const coarsePointer = matchMedia('(pointer: coarse)').matches;
 const gameRoot = document.querySelector('#game');
@@ -151,6 +152,15 @@ function buildPlant() {
   addBox(10.5, 2.3, 2.5, 9, 4.6, 8, materials.building, true);
   addBox(10.5, 4.78, 2.5, 9.6, 0.35, 8.6, materials.roof);
   addBox(10.5, 2.2, -1.58, 4.4, 2.3, 0.08, materials.glass);
+
+  // Panel set 5 from the utility-area concept, mounted on the rear face of the right building.
+  createElectricalPanelCluster(THREE, scene, {
+    x: 10.7,
+    y: 1.82,
+    z: 6.64,
+    rotationY: 0,
+    scale: 1,
+  });
 
   addBox(-11, 2.05, 4.4, 10, 4.1, 6.5, materials.building, true);
   addBox(-11, 4.25, 4.4, 10.6, 0.3, 7.1, materials.roof);
