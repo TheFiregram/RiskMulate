@@ -47,6 +47,22 @@
 }
 .tablet-view-nav button.locked{opacity:.35}
 
+.tablet-page-viewport{
+  position:relative;
+  min-height:0;
+  flex:1;
+  overflow:hidden;
+  border-radius:6px;
+  isolation:isolate;
+}
+.tablet-page-stage{
+  position:absolute;
+  inset:0;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+}
+
 .tablet-statusbar{
   flex:0 0 43px;
   display:grid;
@@ -137,9 +153,9 @@
   border-radius:6px;
   background:#0c1012;
 }
-.tablet-main-panel:not([data-tablet-view="overview"]) .tablet-overview-panel{display:none}
-.tablet-main-panel:not([data-tablet-view="overview"]) .tablet-workspace{display:flex}
-.tablet-main-panel[data-tablet-view="overview"] .tablet-overview-panel{display:flex}
+.tablet-page-stage:not([data-render-view="overview"]) .tablet-overview-panel{display:none}
+.tablet-page-stage:not([data-render-view="overview"]) .tablet-workspace{display:flex}
+.tablet-page-stage[data-render-view="overview"] .tablet-overview-panel{display:flex}
 
 .tablet-workspace-head{
   flex:0 0 auto;
@@ -154,27 +170,27 @@
 .tablet-body{padding:8px;overflow:auto;min-height:0;flex:1}
 
 /* Assessment page: show only the active prompt, choices and pedagogical feedback. */
-.tablet-main-panel[data-tablet-view="assess"] .tablet-body>.register,
-.tablet-main-panel[data-tablet-view="assess"] .tablet-body>.matrix-title,
-.tablet-main-panel[data-tablet-view="assess"] .tablet-body>.matrix{display:none}
+.tablet-page-stage[data-render-view="assess"] .tablet-body>.register,
+.tablet-page-stage[data-render-view="assess"] .tablet-body>.matrix-title,
+.tablet-page-stage[data-render-view="assess"] .tablet-body>.matrix{display:none}
 
 /* Matrix page: dedicate the viewport to the 5x5 matrix. */
-.tablet-main-panel[data-tablet-view="matrix"] .tablet-workspace-head,
-.tablet-main-panel[data-tablet-view="register"] .tablet-workspace-head,
-.tablet-main-panel[data-tablet-view="debrief"] .tablet-workspace-head{display:none}
-.tablet-main-panel[data-tablet-view="matrix"] .tablet-body>.question,
-.tablet-main-panel[data-tablet-view="matrix"] .tablet-body>.options,
-.tablet-main-panel[data-tablet-view="matrix"] .tablet-body>.feedback,
-.tablet-main-panel[data-tablet-view="matrix"] .tablet-body>.option,
-.tablet-main-panel[data-tablet-view="matrix"] .tablet-body>.register{display:none}
-.tablet-main-panel[data-tablet-view="matrix"] .tablet-body{
+.tablet-page-stage[data-render-view="matrix"] .tablet-workspace-head,
+.tablet-page-stage[data-render-view="register"] .tablet-workspace-head,
+.tablet-page-stage[data-render-view="debrief"] .tablet-workspace-head{display:none}
+.tablet-page-stage[data-render-view="matrix"] .tablet-body>.question,
+.tablet-page-stage[data-render-view="matrix"] .tablet-body>.options,
+.tablet-page-stage[data-render-view="matrix"] .tablet-body>.feedback,
+.tablet-page-stage[data-render-view="matrix"] .tablet-body>.option,
+.tablet-page-stage[data-render-view="matrix"] .tablet-body>.register{display:none}
+.tablet-page-stage[data-render-view="matrix"] .tablet-body{
   display:flex;
   flex-direction:column;
   justify-content:center;
   padding:9px;
   overflow:hidden;
 }
-.tablet-main-panel[data-tablet-view="matrix"] .matrix-title{
+.tablet-page-stage[data-render-view="matrix"] .matrix-title{
   display:block;
   margin:0 0 7px;
   text-align:center;
@@ -182,7 +198,7 @@
   font-size:7px;
   letter-spacing:.09em;
 }
-.tablet-main-panel[data-tablet-view="matrix"] .matrix{
+.tablet-page-stage[data-render-view="matrix"] .matrix{
   display:grid;
   width:min(100%,360px);
   max-height:100%;
@@ -190,7 +206,7 @@
   grid-template-columns:repeat(5,1fr);
   gap:4px;
 }
-.tablet-main-panel[data-tablet-view="matrix"] .matrix div{
+.tablet-page-stage[data-render-view="matrix"] .matrix div{
   min-height:0;
   aspect-ratio:1;
   border-radius:4px;
@@ -199,14 +215,14 @@
 }
 
 /* Register page: one risk gets a clean table with room to breathe. */
-.tablet-main-panel[data-tablet-view="register"] .tablet-body>.question,
-.tablet-main-panel[data-tablet-view="register"] .tablet-body>.options,
-.tablet-main-panel[data-tablet-view="register"] .tablet-body>.feedback,
-.tablet-main-panel[data-tablet-view="register"] .tablet-body>.option,
-.tablet-main-panel[data-tablet-view="register"] .tablet-body>.matrix-title,
-.tablet-main-panel[data-tablet-view="register"] .tablet-body>.matrix{display:none}
-.tablet-main-panel[data-tablet-view="register"] .tablet-body{padding:10px}
-.tablet-main-panel[data-tablet-view="register"] .register{
+.tablet-page-stage[data-render-view="register"] .tablet-body>.question,
+.tablet-page-stage[data-render-view="register"] .tablet-body>.options,
+.tablet-page-stage[data-render-view="register"] .tablet-body>.feedback,
+.tablet-page-stage[data-render-view="register"] .tablet-body>.option,
+.tablet-page-stage[data-render-view="register"] .tablet-body>.matrix-title,
+.tablet-page-stage[data-render-view="register"] .tablet-body>.matrix{display:none}
+.tablet-page-stage[data-render-view="register"] .tablet-body{padding:10px}
+.tablet-page-stage[data-render-view="register"] .register{
   display:table;
   margin:0;
   font-size:8px;
@@ -214,16 +230,16 @@
   border-radius:5px;
   overflow:hidden;
 }
-.tablet-main-panel[data-tablet-view="register"] .register th{font-size:6px;padding:8px 6px}
-.tablet-main-panel[data-tablet-view="register"] .register td{padding:10px 6px;line-height:1.35}
+.tablet-page-stage[data-render-view="register"] .register th{font-size:6px;padding:8px 6px}
+.tablet-page-stage[data-render-view="register"] .register td{padding:10px 6px;line-height:1.35}
 
 /* Debrief page uses the runtime's completion content, without repeating matrix/register. */
-.tablet-main-panel[data-tablet-view="debrief"] .tablet-body>.register,
-.tablet-main-panel[data-tablet-view="debrief"] .tablet-body>.matrix-title,
-.tablet-main-panel[data-tablet-view="debrief"] .tablet-body>.matrix{display:none}
-.tablet-main-panel[data-tablet-view="debrief"] .tablet-body{padding:12px}
-.tablet-main-panel[data-tablet-view="debrief"] .tablet-body>.question{font-size:15px;margin-bottom:10px}
-.tablet-main-panel[data-tablet-view="debrief"] .tablet-body>.feedback{font-size:9px;line-height:1.55;padding:10px}
+.tablet-page-stage[data-render-view="debrief"] .tablet-body>.register,
+.tablet-page-stage[data-render-view="debrief"] .tablet-body>.matrix-title,
+.tablet-page-stage[data-render-view="debrief"] .tablet-body>.matrix{display:none}
+.tablet-page-stage[data-render-view="debrief"] .tablet-body{padding:12px}
+.tablet-page-stage[data-render-view="debrief"] .tablet-body>.question{font-size:15px;margin-bottom:10px}
+.tablet-page-stage[data-render-view="debrief"] .tablet-body>.feedback{font-size:9px;line-height:1.55;padding:10px}
 
 .tablet-foot{
   flex:0 0 29px;
@@ -253,8 +269,8 @@
   .tablet-overview-focus p{font-size:8px}
   .tablet-workspace-head{padding:6px}
   .tablet-body{padding:7px}
-  .tablet-main-panel[data-tablet-view="matrix"] .matrix{width:min(100%,340px);gap:3px}
-  .tablet-main-panel[data-tablet-view="matrix"] .matrix div{font-size:7px}
+  .tablet-page-stage[data-render-view="matrix"] .matrix{width:min(100%,340px);gap:3px}
+  .tablet-page-stage[data-render-view="matrix"] .matrix div{font-size:7px}
 }
 
 @media(max-height:690px){
