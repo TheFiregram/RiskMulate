@@ -1,5 +1,5 @@
 let cachedPaintedBuildingMaterial;
-let cachedCinderFenceMaterial;
+let cachedDirtyConcreteFenceMaterial;
 
 function seededRandom(seed) {
   let value = seed >>> 0;
@@ -68,70 +68,110 @@ function makePaintedConcreteCanvas(size = 512, seed = 4040) {
   return node;
 }
 
-function makeCinderAlbedoCanvas(size = 512, seed = 8808) {
+function makeDirtyConcreteAlbedoCanvas(size = 512, seed = 202) {
   const node = canvas(size);
   const ctx = node.getContext('2d');
   const random = seededRandom(seed);
-  const cols = 4;
-  const rows = 8;
-  const blockWidth = size / cols;
-  const rowHeight = size / rows;
-  const mortar = Math.max(4, Math.round(size * 0.008));
 
-  ctx.fillStyle = '#9f9d94';
+  ctx.fillStyle = '#88857c';
   ctx.fillRect(0, 0, size, size);
 
-  for (let i = 0; i < 6200; i += 1) {
-    const tone = 136 + Math.floor(random() * 42);
-    ctx.globalAlpha = 0.025 + random() * 0.07;
-    ctx.fillStyle = `rgb(${tone},${tone},${Math.max(0, tone - 5)})`;
-    const dot = 0.5 + random() * 2.1;
+  for (let i = 0; i < 9000; i += 1) {
+    const tone = 108 + Math.floor(random() * 58);
+    const warm = Math.max(0, tone - Math.floor(random() * 10));
+    ctx.globalAlpha = 0.025 + random() * 0.08;
+    ctx.fillStyle = `rgb(${tone},${warm},${Math.max(0, warm - 5)})`;
+    const dot = 0.3 + random() * 2.2;
     ctx.fillRect(random() * size, random() * size, dot, dot);
   }
 
-  ctx.globalAlpha = 0.96;
-  ctx.fillStyle = '#c2beb4';
-  for (let row = 0; row < rows; row += 1) {
-    const y = row * rowHeight;
-    const offset = row % 2 === 0 ? 0 : blockWidth / 2;
-    ctx.fillRect(0, y, size, mortar);
-    for (let col = -1; col < cols + 1; col += 1) {
-      const x = col * blockWidth + offset;
-      ctx.fillRect(x - mortar / 2, y, mortar, rowHeight);
+  ctx.globalAlpha = 0.28;
+  ctx.strokeStyle = '#66625a';
+  ctx.lineWidth = Math.max(1, size / 512);
+  for (const y of [size * 0.33, size * 0.66]) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(size, y);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(size * 0.5, 0);
+  ctx.lineTo(size * 0.5, size);
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.28;
+  for (const y of [size * 0.165, size * 0.5, size * 0.835]) {
+    for (const x of [size * 0.25, size * 0.75]) {
+      ctx.fillStyle = '#5b5750';
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.006, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#aaa69b';
+      ctx.beginPath();
+      ctx.arc(x - size * 0.0015, y - size * 0.0015, size * 0.0024, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.28;
     }
   }
 
-  const grime = ctx.createLinearGradient(0, size * 0.7, 0, size);
-  grime.addColorStop(0, 'rgba(77,69,59,0)');
-  grime.addColorStop(1, 'rgba(77,69,59,0.3)');
+  for (let i = 0; i < 82; i += 1) {
+    const x = random() * size;
+    const y = random() * size * 0.8;
+    const height = size * (0.04 + random() * 0.24);
+    const width = 1 + random() * 6;
+    const strength = 0.08 + random() * 0.16;
+    const gradient = ctx.createLinearGradient(x, y, x, y + height);
+    gradient.addColorStop(0, 'rgba(54,49,43,0)');
+    gradient.addColorStop(0.32, `rgba(54,49,43,${strength})`);
+    gradient.addColorStop(1, 'rgba(54,49,43,0)');
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, width, height);
+  }
+
+  for (let i = 0; i < 55; i += 1) {
+    const x = random() * size;
+    const y = size * (0.55 + random() * 0.42);
+    const radius = size * (0.004 + random() * 0.025);
+    ctx.globalAlpha = 0.035 + random() * 0.09;
+    ctx.fillStyle = random() > 0.5 ? '#4e4a43' : '#9a8e7b';
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const baseGrime = ctx.createLinearGradient(0, size * 0.65, 0, size);
+  baseGrime.addColorStop(0, 'rgba(38,36,32,0)');
+  baseGrime.addColorStop(1, 'rgba(38,36,32,0.34)');
   ctx.globalAlpha = 1;
-  ctx.fillStyle = grime;
-  ctx.fillRect(0, size * 0.7, size, size * 0.3);
+  ctx.fillStyle = baseGrime;
+  ctx.fillRect(0, size * 0.65, size, size * 0.35);
 
   return node;
 }
 
-function makeCinderHeightCanvas(size = 512) {
+function makeDirtyConcreteHeightCanvas(size = 512, seed = 203) {
   const node = canvas(size);
   const ctx = node.getContext('2d');
-  const cols = 4;
-  const rows = 8;
-  const blockWidth = size / cols;
-  const rowHeight = size / rows;
-  const mortar = Math.max(4, Math.round(size * 0.008));
+  const random = seededRandom(seed);
+  const image = ctx.createImageData(size, size);
 
-  ctx.fillStyle = '#a5a5a5';
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = '#777';
-  for (let row = 0; row < rows; row += 1) {
-    const y = row * rowHeight;
-    const offset = row % 2 === 0 ? 0 : blockWidth / 2;
-    ctx.fillRect(0, y, size, mortar);
-    for (let col = -1; col < cols + 1; col += 1) {
-      const x = col * blockWidth + offset;
-      ctx.fillRect(x - mortar / 2, y, mortar, rowHeight);
-    }
+  for (let i = 0; i < image.data.length; i += 4) {
+    const value = 146 + Math.floor((random() - 0.5) * 52);
+    image.data[i] = value;
+    image.data[i + 1] = value;
+    image.data[i + 2] = value;
+    image.data[i + 3] = 255;
   }
+  ctx.putImageData(image, 0, 0);
+
+  ctx.fillStyle = '#777';
+  ctx.globalAlpha = 0.85;
+  const seam = Math.max(2, Math.round(size * 0.004));
+  for (const y of [size * 0.33, size * 0.66]) ctx.fillRect(0, y - seam / 2, size, seam);
+  ctx.fillRect(size * 0.5 - seam / 2, 0, seam, size);
+
   return node;
 }
 
@@ -155,17 +195,17 @@ function getPaintedBuildingMaterial(THREE) {
   return cachedPaintedBuildingMaterial;
 }
 
-function getCinderFenceMaterial(THREE) {
-  if (cachedCinderFenceMaterial) return cachedCinderFenceMaterial;
-  cachedCinderFenceMaterial = new THREE.MeshStandardMaterial({
+function getDirtyConcreteFenceMaterial(THREE) {
+  if (cachedDirtyConcreteFenceMaterial) return cachedDirtyConcreteFenceMaterial;
+  cachedDirtyConcreteFenceMaterial = new THREE.MeshStandardMaterial({
     color: 0xffffff,
-    map: texture(THREE, makeCinderAlbedoCanvas()),
-    bumpMap: texture(THREE, makeCinderHeightCanvas()),
-    bumpScale: 0.022,
-    roughness: 0.95,
-    metalness: 0.02,
+    map: texture(THREE, makeDirtyConcreteAlbedoCanvas()),
+    bumpMap: texture(THREE, makeDirtyConcreteHeightCanvas()),
+    bumpScale: 0.018,
+    roughness: 0.96,
+    metalness: 0.01,
   });
-  return cachedCinderFenceMaterial;
+  return cachedDirtyConcreteFenceMaterial;
 }
 
 function paintedMaterialForBuildingMesh(THREE, mesh) {
@@ -178,14 +218,14 @@ function paintedMaterialForBuildingMesh(THREE, mesh) {
   return material;
 }
 
-function cinderMaterialForFenceMesh(THREE, mesh) {
-  const base = getCinderFenceMaterial(THREE);
+function dirtyConcreteMaterialForFenceMesh(THREE, mesh) {
+  const base = getDirtyConcreteFenceMaterial(THREE);
   const material = base.clone();
   const params = mesh.geometry?.parameters || {};
   const width = Math.max(0.2, params.width || 2);
   const height = Math.max(0.2, params.height || 1);
-  const tileWidth = 2;
-  const tileHeight = 1.6;
+  const tileWidth = 2.4;
+  const tileHeight = 2.5;
   const bottom = (mesh.position?.y || 0) - height / 2;
   const yOffset = ((bottom / tileHeight) % 1 + 1) % 1;
 
@@ -223,17 +263,17 @@ function swapBuildingToFenceSurface(THREE, object) {
   });
 }
 
-function swapFenceToBuildingSurface(THREE, object) {
+function swapFenceToDirtyConcrete(THREE, object) {
   const wallType = String(object?.userData?.wallType || '');
   if (!wallType.startsWith('painted-concrete')) return;
 
   object.traverse((node) => {
     if (!node?.isMesh || node.userData.surfaceSwapApplied) return;
     if (!node.name.includes('PaintedBand') && !node.name.includes('UpperConcrete')) return;
-    node.material = cinderMaterialForFenceMesh(THREE, node);
-    node.userData.surfaceSwapApplied = 'cinder-block-fence';
+    node.material = dirtyConcreteMaterialForFenceMesh(THREE, node);
+    node.userData.surfaceSwapApplied = 'dirty-concrete-fence';
   });
-  object.userData.surfaceSwapApplied = 'cinder-block-fence';
+  object.userData.surfaceSwapApplied = 'dirty-concrete-fence';
 }
 
 export function installWallSurfaceSwap(THREE) {
@@ -250,7 +290,7 @@ export function installWallSurfaceSwap(THREE) {
     const result = previousAdd.apply(this, objects);
     for (const object of objects) {
       swapBuildingToFenceSurface(THREE, object);
-      swapFenceToBuildingSurface(THREE, object);
+      swapFenceToDirtyConcrete(THREE, object);
     }
     return result;
   };
