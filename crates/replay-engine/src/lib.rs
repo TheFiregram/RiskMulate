@@ -1,4 +1,4 @@
-//! Interface boundary for the RiskMulator replay engine.
+//! Interface boundary for the `RiskMulator` replay engine.
 
 /// Marker interface for the replay engine boundary.
 ///

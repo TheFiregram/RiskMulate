@@ -20,6 +20,7 @@ jobs:
       - run: npm run format:check
       - run: npm run lint --workspace @riskmulator/studio
       - run: npm run test --workspace @riskmulator/studio
+      - run: npm run build:studio --workspace @riskmulator/studio
       - run: npm run build --workspace @riskmulator/studio
 
   rust:
