@@ -8,6 +8,8 @@ import {
 import { buildConcretePerimeter } from './walls.js';
 import { buildIndustrialFloor } from './floors.js';
 import { createElectricalPanelCluster } from './electrical-panels.js';
+import { buildFieldEvidence } from './field-evidence.js';
+import './multi-risk-ui.js';
 
 const coarsePointer = matchMedia('(pointer: coarse)').matches;
 const gameRoot = document.querySelector('#game');
@@ -117,6 +119,7 @@ function addFlangeNetwork() {
     label: 'Inspect leaking flange',
     scale: 1.05,
   });
+  leakingFlange.userData.findingId = 'flange-leak';
   interactables.push(leakingFlange);
 
   createIndustrialFlange(THREE, scene, {
@@ -153,7 +156,6 @@ function buildPlant() {
   addBox(10.5, 4.78, 2.5, 9.6, 0.35, 8.6, materials.roof);
   addBox(10.5, 2.2, -1.58, 4.4, 2.3, 0.08, materials.glass);
 
-  // Panel set 5 from the utility-area concept, mounted on the rear face of the right building.
   createElectricalPanelCluster(THREE, scene, {
     x: 10.7,
     y: 1.82,
@@ -165,6 +167,7 @@ function buildPlant() {
   addBox(-11, 2.05, 4.4, 10, 4.1, 6.5, materials.building, true);
   addBox(-11, 4.25, 4.4, 10.6, 0.3, 7.1, materials.roof);
 
+  // These prototype pipes are replaced by the organized rack inside flanges.js.
   addPipe(-5, 2.05, -6.8, 22, 0.26, 'x');
   addPipe(6, 3.2, -10.5, 19, 0.31, 'x');
   addPipe(4.2, 1.2, -6.8, 8, 0.22, 'z');
@@ -173,6 +176,7 @@ function buildPlant() {
   addBox(5.8, 1.3, -6.8, 0.5, 2.6, 0.5, materials.darkMetal);
 
   addFlangeNetwork();
+  interactables.push(...buildFieldEvidence(THREE, scene));
 
   for (let i = 0; i < 5; i += 1) {
     addBox(-19 + i * 2.1, 0.45, 7.8, 1.3, 0.9, 1.1, materials.darkMetal, true);
@@ -183,17 +187,6 @@ function buildPlant() {
     segmentLength: 4,
     height: 2.5,
   });
-
-  for (let i = 0; i < 24; i += 1) {
-    const size = 0.15 + Math.random() * 0.3;
-    const rock = new THREE.Mesh(
-      new THREE.DodecahedronGeometry(size, 0),
-      new THREE.MeshStandardMaterial({ color: 0x596253, roughness: 1 }),
-    );
-    rock.position.set(-34 + Math.random() * 68, size / 2, -33 + Math.random() * 66);
-    rock.rotation.set(Math.random(), Math.random(), Math.random());
-    scene.add(rock);
-  }
 }
 
 buildPlant();
@@ -213,24 +206,67 @@ let tabletOpen = false;
 let gameStarted = false;
 let mobileMoveX = 0;
 let mobileMoveY = 0;
+let pendingFindingId = null;
+let pendingFindingWasNew = false;
 
 const saveKey = `riskmulate:${scenario.id}`;
-const saved = JSON.parse(localStorage.getItem(saveKey) || 'null');
-const progress = saved || { found: false, stage: -1, score: 0, complete: false };
+
+function defaultProgress() {
+  return {
+    version: 2,
+    found: false,
+    stage: -1,
+    score: 0,
+    complete: false,
+    inspectedFindingIds: [],
+    evidenceIds: [],
+    discoveredRiskIds: [],
+    answers: [],
+    treatmentSelection: [],
+    portfolioAttempts: 0,
+  };
+}
+
+function readSavedProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(saveKey) || 'null');
+    if (!saved) return defaultProgress();
+    return {
+      ...defaultProgress(),
+      ...saved,
+      inspectedFindingIds: Array.isArray(saved.inspectedFindingIds) ? saved.inspectedFindingIds : [],
+      evidenceIds: Array.isArray(saved.evidenceIds) ? saved.evidenceIds : [],
+      discoveredRiskIds: Array.isArray(saved.discoveredRiskIds) ? saved.discoveredRiskIds : [],
+      answers: Array.isArray(saved.answers) ? saved.answers : [],
+      treatmentSelection: Array.isArray(saved.treatmentSelection) ? saved.treatmentSelection : [],
+    };
+  } catch {
+    return defaultProgress();
+  }
+}
+
+const progress = readSavedProgress();
 
 function saveProgress() {
+  progress.found = progress.discoveredRiskIds.length > 0;
   localStorage.setItem(saveKey, JSON.stringify(progress));
+  window.dispatchEvent(new CustomEvent('riskmulate:progress', { detail: { ...progress } }));
+}
+
+function allInspectionsComplete() {
+  return progress.inspectedFindingIds.length >= scenario.inspectionCount;
 }
 
 function stageName() {
-  if (!progress.found) return 'Inspection';
   if (progress.complete) return 'Debrief';
+  if (progress.stage < 0) return 'Inspection';
   return scenario.stages[Math.max(0, progress.stage)]?.name || 'Inspection';
 }
 
 function syncHud() {
   scoreEl.textContent = progress.score;
   stageEl.textContent = stageName();
+  window.dispatchEvent(new CustomEvent('riskmulate:progress', { detail: { ...progress } }));
 }
 
 function canOccupy(x, z) {
@@ -296,14 +332,36 @@ function updateInteraction() {
   promptEl.classList.toggle('show', Boolean(activeInteractable) && !tabletOpen);
 }
 
+function recordFinding(findingId) {
+  const finding = scenario.findings.find((item) => item.id === findingId);
+  if (!finding) return null;
+
+  const isNew = !progress.inspectedFindingIds.includes(findingId);
+  if (isNew) {
+    progress.inspectedFindingIds.push(findingId);
+    finding.evidence.forEach((_, index) => {
+      const evidenceId = `${finding.id}:${index}`;
+      if (!progress.evidenceIds.includes(evidenceId)) progress.evidenceIds.push(evidenceId);
+    });
+    if (finding.riskId && !progress.discoveredRiskIds.includes(finding.riskId)) {
+      progress.discoveredRiskIds.push(finding.riskId);
+    }
+    progress.score = Math.min(scenario.maxScore, progress.score + 10);
+  }
+
+  if (allInspectionsComplete() && progress.stage < 0) progress.stage = 0;
+  pendingFindingId = findingId;
+  pendingFindingWasNew = isNew;
+  saveProgress();
+  syncHud();
+  return finding;
+}
+
 function inspectActive() {
   if (!activeInteractable || tabletOpen) return;
-  if (!progress.found) {
-    progress.found = true;
-    progress.stage = 0;
-    saveProgress();
-    syncHud();
-  }
+  const findingId = activeInteractable.userData.findingId;
+  if (!findingId) return;
+  recordFinding(findingId);
   openTablet();
 }
 
@@ -317,6 +375,8 @@ function openTablet() {
 function closeTablet() {
   tabletOpen = false;
   tabletEl.classList.remove('open');
+  pendingFindingId = null;
+  pendingFindingWasNew = false;
 }
 
 window.closeTablet = closeTablet;
@@ -324,79 +384,243 @@ window.closeTablet = closeTablet;
 function renderTabs() {
   tabletTabs.innerHTML = scenario.stages
     .map((item, index) => {
-      const cls = progress.complete || index < progress.stage ? 'done' : index === progress.stage ? 'active' : '';
-      return `<span class="tab ${cls}">${item.name}</span>`;
+      const active = progress.stage >= 0 && index === progress.stage && !progress.complete;
+      const done = progress.complete || (progress.stage >= 0 && index < progress.stage);
+      return `<span class="tab ${done ? 'done' : ''} ${active ? 'active' : ''}">${item.name}</span>`;
     })
     .join('');
 }
 
+function discoveredRisks() {
+  return scenario.risks.filter((risk) => progress.discoveredRiskIds.includes(risk.id));
+}
+
+function analysisVisible() {
+  return progress.complete || progress.stage >= 3;
+}
+
+function residualVisible() {
+  return progress.complete || progress.stage >= 5;
+}
+
 function renderMatrix() {
+  const risks = discoveredRisks();
+  const useResidual = residualVisible();
+  const showMarkers = analysisVisible();
   let cells = '';
+
   for (let impact = 5; impact >= 1; impact -= 1) {
     for (let likelihood = 1; likelihood <= 5; likelihood += 1) {
-      const risk = likelihood * impact;
-      cells += `<div style="--risk:${Math.min(risk, 12)}" title="L${likelihood} × I${impact} = ${risk}">${risk}</div>`;
+      const score = likelihood * impact;
+      const markers = showMarkers
+        ? risks.filter((risk) => {
+          const l = useResidual ? risk.residualLikelihood : risk.inherentLikelihood;
+          const i = useResidual ? risk.residualImpact : risk.inherentImpact;
+          return l === likelihood && i === impact;
+        })
+        : [];
+      const title = markers.length
+        ? `${markers.map((risk) => risk.name).join(', ')} · L${likelihood} × I${impact} = ${score}`
+        : `L${likelihood} × I${impact} = ${score}`;
+      cells += `<div class="${markers.length ? 'occupied' : ''}" data-count="${markers.length || ''}" style="--risk:${Math.min(score, 12)}" title="${title}">${score}</div>`;
     }
   }
   return cells;
 }
 
+function riskStatus(risk) {
+  const inherent = risk.inherentLikelihood * risk.inherentImpact;
+  const residual = risk.residualLikelihood * risk.residualImpact;
+  if (progress.complete) return residual > scenario.acceptanceThreshold ? 'Approval / monitor' : 'Monitor';
+  if (progress.stage >= 5) return residual > scenario.acceptanceThreshold ? 'Approval required' : 'Controls selected';
+  if (progress.stage >= 4) return 'Treatment planning';
+  if (analysisVisible()) return inherent > scenario.acceptanceThreshold ? 'Treat / escalate' : 'Decision required';
+  return 'Evidence collected';
+}
+
 function registerMarkup() {
-  if (!progress.found) return '<tr><td colspan="4">No risk recorded yet.</td></tr>';
-  const stage = progress.stage;
-  const inherent = stage >= 2 || progress.complete
-    ? scenario.risk.inherentLikelihood * scenario.risk.inherentImpact
-    : '—';
-  const residual = stage >= 5 || progress.complete
-    ? scenario.risk.residualLikelihood * scenario.risk.residualImpact
-    : '—';
-  const status = progress.complete || stage >= 5
-    ? 'Monitor / approval'
-    : stage >= 4
-      ? 'Treatment selected'
-      : 'Open';
-  return `<tr><td>${scenario.risk.name}</td><td>${inherent}</td><td>${residual}</td><td>${status}</td></tr>`;
+  const risks = discoveredRisks();
+  if (!risks.length) return '<tr><td colspan="4">No material risk entered yet.</td></tr>';
+
+  return risks.map((risk) => {
+    const inherent = risk.inherentLikelihood * risk.inherentImpact;
+    const residual = risk.residualLikelihood * risk.residualImpact;
+    const status = riskStatus(risk);
+    const inherentMarkup = analysisVisible()
+      ? `<span class="risk-score ${inherent > scenario.acceptanceThreshold ? 'high' : ''}">${inherent}</span>`
+      : '—';
+    const residualMarkup = residualVisible()
+      ? `<span class="risk-score ${residual > scenario.acceptanceThreshold ? 'high' : ''}">${residual}</span>`
+      : '—';
+    const statusClass = status.includes('Approval') || status.includes('Treat') ? 'status-escalate' : status.includes('Monitor') ? 'status-monitor' : '';
+    return `<tr>
+      <td title="${risk.statement}">${risk.name}</td>
+      <td>${inherentMarkup}</td>
+      <td>${residualMarkup}</td>
+      <td class="${statusClass}">${status}</td>
+    </tr>`;
+  }).join('');
 }
 
 function tabletShell(inner) {
+  const matrixMode = residualVisible() ? 'Residual' : 'Inherent';
   return `${inner}
     <table class="register">
       <thead><tr><th>Risk</th><th>Inherent</th><th>Residual</th><th>Status</th></tr></thead>
       <tbody>${registerMarkup()}</tbody>
     </table>
-    <div class="matrix-title">5 × 5 Risk Matrix</div>
+    <div class="matrix-title">5 × 5 Risk Matrix · ${matrixMode}</div>
     <div class="matrix">${renderMatrix()}</div>`;
+}
+
+function evidenceCardMarkup(finding) {
+  const risk = finding.riskId ? scenario.risks.find((item) => item.id === finding.riskId) : null;
+  const status = pendingFindingWasNew ? 'EVIDENCE CAPTURED' : 'ALREADY RECORDED';
+  const riskLine = risk
+    ? `<div class="risk-chip-row"><span class="risk-chip ${risk.inherentImpact >= 4 ? 'high' : 'medium'}">Candidate risk: ${risk.name}</span></div>`
+    : '<div class="risk-chip-row"><span class="risk-chip">Observation — classification required</span></div>';
+  return `<div class="evidence-card ${finding.falsePositive ? 'false-positive' : ''}">
+      <span class="evidence-kicker">${status}</span>
+      <h3>${finding.label}</h3>
+      ${riskLine}
+      <ul class="evidence-list">${finding.evidence.map((item) => `<li>${item}</li>`).join('')}</ul>
+      <p class="evidence-teaching">${finding.teaching}</p>
+    </div>`;
+}
+
+function inspectionSummaryMarkup() {
+  const risks = discoveredRisks();
+  const evidenceCount = progress.evidenceIds.length;
+  const remaining = Math.max(0, scenario.inspectionCount - progress.inspectedFindingIds.length);
+  return `<div class="inspection-summary">
+    <div class="inspection-progress">
+      <span>Inspection points</span><strong>${progress.inspectedFindingIds.length}/${scenario.inspectionCount}</strong>
+    </div>
+    <div class="inspection-progress">
+      <span>Evidence items</span><strong>${evidenceCount}/${scenario.evidenceTotal}</strong>
+    </div>
+    <div class="risk-chip-row">
+      ${risks.map((risk) => `<span class="risk-chip ${risk.inherentImpact >= 4 ? 'high' : 'medium'}">${risk.name}</span>`).join('') || '<span class="risk-chip">No material risks classified yet</span>'}
+    </div>
+    <div class="feedback">${remaining > 0
+      ? `${remaining} inspection point${remaining === 1 ? '' : 's'} remain. Keep walking the plant and collect evidence before formal assessment.`
+      : 'Field collection complete. The formal risk process is now unlocked: establish context, identify, analyze, evaluate, treat, then monitor and review.'}</div>
+  </div>`;
+}
+
+function debriefMarkup() {
+  const correctDecisions = progress.answers.filter((answer) => answer.correct).length;
+  return `<div class="question">${scenario.debrief.headline}</div>
+    <div class="feedback">You classified ${progress.discoveredRiskIds.length}/${scenario.risks.length} material risks from ${progress.evidenceIds.length}/${scenario.evidenceTotal} evidence items and completed ${correctDecisions}/${scenario.stages.length} scored risk-process decisions correctly. Final score: ${progress.score}/${scenario.maxScore}.</div>
+    <ul class="debrief-lessons">${scenario.debrief.lessons.map((lesson) => `<li>${lesson}</li>`).join('')}</ul>
+    <div class="counterfactual"><strong>Counterfactual:</strong> ${scenario.debrief.counterfactual}</div>
+    <button class="option" style="margin-top:12px" id="resetProgress">Replay scenario</button>`;
+}
+
+function portfolioMarkup(item) {
+  const selected = new Set(progress.treatmentSelection || []);
+  return `<div class="question">${item.prompt}</div>
+    <div class="portfolio-budget" id="portfolioBudget"><span>Immediate response capacity</span><strong id="portfolioMinutes">0 / ${scenario.treatmentBudgetMinutes} min</strong></div>
+    <div class="portfolio-actions">
+      ${scenario.treatmentActions.map((action) => `<label class="portfolio-option">
+        <input type="checkbox" data-treatment="${action.id}" ${selected.has(action.id) ? 'checked' : ''} />
+        <span><b>${action.label}</b></span>
+        <small>${action.minutes} min</small>
+      </label>`).join('')}
+    </div>
+    <button class="portfolio-submit" id="submitPortfolio">Commit treatment plan</button>
+    <div class="feedback" id="feedback">Select immediate actions that control every material pathway without exceeding ${scenario.treatmentBudgetMinutes} minutes.</div>`;
+}
+
+function bindInspectionButtons() {
+  document.querySelector('#returnToField')?.addEventListener('click', () => {
+    pendingFindingId = null;
+    pendingFindingWasNew = false;
+    closeTablet();
+  });
+}
+
+function updatePortfolioBudget() {
+  const selected = [...tabletBody.querySelectorAll('[data-treatment]:checked')].map((input) => input.dataset.treatment);
+  progress.treatmentSelection = selected;
+  const total = scenario.treatmentActions
+    .filter((action) => selected.includes(action.id))
+    .reduce((sum, action) => sum + action.minutes, 0);
+  const budgetEl = document.querySelector('#portfolioBudget');
+  const minutesEl = document.querySelector('#portfolioMinutes');
+  if (minutesEl) minutesEl.textContent = `${total} / ${scenario.treatmentBudgetMinutes} min`;
+  budgetEl?.classList.toggle('over', total > scenario.treatmentBudgetMinutes);
+  return { selected, total };
+}
+
+function bindPortfolio() {
+  tabletBody.querySelectorAll('[data-treatment]').forEach((input) => {
+    input.addEventListener('change', () => {
+      updatePortfolioBudget();
+      saveProgress();
+    });
+  });
+  document.querySelector('#submitPortfolio')?.addEventListener('click', submitPortfolio);
+  updatePortfolioBudget();
 }
 
 function renderTablet(message = '') {
   renderTabs();
   syncHud();
 
-  if (!progress.found) {
-    tabletBody.innerHTML = tabletShell(
-      '<div class="question">Inspect the leaking flange in the plant to begin the assessment.</div>',
-    );
-    return;
+  if (pendingFindingId) {
+    const finding = scenario.findings.find((item) => item.id === pendingFindingId);
+    if (finding) {
+      tabletBody.innerHTML = tabletShell(`${evidenceCardMarkup(finding)}
+        <button class="option" id="returnToField" style="margin-top:8px">${allInspectionsComplete() ? 'Close evidence review' : 'Return to walkdown'}</button>`);
+      bindInspectionButtons();
+      return;
+    }
   }
 
   if (progress.complete) {
-    tabletBody.innerHTML = tabletShell(`<div class="question">Scenario complete</div>
-      <div class="feedback">Debrief: You linked the risk to objectives, wrote a cause → event → consequence statement, assessed inherent risk, compared it with criteria, selected controls, then recorded and monitored residual risk. Final score: ${progress.score}/600.</div>
-      <button class="option" style="margin-top:12px" id="resetProgress">Replay scenario</button>`);
-    document.querySelector('#resetProgress').addEventListener('click', () => {
+    tabletBody.innerHTML = tabletShell(debriefMarkup());
+    document.querySelector('#resetProgress')?.addEventListener('click', () => {
       localStorage.removeItem(saveKey);
+      localStorage.removeItem(`${saveKey}:tablet-view`);
       location.reload();
     });
     return;
   }
 
+  if (!allInspectionsComplete() || progress.stage < 0) {
+    tabletBody.innerHTML = tabletShell(`<div class="question">Conduct the full plant walkdown before formal assessment.</div>${inspectionSummaryMarkup()}
+      <button class="option" id="returnToField" style="margin-top:8px">Return to walkdown</button>`);
+    bindInspectionButtons();
+    return;
+  }
+
   const item = scenario.stages[progress.stage];
+  if (item.type === 'portfolio') {
+    tabletBody.innerHTML = tabletShell(portfolioMarkup(item));
+    bindPortfolio();
+    return;
+  }
+
   tabletBody.innerHTML = tabletShell(`<div class="question">${item.prompt}</div>
     <div class="options">${item.options.map((option, index) => `<button class="option" data-answer="${index}">${option}</button>`).join('')}</div>
-    <div class="feedback" id="feedback">${message || 'Choose the strongest risk-management response.'}</div>`);
+    <div class="feedback" id="feedback">${message || 'Use the collected evidence and the facility objective to make the strongest risk-management decision.'}</div>`);
   tabletBody.querySelectorAll('[data-answer]').forEach((button) => {
     button.addEventListener('click', () => answerStage(Number(button.dataset.answer)));
   });
+}
+
+function advanceStage(delay = 1050) {
+  setTimeout(() => {
+    progress.stage += 1;
+    if (progress.stage >= scenario.stages.length) {
+      progress.complete = true;
+      progress.stage = scenario.stages.length - 1;
+    }
+    saveProgress();
+    syncHud();
+    renderTablet();
+  }, delay);
 }
 
 function answerStage(index) {
@@ -405,24 +629,57 @@ function answerStage(index) {
     button.disabled = true;
   });
   const correct = index === item.correctIndex;
-  if (correct) progress.score += 100;
+  progress.answers.push({ stage: item.name, correct, answerIndex: index });
+  if (correct) progress.score = Math.min(scenario.maxScore, progress.score + 100);
   else progress.score = Math.max(0, progress.score - 25);
 
   const feedback = `${correct ? 'Correct.' : 'Review:'} ${item.feedback}`;
   const feedbackEl = document.querySelector('#feedback');
   if (feedbackEl) feedbackEl.textContent = feedback;
-  syncHud();
   saveProgress();
+  syncHud();
+  advanceStage();
+}
 
-  setTimeout(() => {
-    progress.stage += 1;
-    if (progress.stage >= scenario.stages.length) {
-      progress.complete = true;
-      progress.stage = scenario.stages.length - 1;
-    }
+function submitPortfolio() {
+  const item = scenario.stages[progress.stage];
+  const { selected, total } = updatePortfolioBudget();
+  const feedbackEl = document.querySelector('#feedback');
+
+  if (total > scenario.treatmentBudgetMinutes) {
+    if (feedbackEl) feedbackEl.textContent = `This plan requires ${total} minutes, exceeding the ${scenario.treatmentBudgetMinutes}-minute immediate-response limit. Prioritize containment, isolation, access, lockout, and a startup hold; long repairs can follow.`;
+    return;
+  }
+
+  const required = scenario.treatmentActions.filter((action) => action.required).map((action) => action.id);
+  const missing = required.filter((id) => !selected.includes(id));
+  const decoys = selected.filter((id) => !required.includes(id));
+  const correct = missing.length === 0 && decoys.length === 0;
+  progress.portfolioAttempts += 1;
+
+  if (!correct) {
+    progress.score = Math.max(0, progress.score - 25);
+    progress.answers.push({ stage: item.name, correct: false, selected: [...selected], attempt: progress.portfolioAttempts });
+    const missingLabels = scenario.treatmentActions.filter((action) => missing.includes(action.id)).map((action) => action.label);
+    const decoyLabels = scenario.treatmentActions.filter((action) => decoys.includes(action.id)).map((action) => action.label);
+    const parts = [];
+    if (missingLabels.length) parts.push(`Missing control${missingLabels.length > 1 ? 's' : ''}: ${missingLabels.join(' ')}`);
+    if (decoyLabels.length) parts.push(`Low-value or poorly sequenced action${decoyLabels.length > 1 ? 's' : ''}: ${decoyLabels.join(' ')}`);
+    if (feedbackEl) feedbackEl.textContent = `Revise the portfolio. ${parts.join(' ')} The immediate plan should control every live pathway within the response limit.`;
     saveProgress();
-    renderTablet();
-  }, 850);
+    syncHud();
+    return;
+  }
+
+  progress.answers.push({ stage: item.name, correct: true, selected: [...selected], attempt: progress.portfolioAttempts });
+  progress.score = Math.min(scenario.maxScore, progress.score + 100);
+  if (feedbackEl) feedbackEl.textContent = `Correct. ${item.feedback}`;
+  tabletBody.querySelectorAll('[data-treatment]').forEach((input) => { input.disabled = true; });
+  const submit = document.querySelector('#submitPortfolio');
+  if (submit) submit.disabled = true;
+  saveProgress();
+  syncHud();
+  advanceStage(1250);
 }
 
 function toggleTablet() {
@@ -540,6 +797,7 @@ addEventListener('resize', () => {
   renderer.setPixelRatio(Math.min(devicePixelRatio, coarsePointer ? 1.2 : 1.5));
 });
 
+saveProgress();
 syncHud();
 renderTabs();
 updateCamera();
