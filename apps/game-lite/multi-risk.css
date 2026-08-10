@@ -1,0 +1,43 @@
+.evidence-card{
+  border:1px solid #2b3438;
+  border-left:3px solid #d98a36;
+  border-radius:6px;
+  padding:9px;
+  background:linear-gradient(145deg,#151a1c,#0d1113);
+}
+.evidence-card.false-positive{border-left-color:#6d8893}
+.evidence-card .evidence-kicker{font-size:6px;letter-spacing:.1em;color:#d99149;font-weight:800}
+.evidence-card.false-positive .evidence-kicker{color:#8ba7b1}
+.evidence-card h3{margin:4px 0 7px;font-size:12px;color:#eef2f4}
+.evidence-list{margin:0;padding-left:16px;display:grid;gap:5px;color:#aeb8bd;font-size:8px;line-height:1.42}
+.evidence-teaching{margin:8px 0 0;padding-top:7px;border-top:1px solid #262e31;color:#89969b;font-size:7.5px;line-height:1.45}
+.inspection-summary{display:grid;gap:7px;margin:8px 0}
+.inspection-progress{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;border:1px solid #293135;border-radius:5px;background:#101517;font-size:7px;color:#8e9aa0}
+.inspection-progress strong{color:#f0a14e;font-size:9px}
+.risk-chip-row{display:flex;flex-wrap:wrap;gap:4px}
+.risk-chip{border:1px solid #344047;border-radius:999px;padding:4px 6px;font-size:6px;color:#9ca8ad;background:#111719}
+.risk-chip.high{border-color:#6b372e;color:#ff8677;background:#201210}
+.risk-chip.medium{border-color:#68512b;color:#efba61;background:#1d1810}
+.portfolio-budget{display:flex;justify-content:space-between;align-items:center;margin:7px 0;padding:7px 8px;border:1px solid #313a3e;border-radius:5px;background:#101517;color:#9ba7ac;font-size:7px}
+.portfolio-budget strong{color:#f2a14d;font-size:10px}
+.portfolio-budget.over strong{color:#ff7064}
+.portfolio-actions{display:grid;gap:5px}
+.portfolio-option{display:grid;grid-template-columns:18px 1fr auto;gap:7px;align-items:start;padding:7px;border:1px solid #2b3438;border-radius:5px;background:#111719;color:#b7c0c4;font-size:7px;line-height:1.35;cursor:pointer}
+.portfolio-option input{margin:2px 0 0;accent-color:#d78a36}
+.portfolio-option b{font-size:7px;color:#e7ecee;font-weight:650}
+.portfolio-option small{color:#d89a54;font-size:6px;white-space:nowrap}
+.portfolio-submit{margin-top:7px;width:100%;min-height:38px;border:1px solid #8b592c;border-radius:5px;background:#2b1e13;color:#f4a553;font-size:8px;font-weight:800;cursor:pointer}
+.portfolio-submit:disabled{opacity:.45;cursor:default}
+.register .risk-score{font-weight:850;color:#f0a14c}
+.register .risk-score.high{color:#ff7568}
+.register .status-escalate{color:#ff8375}
+.register .status-monitor{color:#7fc28b}
+.matrix .occupied{outline:2px solid rgba(255,255,255,.72);outline-offset:-2px;position:relative}
+.matrix .occupied::after{content:attr(data-count);position:absolute;right:2px;top:1px;min-width:10px;height:10px;border-radius:999px;display:grid;place-items:center;background:#111;color:#fff;font-size:5px}
+.debrief-lessons{margin:8px 0 0;padding-left:16px;display:grid;gap:6px;color:#adb7bb;font-size:8px;line-height:1.45}
+.counterfactual{margin-top:9px;padding:8px;border:1px solid #5b4128;border-radius:5px;background:#18130e;color:#d7c4ad;font-size:8px;line-height:1.45}
+@media(max-width:560px){
+  .portfolio-option{grid-template-columns:16px 1fr auto;padding:6px;gap:5px}
+  .evidence-list,.debrief-lessons{font-size:7px}
+  .register td{font-size:6.5px}
+}
