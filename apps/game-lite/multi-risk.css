@@ -36,6 +36,29 @@
 .matrix .occupied::after{content:attr(data-count);position:absolute;right:2px;top:1px;min-width:10px;height:10px;border-radius:999px;display:grid;place-items:center;background:#111;color:#fff;font-size:5px}
 .debrief-lessons{margin:8px 0 0;padding-left:16px;display:grid;gap:6px;color:#adb7bb;font-size:8px;line-height:1.45}
 .counterfactual{margin-top:9px;padding:8px;border:1px solid #5b4128;border-radius:5px;background:#18130e;color:#d7c4ad;font-size:8px;line-height:1.45}
+
+/* Keep each tablet page focused on its own task. */
+.tablet-page-stage[data-render-view="matrix"] .evidence-card,
+.tablet-page-stage[data-render-view="matrix"] .inspection-summary,
+.tablet-page-stage[data-render-view="matrix"] .portfolio-budget,
+.tablet-page-stage[data-render-view="matrix"] .portfolio-actions,
+.tablet-page-stage[data-render-view="matrix"] .portfolio-submit,
+.tablet-page-stage[data-render-view="matrix"] .debrief-lessons,
+.tablet-page-stage[data-render-view="matrix"] .counterfactual,
+.tablet-page-stage[data-render-view="register"] .evidence-card,
+.tablet-page-stage[data-render-view="register"] .inspection-summary,
+.tablet-page-stage[data-render-view="register"] .portfolio-budget,
+.tablet-page-stage[data-render-view="register"] .portfolio-actions,
+.tablet-page-stage[data-render-view="register"] .portfolio-submit,
+.tablet-page-stage[data-render-view="register"] .debrief-lessons,
+.tablet-page-stage[data-render-view="register"] .counterfactual{display:none}
+
+.tablet-page-stage[data-render-view="debrief"] .evidence-card,
+.tablet-page-stage[data-render-view="debrief"] .inspection-summary,
+.tablet-page-stage[data-render-view="debrief"] .portfolio-budget,
+.tablet-page-stage[data-render-view="debrief"] .portfolio-actions,
+.tablet-page-stage[data-render-view="debrief"] .portfolio-submit{display:none}
+
 @media(max-width:560px){
   .portfolio-option{grid-template-columns:16px 1fr auto;padding:6px;gap:5px}
   .evidence-list,.debrief-lessons{font-size:7px}
