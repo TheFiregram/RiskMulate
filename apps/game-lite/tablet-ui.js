@@ -9,7 +9,6 @@ const tabletPageStage = document.querySelector('#tabletPageStage');
 const tabletViewNav = document.querySelector('#tabletViewNav');
 const tabletViewTitle = document.querySelector('#tabletViewTitle');
 const tabletViewEyebrow = document.querySelector('#tabletViewEyebrow');
-const tabletOverviewStatus = document.querySelector('#tabletOverviewStatus');
 const tabletBackIcon = document.querySelector('#tabletBackIcon');
 const clockEl = document.querySelector('#tabletClock');
 const batteryEl = document.querySelector('#tabletBattery');
@@ -23,33 +22,71 @@ const inherentEl = document.querySelector('#tabletInherent');
 const residualEl = document.querySelector('#tabletResidual');
 const progressPctEl = document.querySelector('#tabletTreatmentPct');
 const workspaceTitle = document.querySelector('#tabletWorkspaceTitle');
-const updateEl = document.querySelector('#tabletUpdate');
+const taskRowsEl = document.querySelector('#tabletTaskRows');
+const taskSummaryEl = document.querySelector('#tabletTaskSummary');
+const insightHeadlineEl = document.querySelector('#tabletInsightHeadline');
+const insightDetailEl = document.querySelector('#tabletInsightDetail');
+const evidenceSummaryEl = document.querySelector('#tabletEvidenceSummary');
+const evidenceListEl = document.querySelector('#tabletEvidenceList');
+const treatmentStateEl = document.querySelector('#tabletTreatmentState');
+const treatmentHeadlineEl = document.querySelector('#tabletTreatmentHeadline');
+const treatmentCopyEl = document.querySelector('#tabletTreatmentCopy');
+const treatmentConfidenceEl = document.querySelector('#tabletTreatmentConfidence');
+const treatmentActionsListEl = document.querySelector('#tabletTreatmentActionsList');
+const treatmentCapacityEl = document.querySelector('#tabletTreatmentCapacity');
+const treatmentActionEl = document.querySelector('#tabletTreatmentAction');
+const registerCountEl = document.querySelector('#tabletRegisterCount');
 
 const saveKey = `riskmulate:${scenario.id}`;
 const viewSaveKey = `${saveKey}:tablet-view`;
 const stageCount = scenario.stages.length;
-const inherentScore = scenario.risk.inherentLikelihood * scenario.risk.inherentImpact;
-const residualScore = scenario.risk.residualLikelihood * scenario.risk.residualImpact;
-const viewOrder = ['overview', 'assess', 'matrix', 'register', 'debrief'];
+const viewOrder = ['overview', 'assess', 'evidence', 'matrix', 'register', 'treat', 'debrief'];
 const viewMeta = {
   overview: ['FIELD STATUS', 'Overview'],
   assess: ['RISK PROCESS', 'Assessment'],
+  evidence: ['CONTEXT SOURCES', 'Evidence'],
   matrix: ['RISK ANALYSIS', 'Risk Matrix'],
   register: ['RISK RECORD', 'Register'],
+  treat: ['RISK TREATMENT', 'Treatment'],
   debrief: ['LEARNING REVIEW', 'Debrief'],
+};
+const taskDescriptions = {
+  Context: 'Objectives, scope and decision criteria',
+  Identify: 'Cause → event → consequence',
+  Analyze: 'Likelihood × impact from evidence',
+  Evaluate: 'Compare analyzed risk with criteria',
+  Treat: 'Select controls for risk pathways',
+  'Monitor & Review': 'Residual risk, owners and indicators',
 };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+function emptyProgress() {
+  return {
+    inspectedFindingIds: [],
+    evidenceIds: [],
+    discoveredRiskIds: [],
+    treatmentSelection: [],
+    answers: [],
+    stage: -1,
+    score: 0,
+    complete: false,
+  };
+}
+
 function readProgress() {
   try {
-    return JSON.parse(localStorage.getItem(saveKey) || 'null') || {
-      found: false,
-      stage: -1,
-      score: 0,
-      complete: false,
+    const stored = JSON.parse(localStorage.getItem(saveKey) || 'null') || {};
+    return {
+      ...emptyProgress(),
+      ...stored,
+      inspectedFindingIds: Array.isArray(stored.inspectedFindingIds) ? stored.inspectedFindingIds : [],
+      evidenceIds: Array.isArray(stored.evidenceIds) ? stored.evidenceIds : [],
+      discoveredRiskIds: Array.isArray(stored.discoveredRiskIds) ? stored.discoveredRiskIds : [],
+      treatmentSelection: Array.isArray(stored.treatmentSelection) ? stored.treatmentSelection : [],
+      answers: Array.isArray(stored.answers) ? stored.answers : [],
     };
   } catch {
-    return { found: false, stage: -1, score: 0, complete: false };
+    return emptyProgress();
   }
 }
 
@@ -83,34 +120,168 @@ async function initBattery() {
     syncBattery();
     battery.addEventListener('levelchange', syncBattery);
   } catch {
-    // Keep the in-game fallback battery reading where the Battery Status API is unavailable.
+    // Use the in-game battery reading when the Battery Status API is unavailable.
   }
 }
 
-function stageUpdateText(progress) {
-  if (!progress.found) {
-    return 'Inspect the highlighted flange and capture field evidence before assessing the risk.';
+function allInspectionsComplete(progress) {
+  return progress.inspectedFindingIds.length >= scenario.inspectionCount;
+}
+
+function discoveredRisks(progress) {
+  return scenario.risks.filter((risk) => progress.discoveredRiskIds.includes(risk.id));
+}
+
+function analysisVisible(progress) {
+  return progress.complete || progress.stage >= 3;
+}
+
+function residualVisible(progress) {
+  return progress.complete || progress.stage >= 5;
+}
+
+function processPercent(progress) {
+  if (progress.complete) return 100;
+  if (progress.stage < 0) return 0;
+  return Math.round((Math.max(0, progress.stage) / stageCount) * 100);
+}
+
+function insightFor(progress) {
+  const inspected = progress.inspectedFindingIds.length;
+  const evidence = progress.evidenceIds.length;
+  if (!allInspectionsComplete(progress)) {
+    const remaining = Math.max(0, scenario.inspectionCount - inspected);
+    return {
+      headline: `${remaining} inspection point${remaining === 1 ? '' : 's'} remain`,
+      detail: `${inspected}/${scenario.inspectionCount} locations inspected · ${evidence}/${scenario.evidenceTotal} evidence items captured.`,
+    };
   }
   if (progress.complete) {
-    return 'Assessment complete. Residual risk is 10, above the acceptance threshold of 9. Approval and monitoring are still required.';
+    const above = discoveredRisks(progress).filter((risk) => risk.residualLikelihood * risk.residualImpact > scenario.acceptanceThreshold);
+    return above.length
+      ? { headline: 'Residual risk remains above criteria', detail: `${above.length} risk ${above.length === 1 ? 'requires' : 'require'} explicit approval and active monitoring after treatment.` }
+      : { headline: 'Controls bring recorded risks within criteria', detail: 'Keep owners, indicators and review dates active rather than closing uncertainty prematurely.' };
   }
-
-  const messages = [
-    'Evidence captured. Establish the operating objectives and context before rating the risk.',
-    'Context recorded. Express the risk as a cause → event → consequence chain.',
-    'Risk identified. Assess inherent likelihood and impact before added controls.',
-    'Inherent score is 20. Compare the result with the acceptance threshold of 9.',
-    'Treatment is required. Select controls that act on the hazardous event and its likelihood.',
-    'Residual score is 10. Record ownership, approval, indicators, and review actions.',
+  const insightByStage = [
+    ['Define the objective before scoring risks', 'Context anchors the assessment to people, environment, schedule, compliance and product objectives.'],
+    ['Separate material risks from observations', 'Use the collected evidence to distinguish uncertain effects on objectives from defects that do not justify a risk entry.'],
+    ['Assess likelihood and impact from evidence', 'Rate the inherent risk before added treatment. Do not collapse likelihood and consequence into one guess.'],
+    ['Compare analyzed risk with the criteria', `The current acceptance threshold is ${scenario.acceptanceThreshold}. Treatment or escalation follows from this comparison.`],
+    ['Build a control portfolio within the response window', `Use the ${scenario.treatmentBudgetMinutes}-minute capacity against each material risk pathway, not just the most visible defect.`],
+    ['Residual risk still needs a decision', 'Record residual scores, owners, indicators and approval where the residual level remains above criteria.'],
   ];
-  return messages[Math.max(0, Math.min(progress.stage, messages.length - 1))];
+  const [headline, detail] = insightByStage[Math.max(0, Math.min(progress.stage, insightByStage.length - 1))];
+  return { headline, detail };
 }
 
-function overviewStatus(progress) {
-  if (!progress.found) return 'Inspect field evidence';
-  if (progress.complete) return 'Residual approval required';
-  const active = scenario.stages[Math.max(0, Math.min(progress.stage, stageCount - 1))];
-  return active ? `${active.name} in progress` : 'Assessment in progress';
+function renderTaskRows(progress) {
+  if (!taskRowsEl) return;
+  const stage = progress.stage;
+  const completedCount = progress.complete ? stageCount : Math.max(0, stage);
+  if (taskSummaryEl) taskSummaryEl.textContent = `${completedCount} / ${stageCount}`;
+  taskRowsEl.innerHTML = scenario.stages.map((item, index) => {
+    const done = progress.complete || index < stage;
+    const active = !progress.complete && index === stage;
+    const state = done ? 'Done' : active ? 'Current' : 'Queued';
+    const icon = done ? '✓' : active ? '•' : String(index + 1);
+    return `<div class="tablet-process-row ${done ? 'done' : ''} ${active ? 'active' : ''}">
+      <span class="tablet-process-icon">${icon}</span>
+      <div class="tablet-process-copy"><strong>${item.name}</strong><span>${taskDescriptions[item.name] || ''}</span></div>
+      <span class="tablet-process-state">${state}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderEvidencePanel(progress) {
+  if (!evidenceListEl) return;
+  const findings = scenario.findings.filter((finding) => progress.inspectedFindingIds.includes(finding.id));
+  if (evidenceSummaryEl) evidenceSummaryEl.textContent = `${progress.evidenceIds.length} items`;
+  if (!findings.length) {
+    evidenceListEl.innerHTML = '<div class="tablet-empty-state">No field evidence has been captured yet.<br />Inspect highlighted plant assets to populate this vault.</div>';
+    return;
+  }
+  evidenceListEl.innerHTML = findings.map((finding) => {
+    const risk = finding.riskId ? scenario.risks.find((item) => item.id === finding.riskId) : null;
+    const chip = finding.falsePositive
+      ? '<span class="tablet-context-chip false">Observation only</span>'
+      : `<span class="tablet-context-chip risk">${risk?.name || 'Risk candidate'}</span>`;
+    return `<article class="tablet-context-card">
+      <div class="tablet-context-source"><span>${finding.falsePositive ? 'VERIFICATION CHECK' : 'FIELD OBSERVATION'}</span><b>${finding.evidence.length} source item${finding.evidence.length === 1 ? '' : 's'}</b></div>
+      <strong>${finding.label}</strong>
+      <p>${finding.evidence[0]}</p>
+      <div class="tablet-context-meta">${chip}<span class="tablet-context-chip">Inspected</span></div>
+    </article>`;
+  }).join('');
+}
+
+function treatmentMinutes(progress) {
+  return scenario.treatmentActions
+    .filter((action) => progress.treatmentSelection.includes(action.id))
+    .reduce((sum, action) => sum + action.minutes, 0);
+}
+
+function renderTreatmentPanel(progress) {
+  if (!treatmentActionsListEl) return;
+  const confidence = Math.round(Math.min(1, progress.evidenceIds.length / scenario.evidenceTotal) * 100);
+  if (treatmentConfidenceEl) treatmentConfidenceEl.textContent = `${confidence}%`;
+  document.querySelectorAll('.tablet-confidence-row i').forEach((bar, index) => {
+    bar.classList.toggle('on', confidence >= (index + 1) * 20);
+  });
+
+  const total = treatmentMinutes(progress);
+  if (treatmentCapacityEl) treatmentCapacityEl.textContent = `${total} / ${scenario.treatmentBudgetMinutes} min`;
+
+  if (!progress.complete && progress.stage < 4) {
+    if (treatmentStateEl) treatmentStateEl.textContent = 'LOCKED';
+    if (treatmentHeadlineEl) treatmentHeadlineEl.textContent = 'Complete evaluation before choosing controls';
+    if (treatmentCopyEl) treatmentCopyEl.textContent = 'Treatment options stay hidden until the analyzed risks have been compared with the acceptance criteria.';
+    if (treatmentActionEl) treatmentActionEl.textContent = 'Continue assessment';
+    treatmentActionsListEl.innerHTML = '<div class="tablet-treatment-row"><i>•</i><span>Treatment decision becomes available after Evaluate.</span><b>—</b></div>';
+    return;
+  }
+
+  const recorded = progress.complete || progress.stage > 4;
+  if (treatmentStateEl) treatmentStateEl.textContent = recorded ? 'RECORDED' : 'DECISION OPEN';
+  if (treatmentHeadlineEl) treatmentHeadlineEl.textContent = recorded ? 'Control portfolio recorded' : 'Build the immediate control portfolio';
+  if (treatmentCopyEl) treatmentCopyEl.textContent = recorded
+    ? 'Review the selected controls against each material pathway and the remaining residual-risk decision.'
+    : `Choose actions across the material pathways without exceeding ${scenario.treatmentBudgetMinutes} minutes. Recommendations are withheld until the decision is committed.`;
+  if (treatmentActionEl) treatmentActionEl.textContent = recorded ? 'Review assessment' : 'Make treatment decision';
+
+  const selected = new Set(progress.treatmentSelection);
+  const actions = recorded
+    ? scenario.treatmentActions.filter((action) => selected.has(action.id))
+    : scenario.treatmentActions;
+  treatmentActionsListEl.innerHTML = actions.map((action) => {
+    const isSelected = selected.has(action.id);
+    return `<div class="tablet-treatment-row ${isSelected ? 'selected' : ''} ${recorded ? 'recorded' : ''}">
+      <i>${isSelected ? '✓' : ''}</i><span>${action.label}</span><b>${action.minutes} min</b>
+    </div>`;
+  }).join('') || '<div class="tablet-treatment-row"><i>•</i><span>No controls have been selected yet.</span><b>—</b></div>';
+}
+
+let registerFilter = 'all';
+function applyRegisterFilter(filter = registerFilter) {
+  registerFilter = filter;
+  if (tabletMainPanel) tabletMainPanel.dataset.registerFilter = filter;
+  document.querySelectorAll('.tablet-filter-row [data-register-filter]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.registerFilter === filter));
+  });
+  const rows = [...tabletBody?.querySelectorAll('.register tbody tr') || []];
+  let visible = 0;
+  rows.forEach((row) => {
+    if (row.querySelector('[colspan]')) {
+      row.hidden = false;
+      return;
+    }
+    const text = row.textContent.toLowerCase();
+    const isAbove = Boolean(row.querySelector('.risk-score.high')) || text.includes('treat') || text.includes('approval');
+    const isMonitor = text.includes('monitor');
+    const show = filter === 'all' || (filter === 'above' && isAbove) || (filter === 'monitor' && isMonitor);
+    row.hidden = !show;
+    if (show) visible += 1;
+  });
+  if (registerCountEl) registerCountEl.textContent = `${visible} record${visible === 1 ? '' : 's'}`;
 }
 
 function validViews(progress) {
@@ -140,7 +311,6 @@ function updateViewChrome(view) {
   const progress = readProgress();
   if (tabletViewTitle) tabletViewTitle.textContent = viewMeta[view][1];
   if (tabletViewEyebrow) tabletViewEyebrow.textContent = viewMeta[view][0];
-
   tabletViewNav?.querySelectorAll('[data-tablet-view]').forEach((button) => {
     const buttonView = button.dataset.tabletView;
     const locked = buttonView === 'debrief' && !progress.complete;
@@ -155,11 +325,11 @@ function applyTabletView(view, { persist = true } = {}) {
   const allowed = validViews(progress);
   const nextView = allowed.includes(view) ? view : progress.complete ? 'debrief' : 'overview';
   currentView = nextView;
-
   if (tabletMainPanel) tabletMainPanel.dataset.tabletView = nextView;
   if (tabletPageStage) tabletPageStage.dataset.renderView = nextView;
   updateViewChrome(nextView);
   updateBackIconState();
+  if (nextView === 'register') applyRegisterFilter();
   if (persist) localStorage.setItem(viewSaveKey, nextView);
   return nextView;
 }
@@ -209,16 +379,8 @@ function clearStageMotion() {
 
 async function animateElement(element, keyframes, duration, easing = 'cubic-bezier(.22,.78,.2,1)') {
   if (!element || reduceMotion || typeof element.animate !== 'function') return;
-  const animation = element.animate(keyframes, {
-    duration,
-    easing,
-    fill: 'forwards',
-  });
-  try {
-    await animation.finished;
-  } catch {
-    // A newer navigation action replaced this animation.
-  }
+  const animation = element.animate(keyframes, { duration, easing, fill: 'forwards' });
+  try { await animation.finished; } catch { /* superseded navigation */ }
 }
 
 async function finishDualLayerTransition(nextView, direction, {
@@ -232,7 +394,6 @@ async function finishDualLayerTransition(nextView, direction, {
     applyTabletView(nextView, { persist });
     return;
   }
-
   const serial = ++transitionSerial;
   transitionRunning = true;
   tabletPageStage.classList.remove('is-dragging');
@@ -248,10 +409,8 @@ async function finishDualLayerTransition(nextView, direction, {
     return;
   }
   incoming.classList.add('is-settling');
-
   const incomingStart = incomingOffset ?? direction * width;
   const outgoingEnd = -direction * width;
-
   updateViewChrome(nextView);
 
   if (!reduceMotion) {
@@ -268,11 +427,9 @@ async function finishDualLayerTransition(nextView, direction, {
   }
 
   if (serial !== transitionSerial) return;
-
   applyTabletView(nextView, { persist });
   tabletPageStage.style.transform = 'translate3d(0,0,0) scale(1)';
   tabletPageStage.style.opacity = '1';
-
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   removePreview(incoming);
   clearStageMotion();
@@ -297,29 +454,21 @@ async function navigateTabletView(view, {
     clearStageMotion();
     return;
   }
-
   const currentIndex = viewOrder.indexOf(currentView);
   const nextIndex = viewOrder.indexOf(nextView);
   const resolvedDirection = direction ?? (nextIndex >= currentIndex ? 1 : -1);
-
   if (recordHistory && currentView) {
     if (viewHistory.at(-1) !== currentView) viewHistory.push(currentView);
     if (viewHistory.length > 12) viewHistory.shift();
   }
-
   await finishDualLayerTransition(nextView, resolvedDirection, {
-    persist,
-    preview,
-    outgoingOffset,
-    incomingOffset,
-    duration: outgoingOffset ? 230 : 300,
+    persist, preview, outgoingOffset, incomingOffset, duration: outgoingOffset ? 230 : 300,
   });
 }
 
 function moveTabletView(direction) {
   if (transitionRunning) return;
-  const progress = readProgress();
-  const allowed = validViews(progress);
+  const allowed = validViews(readProgress());
   const index = Math.max(0, allowed.indexOf(currentView));
   const nextIndex = Math.max(0, Math.min(allowed.length - 1, index + direction));
   if (nextIndex !== index) navigateTabletView(allowed[nextIndex], { direction });
@@ -342,39 +491,39 @@ function goBack() {
 
 function refreshTabletChrome() {
   const progress = readProgress();
-  const found = Boolean(progress.found);
-  const complete = Boolean(progress.complete);
-  const stage = Number.isFinite(progress.stage) ? progress.stage : -1;
-  const reachedStages = complete ? stageCount : found ? Math.max(1, stage + 1) : 0;
-  const percent = Math.round((reachedStages / stageCount) * 100);
-  const activeStage = found ? scenario.stages[Math.max(0, Math.min(stage, stageCount - 1))] : null;
+  const risks = discoveredRisks(progress);
+  const percent = processPercent(progress);
+  const activeStage = progress.stage >= 0 ? scenario.stages[Math.min(progress.stage, stageCount - 1)] : null;
+  const insight = insightFor(progress);
 
-  if (phaseEl) phaseEl.textContent = complete ? 'Debrief' : activeStage?.name || 'Inspection';
+  if (phaseEl) phaseEl.textContent = progress.complete ? 'Debrief' : activeStage?.name || 'Inspection';
   if (scenarioBar) scenarioBar.style.width = `${percent}%`;
   if (scenarioPct) scenarioPct.textContent = `${percent}%`;
-  if (riskCount) riskCount.textContent = found ? '1' : '0';
+  if (riskCount) riskCount.textContent = String(risks.length);
 
-  const showInherent = complete || stage >= 2;
-  const showResidual = complete || stage >= 5;
-  if (inherentEl) inherentEl.textContent = showInherent ? String(inherentScore) : '—';
-  if (residualEl) residualEl.textContent = showResidual ? String(residualScore) : '—';
+  const highestInherent = risks.length ? Math.max(...risks.map((risk) => risk.inherentLikelihood * risk.inherentImpact)) : 0;
+  const highestResidual = risks.length ? Math.max(...risks.map((risk) => risk.residualLikelihood * risk.residualImpact)) : 0;
+  if (inherentEl) inherentEl.textContent = analysisVisible(progress) && highestInherent ? String(highestInherent) : '—';
+  if (residualEl) residualEl.textContent = residualVisible(progress) && highestResidual ? String(highestResidual) : '—';
   if (progressPctEl) progressPctEl.textContent = `${percent}%`;
-  if (workspaceTitle) workspaceTitle.textContent = complete ? 'Scenario debrief' : activeStage?.name || 'Field assessment';
-  if (updateEl) updateEl.textContent = stageUpdateText(progress);
-  if (tabletOverviewStatus) tabletOverviewStatus.textContent = overviewStatus(progress);
+  if (workspaceTitle) workspaceTitle.textContent = progress.complete ? 'Scenario debrief' : activeStage?.name || 'Field assessment';
+  if (insightHeadlineEl) insightHeadlineEl.textContent = insight.headline;
+  if (insightDetailEl) insightDetailEl.textContent = insight.detail;
 
-  if (complete && !lastComplete) {
-    if (tablet?.classList.contains('open')) {
-      navigateTabletView('debrief', { direction: 1 });
-    } else {
-      applyTabletView('debrief');
-    }
+  renderTaskRows(progress);
+  renderEvidencePanel(progress);
+  renderTreatmentPanel(progress);
+  applyRegisterFilter();
+
+  if (progress.complete && !lastComplete) {
+    if (tablet?.classList.contains('open')) navigateTabletView('debrief', { direction: 1 });
+    else applyTabletView('debrief');
   } else if (!validViews(progress).includes(currentView)) {
-    applyTabletView(complete ? 'debrief' : 'overview');
+    applyTabletView(progress.complete ? 'debrief' : 'overview');
   } else if (!transitionRunning) {
     applyTabletView(currentView, { persist: false });
   }
-  lastComplete = complete;
+  lastComplete = progress.complete;
 }
 
 tabletViewNav?.addEventListener('click', (event) => {
@@ -387,6 +536,10 @@ document.querySelectorAll('[data-jump-view]').forEach((button) => {
   button.addEventListener('click', () => {
     if (!transitionRunning) navigateTabletView(button.dataset.jumpView);
   });
+});
+
+document.querySelectorAll('.tablet-filter-row [data-register-filter]').forEach((button) => {
+  button.addEventListener('click', () => applyRegisterFilter(button.dataset.registerFilter));
 });
 
 tabletBackIcon?.addEventListener('click', goBack);
@@ -431,7 +584,7 @@ function prepareSwipePreview(direction) {
 
 tabletPageStage?.addEventListener('touchstart', (event) => {
   if (transitionRunning || event.touches.length !== 1) return;
-  if (event.target.closest('button, .tablet-view-nav, .tabs, .option')) return;
+  if (event.target.closest('button, .tablet-view-nav, .tabs, .option, input, label')) return;
   swipeStartX = event.touches[0].clientX;
   swipeStartY = event.touches[0].clientY;
   swipeStartTime = performance.now();
@@ -445,7 +598,6 @@ tabletPageStage?.addEventListener('touchmove', (event) => {
   if (swipeStartX === null || swipeStartY === null || event.touches.length !== 1 || transitionRunning) return;
   const rawDx = event.touches[0].clientX - swipeStartX;
   const rawDy = event.touches[0].clientY - swipeStartY;
-
   if (!swipeHorizontal) {
     if (Math.abs(rawDx) < 7 && Math.abs(rawDy) < 7) return;
     if (Math.abs(rawDy) >= Math.abs(rawDx)) {
@@ -462,16 +614,13 @@ tabletPageStage?.addEventListener('touchmove', (event) => {
     swipeDirection = direction;
     prepareSwipePreview(direction);
   }
-
   const width = Math.max(1, tabletPageViewport?.clientWidth || tabletPageStage.clientWidth);
   const hasPreview = Boolean(swipePreview && swipeTargetView);
   const resistance = hasPreview ? 0.88 : 0.2;
   swipeCurrentX = rawDx * resistance;
   const travel = Math.min(1, Math.abs(swipeCurrentX) / width);
-
   tabletPageStage.style.transform = `translate3d(${swipeCurrentX}px,0,0) scale(${1 - travel * 0.006})`;
   tabletPageStage.style.opacity = String(1 - travel * 0.16);
-
   if (swipePreview) {
     const incomingX = swipeDirection * width + swipeCurrentX;
     swipePreview.style.transform = `translate3d(${incomingX}px,0,0) scale(${0.998 + travel * 0.002})`;
@@ -486,26 +635,19 @@ async function settleSwipeBack() {
   const preview = swipePreview;
   const direction = swipeDirection || (startX < 0 ? 1 : -1);
   const previewStart = preview ? direction * width + startX : null;
-
   tabletPageStage.classList.remove('is-dragging');
   tabletPageViewport?.classList.add('is-transitioning');
-
   if (!reduceMotion) {
-    const motions = [
-      animateElement(tabletPageStage, [
-        { transform: `translate3d(${startX}px,0,0) scale(.997)`, opacity: 0.9 },
-        { transform: 'translate3d(0,0,0) scale(1)', opacity: 1 },
-      ], 210),
-    ];
-    if (preview) {
-      motions.push(animateElement(preview, [
-        { transform: `translate3d(${previewStart}px,0,0) scale(1)`, opacity: 0.96 },
-        { transform: `translate3d(${direction * width}px,0,0) scale(.998)`, opacity: 0.88 },
-      ], 210));
-    }
+    const motions = [animateElement(tabletPageStage, [
+      { transform: `translate3d(${startX}px,0,0) scale(.997)`, opacity: 0.9 },
+      { transform: 'translate3d(0,0,0) scale(1)', opacity: 1 },
+    ], 210)];
+    if (preview) motions.push(animateElement(preview, [
+      { transform: `translate3d(${previewStart}px,0,0) scale(1)`, opacity: 0.96 },
+      { transform: `translate3d(${direction * width}px,0,0) scale(.998)`, opacity: 0.88 },
+    ], 210));
     await Promise.all(motions);
   }
-
   removePreview(preview);
   clearStageMotion();
 }
@@ -515,7 +657,6 @@ tabletPageStage?.addEventListener('touchend', (event) => {
     resetSwipe({ removeGhost: true });
     return;
   }
-
   const elapsed = Math.max(1, performance.now() - swipeStartTime);
   const width = Math.max(1, tabletPageViewport?.clientWidth || tabletPageStage.clientWidth);
   const velocity = Math.abs(swipeCurrentX) / elapsed;
@@ -526,15 +667,9 @@ tabletPageStage?.addEventListener('touchend', (event) => {
   const preview = swipePreview;
   const outgoingOffset = swipeCurrentX;
   const incomingOffset = preview ? direction * width + swipeCurrentX : direction * width;
-
   resetSwipe();
   if (shouldNavigate) {
-    navigateTabletView(target, {
-      direction,
-      outgoingOffset,
-      incomingOffset,
-      preview,
-    });
+    navigateTabletView(target, { direction, outgoingOffset, incomingOffset, preview });
   } else {
     swipePreview = preview;
     swipeDirection = direction;
@@ -550,18 +685,9 @@ tabletPageStage?.addEventListener('touchcancel', () => {
 
 window.addEventListener('keydown', (event) => {
   if (!tablet?.classList.contains('open')) return;
-  if (event.key === 'ArrowRight') {
-    event.preventDefault();
-    moveTabletView(1);
-  }
-  if (event.key === 'ArrowLeft') {
-    event.preventDefault();
-    moveTabletView(-1);
-  }
-  if (event.key === 'Backspace') {
-    event.preventDefault();
-    goBack();
-  }
+  if (event.key === 'ArrowRight') { event.preventDefault(); moveTabletView(1); }
+  if (event.key === 'ArrowLeft') { event.preventDefault(); moveTabletView(-1); }
+  if (event.key === 'Backspace') { event.preventDefault(); goBack(); }
 });
 
 updateClock();
