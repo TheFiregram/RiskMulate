@@ -79,25 +79,77 @@ function addBox(x, y, z, w, h, d, material, collidable = false) {
 }
 
 function addTank(x, z, radius = 2.6, height = 6.4) {
-  mesh(new THREE.CylinderGeometry(radius, radius, height, 22), materials.metal, x, height / 2, z);
-  const cap = mesh(
-    new THREE.SphereGeometry(radius, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2),
-    materials.metal,
-    x,
-    height,
-    z,
-  );
-  cap.scale.y = 0.65;
-  for (const y of [1.3, 3.2, 5.1]) {
-    mesh(
-      new THREE.TorusGeometry(radius + 0.03, 0.09, 6, 26),
-      materials.darkMetal,
-      x,
-      y,
-      z,
-      [Math.PI / 2, 0, 0],
-    );
+  const group = new THREE.Group();
+  group.position.set(x, 0, z);
+  group.userData.assetType = 'detailed-process-tank';
+  scene.add(group);
+
+  const shellMaterial = new THREE.MeshStandardMaterial({ color: 0x879194, roughness: 0.62, metalness: 0.56 });
+  const seamMaterial = new THREE.MeshStandardMaterial({ color: 0x4a5254, roughness: 0.78, metalness: 0.58 });
+  const safetyMaterial = new THREE.MeshStandardMaterial({ color: 0xd5a322, roughness: 0.7, metalness: 0.18 });
+  const labelMaterial = new THREE.MeshStandardMaterial({ color: 0xd8d4c6, roughness: 0.9, metalness: 0.02 });
+  const grimeMaterial = new THREE.MeshStandardMaterial({ color: 0x4a3428, roughness: 1, transparent: true, opacity: 0.34, depthWrite: false });
+
+  const localMesh = (geometry, material, px, py, pz, rotation = [0, 0, 0]) => {
+    const item = new THREE.Mesh(geometry, material);
+    item.position.set(px, py, pz);
+    item.rotation.set(...rotation);
+    item.castShadow = true;
+    item.receiveShadow = true;
+    group.add(item);
+    return item;
+  };
+
+  localMesh(new THREE.CylinderGeometry(radius, radius * 0.992, height, 40), shellMaterial, 0, height / 2, 0);
+  const cap = localMesh(new THREE.SphereGeometry(radius, 36, 16, 0, Math.PI * 2, 0, Math.PI / 2), shellMaterial, 0, height, 0);
+  cap.scale.y = 0.62;
+
+  localMesh(new THREE.CylinderGeometry(radius * 1.08, radius * 1.08, 0.16, 40), materials.concrete, 0, 0.08, 0);
+  localMesh(new THREE.CylinderGeometry(radius * 0.94, radius * 0.97, 0.34, 36), seamMaterial, 0, 0.25, 0);
+
+  for (const fraction of [0.18, 0.42, 0.66, 0.88]) {
+    localMesh(new THREE.TorusGeometry(radius + 0.035, 0.055, 7, 36), seamMaterial, 0, height * fraction, 0, [Math.PI / 2, 0, 0]);
   }
+
+  const platformY = height * 0.72;
+  localMesh(new THREE.TorusGeometry(radius + 0.38, 0.13, 7, 42), materials.darkMetal, 0, platformY, 0, [Math.PI / 2, 0, 0]);
+  localMesh(new THREE.TorusGeometry(radius + 0.43, 0.035, 6, 42), safetyMaterial, 0, platformY + 0.82, 0, [Math.PI / 2, 0, 0]);
+  for (let i = 0; i < 12; i += 1) {
+    const angle = (i / 12) * Math.PI * 2;
+    localMesh(new THREE.CylinderGeometry(0.028, 0.028, 0.82, 7), safetyMaterial, Math.cos(angle) * (radius + 0.43), platformY + 0.41, Math.sin(angle) * (radius + 0.43));
+  }
+
+  const ladderZ = radius + 0.24;
+  for (const lx of [-0.24, 0.24]) {
+    localMesh(new THREE.CylinderGeometry(0.035, 0.035, height - 0.6, 8), materials.darkMetal, lx, (height - 0.6) / 2 + 0.25, ladderZ);
+  }
+  for (let y = 0.65; y < height - 0.15; y += 0.34) {
+    localMesh(new THREE.CylinderGeometry(0.027, 0.027, 0.48, 8), materials.darkMetal, 0, y, ladderZ, [0, 0, Math.PI / 2]);
+  }
+
+  localMesh(new THREE.CylinderGeometry(0.16, 0.16, 0.72, 14), seamMaterial, 0, height + 0.55, 0);
+  localMesh(new THREE.CylinderGeometry(0.27, 0.2, 0.12, 14), seamMaterial, 0, height + 0.93, 0);
+
+  for (const nozzle of [
+    { y: Math.min(1.3, height * 0.26), side: 1, r: 0.16 },
+    { y: Math.min(3.15, height * 0.52), side: -1, r: 0.13 },
+  ]) {
+    const nz = nozzle.side * (radius + 0.26);
+    localMesh(new THREE.CylinderGeometry(nozzle.r, nozzle.r, 0.62, 14), materials.orange, 0, nozzle.y, nz, [Math.PI / 2, 0, 0]);
+    localMesh(new THREE.CylinderGeometry(nozzle.r * 1.75, nozzle.r * 1.75, 0.11, 16), materials.darkMetal, 0, nozzle.y, nozzle.side * (radius + 0.54), [Math.PI / 2, 0, 0]);
+  }
+
+  localMesh(new THREE.BoxGeometry(1.18, 0.55, 0.045), labelMaterial, 0, height * 0.5, radius + 0.035);
+  localMesh(new THREE.BoxGeometry(1.02, 0.09, 0.052), safetyMaterial, 0, height * 0.5 + 0.13, radius + 0.065);
+
+  for (const [gx, gy, gw, gh] of [
+    [-0.72, height * 0.62, 0.12, 1.7],
+    [0.48, height * 0.36, 0.09, 1.15],
+    [0.82, height * 0.76, 0.08, 0.92],
+  ]) {
+    localMesh(new THREE.BoxGeometry(gw, gh, 0.018), grimeMaterial, gx, gy, radius + 0.046);
+  }
+
   obstacles.push({ x, z, w: radius * 2.15, d: radius * 2.15 });
 }
 
