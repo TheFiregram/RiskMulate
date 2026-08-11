@@ -1,3 +1,5 @@
+import { buildEmergencyResponseStation } from './emergency-response-station.js';
+
 function makeMaterials(THREE) {
   return {
     steel: new THREE.MeshStandardMaterial({ color: 0x4b5356, roughness: 0.72, metalness: 0.5 }),
@@ -56,14 +58,12 @@ function makeFindingRoot(THREE, scene, findingId, label, position) {
 function createDamagedSupport(THREE, scene, materials) {
   const root = makeFindingRoot(THREE, scene, 'support-vibration', 'Inspect damaged pipe support', [0, 0, -7.6]);
 
-  // Fresh rub marks where the lower line bears on the support saddle.
   const wear = new THREE.Mesh(new THREE.TorusGeometry(0.266, 0.012, 6, 18, Math.PI * 0.72), materials.freshWear);
   wear.rotation.y = Math.PI / 2;
   wear.rotation.x = -0.28;
   wear.position.set(0.04, 2.04, 0);
   root.add(wear);
 
-  // One clamp half is visibly displaced instead of forming a complete restraint.
   const clamp = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.035, 7, 20, Math.PI * 0.82), materials.darkSteel);
   clamp.rotation.y = Math.PI / 2;
   clamp.rotation.x = 0.72;
@@ -79,7 +79,6 @@ function createDamagedSupport(THREE, scene, materials) {
 function createElectricalFault(THREE, scene, materials) {
   const root = makeFindingRoot(THREE, scene, 'electrical-panel', 'Inspect damaged electrical entry', [10.7, 0, 6.64]);
 
-  // Scorching behind the damaged entry makes the defect readable without turning it into an arcade marker.
   const scorch = new THREE.Mesh(new THREE.CircleGeometry(0.34, 14), materials.scorch);
   scorch.position.set(0.82, 1.78, 0.19);
   root.add(scorch);
@@ -100,7 +99,6 @@ function createElectricalFault(THREE, scene, materials) {
 function createStormDrainFinding(THREE, scene, materials) {
   const root = makeFindingRoot(THREE, scene, 'storm-drain', 'Inspect stained process drain', [2.4, 0, -2.5]);
 
-  // Existing floor module already contains the drainage channel; this adds the evidence state.
   const stain = new THREE.Mesh(new THREE.CircleGeometry(0.82, 18), materials.stain);
   stain.rotation.x = -Math.PI / 2;
   stain.scale.set(1.7, 0.72, 1);
@@ -127,7 +125,6 @@ function createStormDrainFinding(THREE, scene, materials) {
 function createAccessObstruction(THREE, scene, materials) {
   const root = makeFindingRoot(THREE, scene, 'access-obstruction', 'Inspect service-route obstruction', [12.25, 0, 9.9]);
 
-  // Low pallet edge plus a conduit bundle encroaching into the service lane.
   for (const z of [-0.36, -0.12, 0.12, 0.36]) {
     addBox(THREE, root, [1.55, 0.055, 0.1], materials.pallet, [0, 0.12, z]);
   }
@@ -158,6 +155,16 @@ function createCosmeticRust(THREE, scene, materials) {
 
 export function buildFieldEvidence(THREE, scene) {
   const materials = makeMaterials(THREE);
+
+  // Existing emergency controls make the process yard read like an operated facility,
+  // not a collection of hazards. The station remains a control, not a scored finding.
+  buildEmergencyResponseStation(THREE, scene, {
+    x: 6.5,
+    y: 0,
+    z: -3.35,
+    rotationY: 0,
+  });
+
   return [
     createDamagedSupport(THREE, scene, materials),
     createElectricalFault(THREE, scene, materials),
