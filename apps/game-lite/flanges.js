@@ -196,17 +196,43 @@ function buildOrganizedPipeRack(THREE, scene, materials) {
   removeLegacyPipeGeometry(scene, materials);
 
   const rackZ = -7.6;
-  const lowerY = 2.05;
-  const upperY = 3.2;
+  const serviceYellow = new THREE.MeshStandardMaterial({ color: 0xc9a329, roughness: 0.72, metalness: 0.22 });
+  const clampMaterial = new THREE.MeshStandardMaterial({ color: 0x252b2e, roughness: 0.72, metalness: 0.62 });
+  const lineSpecs = [
+    { y: 1.46, length: 19.5, radius: 0.14, z: rackZ + 0.48 },
+    { y: 2.05, length: 22, radius: 0.25, z: rackZ },
+    { y: 2.62, length: 20.5, radius: 0.17, z: rackZ - 0.42 },
+    { y: 3.2, length: 21, radius: 0.23, z: rackZ },
+  ];
 
-  addWorldPipe(THREE, scene, materials.pipe, 0, lowerY, rackZ, 22, 0.25);
-  addWorldPipe(THREE, scene, materials.pipe, 0, upperY, rackZ, 21, 0.23);
+  for (const line of lineSpecs) {
+    addWorldPipe(THREE, scene, materials.pipe, 0, line.y, line.z, line.length, line.radius);
+  }
 
-  for (const supportX of [-7.4, 0, 7.4]) {
-    addWorldBox(THREE, scene, materials.support, supportX, 1.5, rackZ - 0.38, 0.28, 3.0, 0.28);
-    addWorldBox(THREE, scene, materials.supportDark, supportX, 1.78, rackZ, 0.3, 0.12, 1.35);
-    addWorldBox(THREE, scene, materials.supportDark, supportX, 2.94, rackZ, 0.3, 0.12, 1.35);
-    addWorldBox(THREE, scene, materials.supportDark, supportX, 0.06, rackZ - 0.38, 0.58, 0.12, 0.58);
+  for (const supportX of [-8.5, -4.25, 0, 4.25, 8.5]) {
+    for (const postZ of [rackZ - 0.72, rackZ + 0.72]) {
+      addWorldBox(THREE, scene, materials.support, supportX, 1.9, postZ, 0.24, 3.8, 0.24);
+      addWorldBox(THREE, scene, materials.supportDark, supportX, 0.06, postZ, 0.58, 0.12, 0.58);
+    }
+    for (const beamY of [1.18, 1.78, 2.38, 2.94, 3.58]) {
+      addWorldBox(THREE, scene, materials.supportDark, supportX, beamY, rackZ, 0.3, 0.1, 1.68);
+    }
+
+    for (const line of lineSpecs) {
+      const clamp = new THREE.Mesh(new THREE.TorusGeometry(line.radius + 0.045, 0.025, 6, 16), clampMaterial);
+      clamp.rotation.y = Math.PI / 2;
+      clamp.position.set(supportX, line.y, line.z);
+      clamp.userData.pipeRackSupport = true;
+      scene.add(clamp);
+    }
+  }
+
+  addWorldBox(THREE, scene, materials.supportDark, 0, 4.02, rackZ + 0.76, 19.2, 0.1, 0.56);
+  addWorldBox(THREE, scene, materials.support, 0, 4.13, rackZ + 0.49, 19.2, 0.16, 0.06);
+  addWorldBox(THREE, scene, materials.support, 0, 4.13, rackZ + 1.03, 19.2, 0.16, 0.06);
+
+  for (const markerX of [-6.2, -1.8, 2.6, 7.0]) {
+    addWorldBox(THREE, scene, serviceYellow, markerX, 2.05, rackZ - 0.27, 0.34, 0.12, 0.03);
   }
 
   buildTankConnections(THREE, scene, materials);
