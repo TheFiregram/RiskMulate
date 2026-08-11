@@ -207,6 +207,55 @@ function box(THREE, group, w, h, d, mat, x = 0, y = 0, z = 0) {
   return mesh;
 }
 
+function cylinder(THREE, group, radius, length, mat, x = 0, y = 0, z = 0, axis = 'y', segments = 14) {
+  const mesh = mark(new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, segments), mat));
+  if (axis === 'x') mesh.rotation.z = Math.PI / 2;
+  if (axis === 'z') mesh.rotation.x = Math.PI / 2;
+  mesh.position.set(x, y, z);
+  mesh.userData.buildingModulePart = true;
+  group.add(mesh);
+  return mesh;
+}
+
+function addExteriorPlantDetails(THREE, root, materials, width, depth, height) {
+  const halfW = width / 2;
+  const halfD = depth / 2;
+  const yellow = new THREE.MeshStandardMaterial({ color: 0xc7a02c, roughness: 0.8, metalness: 0.18 });
+  const dark = materials.trim;
+
+  box(THREE, root, width + 0.42, 0.22, 0.12, dark, 0, height + 0.36, -halfD - 0.22);
+  box(THREE, root, width + 0.42, 0.22, 0.12, dark, 0, height + 0.36, halfD + 0.22);
+  box(THREE, root, 0.12, 0.22, depth + 0.32, dark, -halfW - 0.22, height + 0.36, 0);
+  box(THREE, root, 0.12, 0.22, depth + 0.32, dark, halfW + 0.22, height + 0.36, 0);
+
+  for (const [vx, vz, scale] of [[-width * 0.22, -0.55, 1], [width * 0.2, 0.85, 0.82]]) {
+    box(THREE, root, 0.82 * scale, 0.16, 0.82 * scale, materials.plinth, vx, height + 0.34, vz);
+    cylinder(THREE, root, 0.18 * scale, 0.9 * scale, materials.louver, vx, height + 0.86, vz);
+    cylinder(THREE, root, 0.31 * scale, 0.09, materials.trim, vx, height + 1.34 * scale, vz);
+  }
+
+  box(THREE, root, width * 0.64, 0.12, 0.28, materials.trim, 0, 3.35, halfD + 0.18);
+  for (let x = -width * 0.28; x <= width * 0.28; x += 0.72) {
+    box(THREE, root, 0.06, 0.22, 0.36, materials.louver, x, 3.25, halfD + 0.2);
+  }
+  for (const x of [halfW - 1.25, halfW - 0.9, halfW - 0.55]) {
+    box(THREE, root, 0.055, 2.35, 0.055, materials.louver, x, 2.05, halfD + 0.2);
+  }
+  box(THREE, root, 0.66, 0.52, 0.18, materials.trim, halfW - 0.9, 1.05, halfD + 0.22);
+  box(THREE, root, 0.22, 0.12, 0.2, yellow, halfW - 0.9, 1.16, halfD + 0.325);
+
+  for (const x of [-halfW + 0.42, halfW - 0.42]) {
+    cylinder(THREE, root, 0.045, height - 0.7, materials.louver, x, (height - 0.7) / 2 + 0.25, -halfD - 0.17);
+    box(THREE, root, 0.18, 0.08, 0.38, materials.louver, x, 0.18, -halfD - 0.32);
+  }
+
+  box(THREE, root, 0.7, 0.38, 0.035, yellow, halfW + 0.14, 1.55, -depth * 0.18);
+  for (const z of [-depth * 0.28, depth * 0.03]) {
+    cylinder(THREE, root, 0.035, 0.88, yellow, halfW + 0.42, 0.46, z);
+  }
+  box(THREE, root, 0.06, 0.06, depth * 0.42, yellow, halfW + 0.42, 0.86, -depth * 0.125);
+}
+
 function louverPanel(THREE, group, width, height, materials, x, y, z) {
   const frame = box(THREE, group, width, height, 0.03, materials.trim, x, y, z);
   frame.name = 'LouverFrame';
@@ -346,6 +395,8 @@ export function buildProcessBuilding(THREE, scene, options = {}) {
   dome.rotation.z = Math.PI / 2;
   dome.position.set(-width * 0.25, height + 0.36, -depth * 0.38);
   root.add(dome);
+
+  addExteriorPlantDetails(THREE, root, materials, width, depth, height);
 
   scene.add(root);
   return root;

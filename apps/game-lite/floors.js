@@ -203,15 +203,21 @@ export function getFloorMaterials(THREE) {
       roughness: 0.95,
       metalness: 0.02,
     }),
+    joint: new THREE.MeshStandardMaterial({ color: 0x4b4a46, roughness: 1, metalness: 0 }),
+    patch: new THREE.MeshStandardMaterial({ color: 0x5f5d57, roughness: 1, metalness: 0 }),
+    oilStain: new THREE.MeshStandardMaterial({ color: 0x292825, roughness: 0.92, metalness: 0.02, transparent: true, opacity: 0.34, depthWrite: false }),
+    hazard: new THREE.MeshStandardMaterial({ color: 0xb7972f, roughness: 0.92, metalness: 0.01 }),
   };
 
   return cachedFloorMaterials;
 }
 
-function addPlane(THREE, scene, width, depth, material, x, y, z) {
+function addPlane(THREE, scene, width, depth, material, x, y, z, rotationY = 0) {
   const object = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), material);
   object.position.set(x, y, z);
   object.rotation.x = -Math.PI / 2;
+  object.rotation.z = rotationY;
+  object.receiveShadow = true;
   scene.add(object);
   return object;
 }
@@ -219,8 +225,43 @@ function addPlane(THREE, scene, width, depth, material, x, y, z) {
 function addBox(THREE, scene, width, height, depth, material, x, y, z) {
   const object = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
   object.position.set(x, y, z);
+  object.castShadow = true;
+  object.receiveShadow = true;
   scene.add(object);
   return object;
+}
+
+function addFacilityWear(THREE, scene, materials) {
+  for (const x of [-18, -12, -6, 6, 12, 18]) addPlane(THREE, scene, 0.045, 50, materials.joint, x, 0.027, 0);
+  for (const z of [-18, -12, -6, 6, 12, 18]) addPlane(THREE, scene, 50, 0.045, materials.joint, 0, 0.028, z);
+
+  for (const [x, z, w, d, r] of [
+    [-14.1, -7.7, 3.2, 1.5, 0.12], [-8.6, -10.4, 2.4, 1.2, -0.18],
+    [4.3, -7.2, 3.6, 1.1, 0.05], [13.8, -8.8, 2.8, 1.45, -0.12],
+    [9.8, 8.8, 2.2, 0.8, 0.14], [-10.8, 1.6, 2.6, 0.9, -0.08],
+  ]) addPlane(THREE, scene, w, d, materials.patch, x, 0.029, z, r);
+
+  for (const [x, z, w, d, r] of [
+    [3.9, -6.8, 2.6, 0.74, -0.08], [-7.9, -11.3, 1.9, 0.66, 0.18],
+    [14.2, -10.5, 2.2, 0.8, -0.13], [10.4, 10.4, 1.8, 0.52, 0.05],
+  ]) addPlane(THREE, scene, w, d, materials.oilStain, x, 0.035, z, r);
+
+  for (const spec of [
+    { x: -13, z: -8, w: 16, d: 22 },
+    { x: 13, z: -9, w: 17, d: 23 },
+  ]) {
+    addBox(THREE, scene, spec.w, 0.16, 0.16, materials.curb, spec.x, 0.08, spec.z - spec.d / 2);
+    addBox(THREE, scene, spec.w, 0.16, 0.16, materials.curb, spec.x, 0.08, spec.z + spec.d / 2);
+    addBox(THREE, scene, 0.16, 0.16, spec.d, materials.curb, spec.x - spec.w / 2, 0.08, spec.z);
+    addBox(THREE, scene, 0.16, 0.16, spec.d, materials.curb, spec.x + spec.w / 2, 0.08, spec.z);
+  }
+
+  for (const x of [-8.2, -5.4, -2.6, 0.2, 3.0, 5.8, 8.6]) {
+    addPlane(THREE, scene, 1.55, 0.09, materials.hazard, x, 0.036, -5.85, -0.22);
+  }
+  for (let x = -6.4; x <= 6.4; x += 0.8) {
+    addBox(THREE, scene, 0.58, 0.035, 0.16, materials.drain, x, 0.052, -2.5);
+  }
 }
 
 export function buildIndustrialFloor(THREE, scene) {
@@ -245,4 +286,6 @@ export function buildIndustrialFloor(THREE, scene) {
   addBox(THREE, scene, 0.28, 0.12, 22.2, materials.curb, -4.8, 0.06, -8);
   addBox(THREE, scene, 0.28, 0.12, 23.2, materials.curb, 4.3, 0.06, -9);
   addBox(THREE, scene, 0.28, 0.12, 23.2, materials.curb, 21.7, 0.06, -9);
+
+  addFacilityWear(THREE, scene, materials);
 }

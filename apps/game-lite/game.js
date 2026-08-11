@@ -42,11 +42,25 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(Math.min(devicePixelRatio, coarsePointer ? 1.2 : 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = !coarsePointer;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.96;
 gameRoot.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xddeeff, 0x37412f, 2.15));
-const sun = new THREE.DirectionalLight(0xfff0d6, 2.35);
+const skyFill = new THREE.HemisphereLight(0xddeeff, 0x37412f, 1.25);
+scene.add(skyFill);
+const sun = new THREE.DirectionalLight(0xfff0d6, 2.65);
 sun.position.set(-16, 24, 12);
+sun.castShadow = !coarsePointer;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -34;
+sun.shadow.camera.right = 34;
+sun.shadow.camera.top = 34;
+sun.shadow.camera.bottom = -34;
+sun.shadow.camera.near = 1;
+sun.shadow.camera.far = 70;
+sun.shadow.bias = -0.00018;
 scene.add(sun);
 
 const industrialMaterials = getIndustrialMaterials(THREE);
@@ -242,6 +256,19 @@ function buildPlant() {
 }
 
 buildPlant();
+scene.traverse((object) => {
+  if (!object.isMesh || !object.material?.isMeshStandardMaterial) return;
+  object.receiveShadow = true;
+  const params = object.geometry?.parameters || {};
+  object.geometry?.computeBoundingSphere?.();
+  const radius = object.geometry?.boundingSphere?.radius || 0;
+  const thinFloorBox = object.geometry?.type === 'BoxGeometry' && Number(params.height || 1) < 0.12;
+  object.castShadow = !coarsePointer
+    && !object.material.transparent
+    && object.geometry?.type !== 'PlaneGeometry'
+    && !thinFloorBox
+    && radius >= 0.16;
+});
 
 const player = {
   x: 0,
