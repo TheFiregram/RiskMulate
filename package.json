@@ -13,10 +13,12 @@
     "format:check": "prettier --check \"apps/studio/**/*.{js,json,ts,tsx,css,html}\" \"*.json\" \".github/**/*.{yml,yaml}\" && cargo fmt --all --check",
     "lint": "npm run lint --workspace @riskmulator/studio && cargo clippy --workspace --all-targets --all-features -- -D warnings",
     "test": "npm run test --workspace @riskmulator/studio && cargo test --workspace --all-targets --all-features",
-    "tauri": "npm run tauri --workspace @riskmulator/studio"
+    "tauri": "npm run tauri --workspace @riskmulator/studio",
+    "browserless:smoke": "node scripts/browserless-smoke.mjs"
   },
   "devDependencies": {
-    "prettier": "3.6.2"
+    "prettier": "3.6.2",
+    "puppeteer-core": "25.3.0"
   },
   "engines": {
     "node": ">=22.0.0",
