@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#081016" />
-  <title>RiskMulate — Chemical Plant Walkdown</title>
+  <title>RiskMulate — Continuity Under Disruption</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./tablet-ui.css" />
   <link rel="stylesheet" href="./tablet-nav.css" />
@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="./hud-compact.css" />
 </head>
 <body>
-  <main id="game" aria-label="RiskMulate first-person chemical plant simulation"></main>
+  <main id="game" aria-label="RiskMulate first-person supply continuity simulation"></main>
 
   <div class="hud-state-sink" aria-hidden="true">
     <span id="score">0</span>
@@ -21,8 +21,8 @@
   </div>
 
   <div class="hud mission-chip" aria-label="Current scenario">
-    <span class="mission-kicker">PLANT WALKDOWN 01</span>
-    <strong>CHEMICAL PLANT</strong>
+    <span class="mission-kicker">CONTINUITY ROTATION 03</span>
+    <strong>NORTHBRIDGE FILTRATION</strong>
   </div>
 
   <div class="hud risk-cycle" id="riskCycle" aria-label="Risk management cycle">
@@ -41,7 +41,7 @@
 
   <div class="hud objective-toast" id="objectiveToast" role="status">
     <span>FIELD OBJECTIVE</span>
-    <p>Keep the blending plant operational without harming people, the environment, schedule, or product quality.</p>
+    <p>Maintain safe output through the disruption window without breaching quality or environmental limits.</p>
   </div>
 
   <div class="hud field-readout" aria-label="Field status">
@@ -60,17 +60,17 @@
 
   <section class="start" id="start">
     <div class="start-card">
-      <div class="start-briefing"><span>PRE-STARTUP SAFETY REVIEW</span><b>06:40 · UNIT B-12</b></div>
-      <span class="start-eyebrow">RISK OFFICER · FIELD UNIT 03</span>
-      <h1>Plant Walkdown <em>01</em></h1>
-      <p>You are the risk analyst assigned to inspect a chemical blending facility before startup. Walk the site, inspect evidence, then document your assessment on the field tablet.</p>
+      <div class="start-briefing"><span>SUPPLY CONTINUITY BRIEF</span><b>WEEK 01 · NORTHBRIDGE WORKS</b></div>
+      <span class="start-eyebrow">CONTINUITY MANAGER · ROTATION 03</span>
+      <h1>Under <em>Disruption</em></h1>
+      <p>A critical production window opens today. Inspect the filtration-unit line, distinguish material evidence from noise, then commit a proportionate continuity response before authorizing startup.</p>
       <div class="start-mission-grid">
-        <div><span>OBJECTIVE</span><strong>Authorize or hold startup</strong></div>
-        <div><span>CONDITIONS</span><strong>Live process · restricted access</strong></div>
-        <div><span>STANDARD</span><strong>ISO 31000 field cycle</strong></div>
+        <div><span>OBJECTIVE</span><strong>Protect 90% planned output</strong></div>
+        <div><span>TOLERANCE</span><strong>Quality limits · zero release</strong></div>
+        <div><span>AUTHORITY</span><strong>20-minute response window</strong></div>
       </div>
       <div class="start-controls"><kbd>WASD</kbd> MOVE <kbd>E</kbd> INSPECT <kbd>TAB</kbd> TABLET <kbd>SHIFT</kbd> SPRINT</div>
-      <button class="primary" id="startButton"><span>BEGIN FIELD ASSESSMENT</span><b>ENTER FACILITY →</b></button>
+      <button class="primary" id="startButton"><span>BEGIN CONTINUITY ASSESSMENT</span><b>ENTER WORKS →</b></button>
       <div class="small"><i></i> SESSION READY · PROGRESS SAVES LOCALLY</div>
     </div>
   </section>
@@ -96,7 +96,7 @@
           <span class="tablet-mark" aria-hidden="true">RM</span>
           <div><b>RISKMULATE</b><span>RISK OFFICER TABLET</span></div>
         </div>
-        <div class="tablet-session"><strong>FIELD UNIT 03</strong><span>SESSION ACTIVE</span></div>
+        <div class="tablet-session"><strong>CONTINUITY 03</strong><span>SESSION ACTIVE</span></div>
         <div class="tablet-device-status"><button class="close-tablet" type="button" onclick="closeTablet()" aria-label="Close field tablet">Close</button></div>
       </header>
 
