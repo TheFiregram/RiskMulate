@@ -1,8 +1,8 @@
 export const scenario = {
-  id: 'plant-walkdown-01-v2',
-  title: 'Chemical Plant Walkdown',
+  id: 'continuity-under-disruption-v1',
+  title: 'Continuity Under Disruption',
   objective:
-    'Keep the blending plant operational without harming people, the environment, schedule, or product quality.',
+    'Maintain at least 90% of planned filtration-unit output through the disruption window without breaching quality, environmental, or safety limits.',
   acceptanceThreshold: 9,
   maxScore: 660,
   inspectionCount: 6,
@@ -251,7 +251,7 @@ export const scenario = {
       prompt: 'Which inherent-risk prioritization best matches the collected evidence before added treatment?',
       options: [
         'Flange 20; pipe support 15; electrical 15; stormwater 12; emergency access 9.',
-        'All five risks should be scored 25 because they occur in a chemical plant.',
+        'All five risks should be scored 25 simply because they occur in a process works.',
         'Emergency access 20; cosmetic rust 15; flange 9; electrical 6; stormwater 3.',
       ],
       correctIndex: 0,

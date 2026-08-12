@@ -12,7 +12,7 @@ function mark(mesh) {
 export function buildCinematicEnvironment(THREE, scene) {
   const random = seeded(31000);
   const root = new THREE.Group();
-  root.name = "cinematic-industrial-environment";
+  root.name = "northbridge-filtration-works";
   scene.add(root);
 
   const sky = new THREE.Mesh(
