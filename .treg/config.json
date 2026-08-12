@@ -1,0 +1,5 @@
+{
+  "$schema": "https://treg.superdesign.dev/schema/config.json",
+  "team": "the-gram-s",
+  "tokenFile": ".treg/token"
+}

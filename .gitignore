@@ -11,6 +11,9 @@ Thumbs.db
 !.env.example
 *.local
 
+# treg stores the team credential locally; never commit it.
+.treg/token
+
 # Build, test, and generated output
 build/
 dist/

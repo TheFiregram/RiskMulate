@@ -166,14 +166,17 @@ body:has(.tablet.open) .crosshair{opacity:0}
 }
 .paused.show{display:block}
 
-.start{position:fixed;z-index:8;inset:0;display:grid;place-items:center;background:linear-gradient(rgba(5,11,16,.56),rgba(5,11,16,.9));padding:22px;backdrop-filter:blur(3px)}
-.start-card{width:min(500px,92vw);background:linear-gradient(145deg,rgba(13,24,31,.96),rgba(8,16,21,.97));border:1px solid rgba(153,188,204,.24);border-radius:12px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.03)}
+.start{position:fixed;z-index:8;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 68% 35%,rgba(19,38,45,.08),rgba(3,8,11,.78) 65%),linear-gradient(90deg,rgba(3,8,11,.94),rgba(3,8,11,.28));padding:22px;backdrop-filter:blur(1.5px)}
+.start:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(227,160,82,.025) 1px,transparent 1px),linear-gradient(rgba(227,160,82,.018) 1px,transparent 1px);background-size:64px 64px;mask-image:linear-gradient(90deg,#000,transparent 72%);pointer-events:none}
+.start-card{position:relative;width:min(570px,92vw);margin-right:min(31vw,440px);background:linear-gradient(135deg,rgba(10,22,29,.97),rgba(5,13,18,.91));border:1px solid rgba(153,188,204,.2);border-left:3px solid #d98a36;border-radius:2px;padding:28px 30px 24px;box-shadow:0 32px 90px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.035)}
+.start-briefing{display:flex;justify-content:space-between;margin:-28px -30px 25px;padding:9px 12px;background:rgba(2,8,11,.68);border-bottom:1px solid rgba(150,183,195,.13);font-size:8px;letter-spacing:.12em;color:#81949d}.start-briefing span{color:#e5a258;font-weight:800}.start-briefing b{font-weight:650}
 .start-eyebrow{display:block;margin-bottom:7px;font-size:9px;letter-spacing:.16em;color:#e5a258;font-weight:800}
-.start h1{margin:0 0 8px;font-size:27px;letter-spacing:-.02em}
+.start h1{margin:0 0 8px;font-size:38px;letter-spacing:-.035em;text-transform:uppercase}.start h1 em{font-style:normal;color:#e1a15b;font-weight:350}
 .start p{color:#a9bac4;line-height:1.5;font-size:13px}
-.start ul{padding-left:18px;color:#cbd6dc;line-height:1.6;font-size:12px}
-.primary{width:100%;border:1px solid #e8a55d;background:#d98a36;color:#111;font-weight:850;border-radius:7px;padding:12px 15px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.28)}
-.small{font-size:10px;color:#82949f;margin-top:9px;text-align:center;letter-spacing:.05em}
+.start-mission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin:20px 0;background:rgba(137,173,187,.12)}.start-mission-grid div{padding:11px;background:#0a171e}.start-mission-grid span,.start-mission-grid strong{display:block}.start-mission-grid span{margin-bottom:5px;font-size:7px;letter-spacing:.15em;color:#718892}.start-mission-grid strong{font-size:10px;line-height:1.35;color:#d6e1e5}
+.start-controls{margin-bottom:11px;font-size:8px;letter-spacing:.08em;color:#758993}.start-controls kbd{display:inline-block;margin-left:7px;padding:3px 5px;border:1px solid #344a54;background:#0d1b22;color:#dce6e9;font:700 8px inherit}.start-controls kbd:first-child{margin-left:0}
+.primary{width:100%;border:1px solid #e8a55d;background:linear-gradient(100deg,#c97829,#e6a253);color:#111;border-radius:2px;padding:12px 15px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 9px 28px rgba(194,112,37,.18);display:flex;align-items:center;justify-content:space-between}.primary span{font-size:8px;letter-spacing:.12em;font-weight:700}.primary b{font-size:11px;letter-spacing:.03em}
+.small{font-size:8px;color:#82949f;margin-top:11px;text-align:left;letter-spacing:.09em}.small i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;background:#66bf8a;box-shadow:0 0 8px #66bf8a}
 
 /* Shared tablet content defaults; tablet-ui.css supplies the device shell. */
 .tabs{display:flex;gap:5px;overflow-x:auto}
@@ -256,8 +259,10 @@ body:has(.tablet.open) .field-readout{opacity:.08}
   .prompt{top:calc(50% + 18px);max-width:64vw;font-size:6px;padding:3px 5px}
   .crosshair{width:14px;height:14px}
   .paused{display:none!important}
-  .start-card{padding:19px}
+  .start-card{padding:19px;margin-right:0}
+  .start-briefing{margin:-19px -19px 19px}
   .start h1{font-size:23px}
+  .start-mission-grid{grid-template-columns:1fr}.start-mission-grid div{padding:7px 9px}.start-controls{display:none}
   .start p{font-size:12px}
   .start ul{font-size:11px}
 }

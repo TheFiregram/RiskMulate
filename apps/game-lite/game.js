@@ -9,6 +9,7 @@ import { buildConcretePerimeter } from './walls.js';
 import { buildIndustrialFloor } from './floors.js';
 import { createElectricalPanelCluster } from './electrical-panels.js';
 import { buildFieldEvidence } from './field-evidence.js';
+import { buildCinematicEnvironment } from './environment.js';
 import './multi-risk-ui.js';
 
 const coarsePointer = matchMedia('(pointer: coarse)').matches;
@@ -29,31 +30,31 @@ const stickKnob = document.querySelector('#stickKnob');
 const lookZone = document.querySelector('#lookZone');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x91a9b7);
-scene.fog = new THREE.Fog(0x91a9b7, 28, 78);
+scene.background = new THREE.Color(0x7893a0);
+scene.fog = new THREE.FogExp2(0x91a3a9, 0.0115);
 
 const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.1, 120);
 camera.rotation.order = 'YXZ';
 
 const renderer = new THREE.WebGLRenderer({
   antialias: !coarsePointer,
-  powerPreference: 'low-power',
+  powerPreference: 'high-performance',
 });
-renderer.setPixelRatio(Math.min(devicePixelRatio, coarsePointer ? 1.2 : 1.5));
+renderer.setPixelRatio(Math.min(devicePixelRatio, coarsePointer ? 1.5 : 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = !coarsePointer;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.96;
+renderer.toneMappingExposure = 1.04;
 gameRoot.appendChild(renderer.domElement);
 
-const skyFill = new THREE.HemisphereLight(0xddeeff, 0x37412f, 1.25);
+const skyFill = new THREE.HemisphereLight(0xddeeff, 0x37412f, 1.5);
 scene.add(skyFill);
 const sun = new THREE.DirectionalLight(0xfff0d6, 2.65);
 sun.position.set(-16, 24, 12);
 sun.castShadow = !coarsePointer;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -34;
 sun.shadow.camera.right = 34;
 sun.shadow.camera.top = 34;
@@ -62,6 +63,7 @@ sun.shadow.camera.near = 1;
 sun.shadow.camera.far = 70;
 sun.shadow.bias = -0.00018;
 scene.add(sun);
+const updateEnvironment = buildCinematicEnvironment(THREE, scene);
 
 const industrialMaterials = getIndustrialMaterials(THREE);
 const materials = {
@@ -873,7 +875,7 @@ addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, coarsePointer ? 1.2 : 1.5));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, coarsePointer ? 1.5 : 2));
 });
 
 saveProgress();
@@ -888,6 +890,7 @@ function frame() {
   updateCamera();
   updateInteraction();
   updateFlangeEffects(clock.elapsedTime);
+  updateEnvironment(clock.elapsedTime);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
