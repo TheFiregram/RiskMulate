@@ -1,37 +1,35 @@
 const NAVIGATION_EVENT = 'riskmulate:navigation';
 
-/**
- * Publishes the active Three.js camera pose for HUD-only navigation systems.
- * The game simulation remains authoritative; the HUD receives a read-only pose.
- */
-export function installNavigationBridge(THREE, { updatesPerSecond = 30 } = {}) {
-  const rendererPrototype = THREE.WebGLRenderer?.prototype;
-  if (!rendererPrototype || rendererPrototype.__riskmulateNavigationBridgeInstalled) return;
+export function installNavigationBridge(THREE, { updatesPerSecond = 60 } = {}) {
+  const cameraType = THREE.PerspectiveCamera;
+  if (!cameraType) return;
 
-  const originalRender = rendererPrototype.render;
+  const cameraProto = cameraType.prototype;
+  if (cameraProto.__riskmulateNavigationBridgeInstalled) return;
+
+  const updateMatrix = cameraProto.updateMatrixWorld;
+  if (typeof updateMatrix !== 'function') return;
+
   const minimumInterval = 1000 / Math.max(1, updatesPerSecond);
-  let lastPublishedAt = 0;
+  let lastPublishedAt = -Infinity;
 
-  rendererPrototype.render = function renderWithNavigationPose(scene, camera) {
+  cameraProto.updateMatrixWorld = function updateNavigationMatrix(force) {
+    const result = updateMatrix.call(this, force);
     const now = performance.now();
-    if (camera?.isPerspectiveCamera && now - lastPublishedAt >= minimumInterval) {
+
+    if (now - lastPublishedAt >= minimumInterval) {
       lastPublishedAt = now;
       window.dispatchEvent(new CustomEvent(NAVIGATION_EVENT, {
         detail: {
-          x: camera.position.x,
-          z: camera.position.z,
-          yaw: camera.rotation.y,
+          x: this.position.x,
+          z: this.position.z,
+          yaw: this.rotation.y,
         },
       }));
     }
 
-    return originalRender.call(this, scene, camera);
+    return result;
   };
 
-  Object.defineProperty(rendererPrototype, '__riskmulateNavigationBridgeInstalled', {
-    value: true,
-    configurable: false,
-    enumerable: false,
-    writable: false,
-  });
+  Object.defineProperty(cameraProto, '__riskmulateNavigationBridgeInstalled', { value: true });
 }
