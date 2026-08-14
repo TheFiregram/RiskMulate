@@ -30,7 +30,7 @@ export const productionAssetManifest = Object.freeze([
   },
   {
     id: 'process-buildings',
-    enabled: false,
+    enabled: true,
     desktopUrl: './assets/production/process-buildings.glb',
     mobileUrl: './assets/production/process-buildings-mobile.glb',
     priority: 'normal',
