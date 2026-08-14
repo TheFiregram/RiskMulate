@@ -1,6 +1,7 @@
 export const productionAssetManifest = Object.freeze([
   {
     id: 'process-tanks',
+    enabled: false,
     desktopUrl: './assets/production/process-tanks.glb',
     mobileUrl: './assets/production/process-tanks-mobile.glb',
     priority: 'high',
@@ -10,6 +11,7 @@ export const productionAssetManifest = Object.freeze([
   },
   {
     id: 'pipe-rack',
+    enabled: false,
     desktopUrl: './assets/production/pipe-rack.glb',
     mobileUrl: './assets/production/pipe-rack-mobile.glb',
     priority: 'normal',
@@ -19,6 +21,7 @@ export const productionAssetManifest = Object.freeze([
   },
   {
     id: 'process-buildings',
+    enabled: false,
     desktopUrl: './assets/production/process-buildings.glb',
     mobileUrl: './assets/production/process-buildings-mobile.glb',
     priority: 'normal',
@@ -28,6 +31,7 @@ export const productionAssetManifest = Object.freeze([
   },
   {
     id: 'electrical-area',
+    enabled: false,
     desktopUrl: './assets/production/electrical-area.glb',
     mobileUrl: './assets/production/electrical-area-mobile.glb',
     priority: 'normal',
