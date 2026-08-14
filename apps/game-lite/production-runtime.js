@@ -2,6 +2,7 @@ import { createAdaptivePerformanceController } from './adaptive-performance.js';
 import { installPbrEnvironment } from './environment-lighting.js';
 import { installIndustrialVisualPass } from './industrial-visual-pass.js';
 import { ProductionAssetRuntime } from './production-assets.js';
+import { installSpawnVisualPassTwo } from './spawn-visual-pass-two.js';
 
 let installed = false;
 
@@ -68,11 +69,13 @@ export function installProductionRuntime(THREE) {
         const assets = new ProductionAssetRuntime(THREE, scene, this, { coarsePointer });
         const performanceController = createAdaptivePerformanceController(this, { coarsePointer });
         const visual = installIndustrialVisualPass(THREE, scene, this, { coarsePointer });
+        const spawnVisual = installSpawnVisualPassTwo(THREE, scene, this, { coarsePointer });
         const debug = createAssetDebugPanel(assets);
         state = {
           assets,
           performanceController,
           visual,
+          spawnVisual,
           debug,
           environmentStarted: false,
           loadStarted: false,
@@ -83,6 +86,7 @@ export function installProductionRuntime(THREE) {
           assets,
           performance: performanceController,
           visual,
+          spawnVisual,
           getDiagnostics: () => assets.getDiagnostics(),
         };
       }
