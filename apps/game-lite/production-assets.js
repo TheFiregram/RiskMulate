@@ -55,6 +55,10 @@ function showFallbacks(objects) {
   for (const object of objects) object.visible = true;
 }
 
+function horizontalDistance(camera, anchor = [0, 0, 0]) {
+  return Math.hypot(camera.position.x - anchor[0], camera.position.z - anchor[2]);
+}
+
 async function createLoader(renderer) {
   const [dracoModule, gltfModule, ktx2Module, meshoptModule] = await Promise.all([
     import(MODULE_URLS.draco),
@@ -84,8 +88,10 @@ export class ProductionAssetRuntime {
     this.renderer = renderer;
     this.coarsePointer = coarsePointer;
     this.loaded = new Map();
+    this.pending = new Map();
     this.failed = new Set();
     this.loaderPromise = null;
+    this.lastStreamingUpdate = 0;
   }
 
   getLoader() {
@@ -93,10 +99,19 @@ export class ProductionAssetRuntime {
     return this.loaderPromise;
   }
 
-  async loadEntry(entry) {
-    if (!entry.enabled) return null;
-    if (this.loaded.has(entry.id) || this.failed.has(entry.id)) return this.loaded.get(entry.id) || null;
+  loadEntry(entry) {
+    if (!entry.enabled) return Promise.resolve(null);
+    if (this.loaded.has(entry.id) || this.failed.has(entry.id)) {
+      return Promise.resolve(this.loaded.get(entry.id) || null);
+    }
+    if (this.pending.has(entry.id)) return this.pending.get(entry.id);
 
+    const task = this.loadEntryInternal(entry).finally(() => this.pending.delete(entry.id));
+    this.pending.set(entry.id, task);
+    return task;
+  }
+
+  async loadEntryInternal(entry) {
     const url = selectAssetUrl(entry, this.coarsePointer);
     if (!url) return null;
 
@@ -124,9 +139,9 @@ export class ProductionAssetRuntime {
     }
   }
 
-  async loadAll() {
+  async loadPreloaded() {
     const ordered = productionAssetManifest
-      .filter((entry) => entry.enabled)
+      .filter((entry) => entry.enabled && entry.preload)
       .sort((a, b) => {
         const rank = { high: 0, normal: 1, low: 2 };
         return (rank[a.priority] ?? 1) - (rank[b.priority] ?? 1);
@@ -136,12 +151,32 @@ export class ProductionAssetRuntime {
     return this.loaded;
   }
 
+  update(camera) {
+    const now = performance.now();
+    if (now - this.lastStreamingUpdate < 250) return;
+    this.lastStreamingUpdate = now;
+
+    for (const entry of productionAssetManifest) {
+      if (!entry.enabled || entry.preload || !entry.anchor) continue;
+      const distance = horizontalDistance(camera, entry.anchor);
+      const loadDistance = entry.loadDistance ?? Infinity;
+      const unloadDistance = Math.max(loadDistance, entry.unloadDistance ?? loadDistance);
+
+      if (this.loaded.has(entry.id) && distance > unloadDistance) {
+        this.restoreFallback(entry.id);
+      } else if (!this.loaded.has(entry.id) && !this.failed.has(entry.id) && distance <= loadDistance) {
+        void this.loadEntry(entry);
+      }
+    }
+  }
+
   restoreFallback(id) {
     const record = this.loaded.get(id);
     if (!record) return false;
     record.root.removeFromParent();
     showFallbacks(record.fallbacks);
     this.loaded.delete(id);
+    window.dispatchEvent(new CustomEvent('riskmulate:asset-unloaded', { detail: { id } }));
     return true;
   }
 }
