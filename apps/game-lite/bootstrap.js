@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
+import * as THREE from 'three';
 import { installLegacyBuildingWallUpgrade } from './buildingWalls.js';
 import { installContinuitySimulation } from './continuity-simulation.js';
 import { installFirstPersonHands } from './first-person-hands.js';
