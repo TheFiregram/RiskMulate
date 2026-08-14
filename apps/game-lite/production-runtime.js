@@ -2,6 +2,7 @@ import { createAdaptivePerformanceController } from './adaptive-performance.js';
 import { installPbrEnvironment } from './environment-lighting.js';
 import { installIndustrialVisualPass } from './industrial-visual-pass.js';
 import { ProductionAssetRuntime } from './production-assets.js';
+import { createProductionColliderBridge } from './production-collider-bridge.js';
 import { installSpawnVisualPassTwo } from './spawn-visual-pass-two.js';
 
 let installed = false;
@@ -33,11 +34,13 @@ function createAssetDebugPanel(assets) {
 
   const render = () => {
     const diagnostics = assets.getDiagnostics();
+    const colliderDiagnostics = window.RiskMulateProduction?.colliders?.getDiagnostics?.();
     panel.textContent = [
       'RISKMULATE ASSET DEBUG',
       `loaded: ${diagnostics.loadedAssetIds.join(', ') || 'none'}`,
       `pending: ${diagnostics.pendingAssetIds.join(', ') || 'none'}`,
       `failed: ${diagnostics.failedAssets.length || 'none'}`,
+      `rapier colliders: ${colliderDiagnostics?.colliderCount ?? 'initializing'}`,
       ...diagnostics.failedAssets.map((item) => `${item.id}: ${item.message}\n${item.url}`),
     ].join('\n');
   };
@@ -77,6 +80,7 @@ export function installProductionRuntime(THREE) {
           visual,
           spawnVisual,
           debug,
+          colliderBridge: null,
           environmentStarted: false,
           loadStarted: false,
         };
@@ -87,7 +91,11 @@ export function installProductionRuntime(THREE) {
           performance: performanceController,
           visual,
           spawnVisual,
-          getDiagnostics: () => assets.getDiagnostics(),
+          colliders: null,
+          getDiagnostics: () => ({
+            ...assets.getDiagnostics(),
+            rapier: state.colliderBridge?.getDiagnostics?.() || null,
+          }),
         };
       }
 
@@ -102,11 +110,20 @@ export function installProductionRuntime(THREE) {
       if (!state.loadStarted) {
         state.loadStarted = true;
         queueMicrotask(() => {
-          state.assets.loadPreloaded().then((loaded) => {
+          state.assets.loadPreloaded().then(async (loaded) => {
             window.RiskMulateProduction.loaded = loaded;
+            try {
+              state.colliderBridge = await createProductionColliderBridge(state.assets);
+              window.RiskMulateProduction.colliders = state.colliderBridge;
+            } catch (error) {
+              console.error('[RiskMulate] Rapier production collider bridge failed', error);
+            }
             state.debug?.render();
             window.dispatchEvent(new CustomEvent('riskmulate:production-ready', {
-              detail: { loadedAssetIds: [...loaded.keys()] },
+              detail: {
+                loadedAssetIds: [...loaded.keys()],
+                colliderCount: state.colliderBridge?.getDiagnostics?.().colliderCount || 0,
+              },
             }));
           });
         });
