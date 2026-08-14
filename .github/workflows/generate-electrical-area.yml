@@ -1,0 +1,59 @@
+name: Generate electrical area assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/electrical-service-assets]
+    paths:
+      - tools/blender/generate_electrical_area.py
+      - tools/validate_glb.py
+      - .github/workflows/generate-electrical-area.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-assets:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Blender and glTF export dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends blender python3-numpy
+
+      - name: Generate desktop electrical area
+        run: |
+          blender --background \
+            --python tools/blender/generate_electrical_area.py -- \
+            --output apps/game-lite/assets/production/electrical-area.glb
+
+      - name: Generate mobile electrical area
+        run: |
+          blender --background \
+            --python tools/blender/generate_electrical_area.py -- \
+            --output apps/game-lite/assets/production/electrical-area-mobile.glb \
+            --mobile
+
+      - name: Validate generated GLBs
+        run: |
+          python3 tools/validate_glb.py \
+            apps/game-lite/assets/production/electrical-area.glb \
+            apps/game-lite/assets/production/electrical-area-mobile.glb
+
+      - name: Commit generated GLBs
+        run: |
+          git config user.name "riskmulate-asset-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/game-lite/assets/production/electrical-area.glb \
+                  apps/game-lite/assets/production/electrical-area-mobile.glb
+          if git diff --cached --quiet; then
+            echo "Generated assets are unchanged."
+            exit 0
+          fi
+          git commit -m "Generate production electrical area GLBs"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
