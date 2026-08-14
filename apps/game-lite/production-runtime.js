@@ -1,4 +1,5 @@
 import { createAdaptivePerformanceController } from './adaptive-performance.js';
+import { installPbrEnvironment } from './environment-lighting.js';
 import { ProductionAssetRuntime } from './production-assets.js';
 
 let installed = false;
@@ -20,6 +21,7 @@ export function installProductionRuntime(THREE) {
       let state = states.get(this);
       if (!state) {
         const coarsePointer = matchMedia('(pointer: coarse)').matches;
+        installPbrEnvironment(THREE, scene, this);
         const assets = new ProductionAssetRuntime(THREE, scene, this, { coarsePointer });
         const performanceController = createAdaptivePerformanceController(this, { coarsePointer });
         state = { assets, performanceController, loadStarted: false };
