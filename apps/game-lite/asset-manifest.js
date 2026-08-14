@@ -1,7 +1,7 @@
 export const productionAssetManifest = Object.freeze([
   {
     id: 'process-tanks',
-    enabled: false,
+    enabled: true,
     desktopUrl: './assets/production/process-tanks.glb',
     mobileUrl: './assets/production/process-tanks-mobile.glb',
     priority: 'high',
