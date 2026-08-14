@@ -76,6 +76,7 @@ export class ProductionAssetRuntime {
   }
 
   async loadEntry(entry) {
+    if (!entry.enabled) return null;
     if (this.loaded.has(entry.id) || this.failed.has(entry.id)) return this.loaded.get(entry.id) || null;
 
     const url = selectAssetUrl(entry, this.coarsePointer);
@@ -105,10 +106,12 @@ export class ProductionAssetRuntime {
   }
 
   async loadAll() {
-    const ordered = [...productionAssetManifest].sort((a, b) => {
-      const rank = { high: 0, normal: 1, low: 2 };
-      return (rank[a.priority] ?? 1) - (rank[b.priority] ?? 1);
-    });
+    const ordered = productionAssetManifest
+      .filter((entry) => entry.enabled)
+      .sort((a, b) => {
+        const rank = { high: 0, normal: 1, low: 2 };
+        return (rank[a.priority] ?? 1) - (rank[b.priority] ?? 1);
+      });
 
     for (const entry of ordered) await this.loadEntry(entry);
     return this.loaded;
