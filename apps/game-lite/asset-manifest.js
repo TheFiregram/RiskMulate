@@ -44,7 +44,7 @@ export const productionAssetManifest = Object.freeze([
   },
   {
     id: 'electrical-area',
-    enabled: false,
+    enabled: true,
     desktopUrl: './assets/production/electrical-area.glb',
     mobileUrl: './assets/production/electrical-area-mobile.glb',
     priority: 'normal',
