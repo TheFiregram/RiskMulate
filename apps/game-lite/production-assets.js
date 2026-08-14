@@ -1,10 +1,6 @@
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { productionAssetManifest, selectAssetUrl } from './asset-manifest.js';
 import { extractColliderMeshes } from './collider-extraction.js';
-
-// Current production assets are plain Blender-exported GLBs. Keep the runtime
-// dependency surface limited to GLTFLoader; optional compression decoders can be
-// added per asset later when an exported file actually requires them.
-const GLTF_LOADER_URL = 'https://esm.sh/three@0.168.0/examples/jsm/loaders/GLTFLoader.js';
 
 function configureTexture(texture, renderer) {
   if (!texture?.isTexture) return;
@@ -61,8 +57,7 @@ function horizontalDistance(camera, anchor = [0, 0, 0]) {
 }
 
 async function createLoader() {
-  const gltfModule = await import(GLTF_LOADER_URL);
-  return new gltfModule.GLTFLoader();
+  return new GLTFLoader();
 }
 
 function resolveAssetUrl(url) {
@@ -72,6 +67,10 @@ function resolveAssetUrl(url) {
 function getErrorMessage(error) {
   if (error instanceof Error) return error.message;
   return String(error || 'Unknown production asset error');
+}
+
+function retryDelay(attempts) {
+  return Math.min(15000, 1500 * (2 ** Math.max(0, attempts - 1)));
 }
 
 export class ProductionAssetRuntime {
@@ -99,10 +98,11 @@ export class ProductionAssetRuntime {
 
   loadEntry(entry) {
     if (!entry.enabled) return Promise.resolve(null);
-    if (this.loaded.has(entry.id) || this.failed.has(entry.id)) {
-      return Promise.resolve(this.loaded.get(entry.id) || null);
-    }
+    if (this.loaded.has(entry.id)) return Promise.resolve(this.loaded.get(entry.id));
     if (this.pending.has(entry.id)) return this.pending.get(entry.id);
+
+    const failure = this.failed.get(entry.id);
+    if (failure && performance.now() < failure.nextRetryAt) return Promise.resolve(null);
 
     const task = this.loadEntryInternal(entry).finally(() => this.pending.delete(entry.id));
     this.pending.set(entry.id, task);
@@ -137,10 +137,12 @@ export class ProductionAssetRuntime {
     } catch (error) {
       showFallbacks(fallbacks);
       const message = getErrorMessage(error);
-      this.failed.set(entry.id, { url, message, error });
-      console.error(`[RiskMulate] Production asset failed: ${entry.id}`, { url, message, error });
+      const attempts = (this.failed.get(entry.id)?.attempts || 0) + 1;
+      const nextRetryAt = performance.now() + retryDelay(attempts);
+      this.failed.set(entry.id, { url, message, error, attempts, nextRetryAt });
+      console.error(`[RiskMulate] Production asset failed: ${entry.id}`, { url, message, attempts, error });
       window.dispatchEvent(new CustomEvent('riskmulate:asset-error', {
-        detail: { id: entry.id, url, message },
+        detail: { id: entry.id, url, message, attempts },
       }));
       return null;
     }
@@ -164,14 +166,14 @@ export class ProductionAssetRuntime {
     this.lastStreamingUpdate = now;
 
     for (const entry of productionAssetManifest) {
-      if (!entry.enabled || entry.preload || !entry.anchor) continue;
+      if (!entry.enabled || !entry.anchor) continue;
       const distance = horizontalDistance(camera, entry.anchor);
       const loadDistance = entry.loadDistance ?? Infinity;
       const unloadDistance = Math.max(loadDistance, entry.unloadDistance ?? loadDistance);
 
-      if (this.loaded.has(entry.id) && distance > unloadDistance) {
+      if (this.loaded.has(entry.id) && !entry.preload && distance > unloadDistance) {
         this.restoreFallback(entry.id);
-      } else if (!this.loaded.has(entry.id) && !this.failed.has(entry.id) && distance <= loadDistance) {
+      } else if (!this.loaded.has(entry.id) && !this.pending.has(entry.id) && distance <= loadDistance) {
         void this.loadEntry(entry);
       }
     }
@@ -195,6 +197,7 @@ export class ProductionAssetRuntime {
         id,
         url: detail.url,
         message: detail.message,
+        attempts: detail.attempts,
       })),
     };
   }
