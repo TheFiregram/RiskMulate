@@ -21,14 +21,23 @@ export function installProductionRuntime(THREE) {
       let state = states.get(this);
       if (!state) {
         const coarsePointer = matchMedia('(pointer: coarse)').matches;
-        installPbrEnvironment(THREE, scene, this);
         const assets = new ProductionAssetRuntime(THREE, scene, this, { coarsePointer });
         const performanceController = createAdaptivePerformanceController(this, { coarsePointer });
-        state = { assets, performanceController, loadStarted: false };
+        state = {
+          assets,
+          performanceController,
+          environmentStarted: false,
+          loadStarted: false,
+        };
         states.set(this, state);
       }
 
       state.performanceController.update();
+
+      if (!state.environmentStarted) {
+        state.environmentStarted = true;
+        queueMicrotask(() => installPbrEnvironment(THREE, scene, this));
+      }
 
       if (!state.loadStarted) {
         state.loadStarted = true;
