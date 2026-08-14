@@ -30,7 +30,7 @@ export const productionAssetManifest = Object.freeze([
   },
   {
     id: 'process-buildings',
-    enabled: false,
+    enabled: true,
     desktopUrl: './assets/production/process-buildings.glb',
     mobileUrl: './assets/production/process-buildings-mobile.glb',
     priority: 'normal',
@@ -39,6 +39,7 @@ export const productionAssetManifest = Object.freeze([
     loadDistance: 55,
     unloadDistance: 82,
     replaceAssetTypes: [],
+    replaceUserDataKeys: ['buildingModule'],
     castShadow: true,
     receiveShadow: true,
   },
