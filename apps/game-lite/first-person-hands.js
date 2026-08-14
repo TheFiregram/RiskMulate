@@ -140,7 +140,7 @@ export function installFirstPersonHands(THREE) {
       [1.12, side * 0.48, side * -0.22],
     );
 
-    arm.position.set(side * 0.42, -0.34, -0.42);
+    arm.position.set(side * 0.3, -0.22, -0.34);
     arm.rotation.set(0.12, side * -0.12, side * -0.13);
     return arm;
   }
@@ -226,10 +226,12 @@ export function installFirstPersonHands(THREE) {
     const bob = Math.abs(Math.sin(phase)) * overlay.walkBlend;
     const breathe = Math.sin(overlay.elapsed * 1.55) * 0.007;
     const sprint = overlay.sprintBlend;
+    const aspect = THREE.MathUtils.clamp(overlay.camera.aspect || 1, 0.45, 2.2);
+    const armSpread = THREE.MathUtils.clamp(aspect * 0.21, 0.18, 0.34);
 
     overlay.root.position.set(
       -overlay.lookX * 0.12 + halfStride * 0.006,
-      -0.02 + breathe + bob * (0.012 + sprint * 0.01) - overlay.hideBlend * 0.72,
+      0.035 + breathe + bob * (0.012 + sprint * 0.01) - overlay.hideBlend * 0.72,
       overlay.hideBlend * 0.08,
     );
     overlay.root.rotation.set(
@@ -239,8 +241,8 @@ export function installFirstPersonHands(THREE) {
     );
 
     const walkSwing = stride * (0.095 + sprint * 0.08);
-    overlay.left.position.set(-0.42, -0.34 + bob * 0.007, -0.42 + walkSwing * 0.18);
-    overlay.right.position.set(0.42, -0.34 + bob * 0.007 + overlay.reach * 0.055, -0.42 - walkSwing * 0.18 - overlay.reach * 0.16);
+    overlay.left.position.set(-armSpread, -0.22 + bob * 0.007, -0.34 + walkSwing * 0.18);
+    overlay.right.position.set(armSpread, -0.22 + bob * 0.007 + overlay.reach * 0.055, -0.34 - walkSwing * 0.18 - overlay.reach * 0.16);
 
     overlay.left.rotation.set(
       0.12 + walkSwing,
