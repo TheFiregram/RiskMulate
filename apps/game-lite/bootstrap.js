@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { installLegacyBuildingWallUpgrade } from './buildingWalls.js';
 import { installContinuitySimulation } from './continuity-simulation.js';
+import { installFirstPersonGloveAssets } from './first-person-glove-assets.js';
 import { installFirstPersonHands } from './first-person-hands.js';
 import { installIndustrialAudio } from './industrial-audio.js';
 import { installNavigationBridge } from './navigation-bridge.js';
@@ -14,6 +15,7 @@ installWallSurfaceSwap(THREE);
 installContinuitySimulation();
 installProductionRuntime(THREE);
 installFirstPersonHands(THREE);
+installFirstPersonGloveAssets(THREE);
 installIndustrialAudio();
 installTabletHeldViewmodel();
 await import('./game.js');
