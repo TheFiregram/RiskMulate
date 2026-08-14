@@ -33,6 +33,7 @@ export function installProductionRuntime(THREE) {
       }
 
       state.performanceController.update();
+      state.assets.update(camera);
 
       if (!state.environmentStarted) {
         state.environmentStarted = true;
@@ -42,7 +43,7 @@ export function installProductionRuntime(THREE) {
       if (!state.loadStarted) {
         state.loadStarted = true;
         queueMicrotask(() => {
-          state.assets.loadAll().then((loaded) => {
+          state.assets.loadPreloaded().then((loaded) => {
             window.RiskMulateProduction = {
               assets: state.assets,
               performance: state.performanceController,
