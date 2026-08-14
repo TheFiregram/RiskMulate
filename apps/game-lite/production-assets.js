@@ -1,14 +1,10 @@
 import { productionAssetManifest, selectAssetUrl } from './asset-manifest.js';
 import { extractColliderMeshes } from './collider-extraction.js';
 
-const DRACO_PATH = 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/libs/draco/';
-const BASIS_PATH = 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/libs/basis/';
-const MODULE_URLS = Object.freeze({
-  draco: 'https://esm.sh/three@0.168.0/examples/jsm/loaders/DRACOLoader.js',
-  gltf: 'https://esm.sh/three@0.168.0/examples/jsm/loaders/GLTFLoader.js',
-  ktx2: 'https://esm.sh/three@0.168.0/examples/jsm/loaders/KTX2Loader.js',
-  meshopt: 'https://esm.sh/three@0.168.0/examples/jsm/libs/meshopt_decoder.module.js',
-});
+// Current production assets are plain Blender-exported GLBs. Keep the runtime
+// dependency surface limited to GLTFLoader; optional compression decoders can be
+// added per asset later when an exported file actually requires them.
+const GLTF_LOADER_URL = 'https://esm.sh/three@0.168.0/examples/jsm/loaders/GLTFLoader.js';
 
 function configureTexture(texture, renderer) {
   if (!texture?.isTexture) return;
@@ -64,26 +60,18 @@ function horizontalDistance(camera, anchor = [0, 0, 0]) {
   return Math.hypot(camera.position.x - anchor[0], camera.position.z - anchor[2]);
 }
 
-async function createLoader(renderer) {
-  const [dracoModule, gltfModule, ktx2Module, meshoptModule] = await Promise.all([
-    import(MODULE_URLS.draco),
-    import(MODULE_URLS.gltf),
-    import(MODULE_URLS.ktx2),
-    import(MODULE_URLS.meshopt),
-  ]);
+async function createLoader() {
+  const gltfModule = await import(GLTF_LOADER_URL);
+  return new gltfModule.GLTFLoader();
+}
 
-  const draco = new dracoModule.DRACOLoader();
-  draco.setDecoderPath(DRACO_PATH);
+function resolveAssetUrl(url) {
+  return new URL(url, window.location.href).href;
+}
 
-  const ktx2 = new ktx2Module.KTX2Loader();
-  ktx2.setTranscoderPath(BASIS_PATH);
-  ktx2.detectSupport(renderer);
-
-  const loader = new gltfModule.GLTFLoader();
-  loader.setDRACOLoader(draco);
-  loader.setKTX2Loader(ktx2);
-  loader.setMeshoptDecoder(meshoptModule.MeshoptDecoder);
-  return loader;
+function getErrorMessage(error) {
+  if (error instanceof Error) return error.message;
+  return String(error || 'Unknown production asset error');
 }
 
 export class ProductionAssetRuntime {
@@ -94,13 +82,18 @@ export class ProductionAssetRuntime {
     this.coarsePointer = coarsePointer;
     this.loaded = new Map();
     this.pending = new Map();
-    this.failed = new Set();
+    this.failed = new Map();
     this.loaderPromise = null;
     this.lastStreamingUpdate = 0;
   }
 
   getLoader() {
-    if (!this.loaderPromise) this.loaderPromise = createLoader(this.renderer);
+    if (!this.loaderPromise) {
+      this.loaderPromise = createLoader().catch((error) => {
+        this.loaderPromise = null;
+        throw error;
+      });
+    }
     return this.loaderPromise;
   }
 
@@ -117,9 +110,10 @@ export class ProductionAssetRuntime {
   }
 
   async loadEntryInternal(entry) {
-    const url = selectAssetUrl(entry, this.coarsePointer);
-    if (!url) return null;
+    const selectedUrl = selectAssetUrl(entry, this.coarsePointer);
+    if (!selectedUrl) return null;
 
+    const url = resolveAssetUrl(selectedUrl);
     const fallbacks = collectFallbacks(this.scene, entry);
 
     try {
@@ -133,14 +127,21 @@ export class ProductionAssetRuntime {
       const colliders = extractColliderMeshes(this.THREE, root);
       hideFallbacks(fallbacks);
       this.loaded.set(entry.id, { root, gltf, fallbacks, colliders, url });
+      this.failed.delete(entry.id);
+
       window.dispatchEvent(new CustomEvent('riskmulate:asset-loaded', {
         detail: { id: entry.id, url, colliderCount: colliders.length },
       }));
+      console.info(`[RiskMulate] Production asset loaded: ${entry.id}`);
       return this.loaded.get(entry.id);
     } catch (error) {
       showFallbacks(fallbacks);
-      this.failed.add(entry.id);
-      console.info(`[RiskMulate] Production asset unavailable; keeping procedural fallback: ${entry.id}`);
+      const message = getErrorMessage(error);
+      this.failed.set(entry.id, { url, message, error });
+      console.error(`[RiskMulate] Production asset failed: ${entry.id}`, { url, message, error });
+      window.dispatchEvent(new CustomEvent('riskmulate:asset-error', {
+        detail: { id: entry.id, url, message },
+      }));
       return null;
     }
   }
@@ -184,5 +185,17 @@ export class ProductionAssetRuntime {
     this.loaded.delete(id);
     window.dispatchEvent(new CustomEvent('riskmulate:asset-unloaded', { detail: { id } }));
     return true;
+  }
+
+  getDiagnostics() {
+    return {
+      loadedAssetIds: [...this.loaded.keys()],
+      pendingAssetIds: [...this.pending.keys()],
+      failedAssets: [...this.failed.entries()].map(([id, detail]) => ({
+        id,
+        url: detail.url,
+        message: detail.message,
+      })),
+    };
   }
 }
