@@ -1,11 +1,13 @@
-import { DRACOLoader } from 'https://esm.sh/three@0.168.0/examples/jsm/loaders/DRACOLoader.js';
-import { GLTFLoader } from 'https://esm.sh/three@0.168.0/examples/jsm/loaders/GLTFLoader.js';
-import { KTX2Loader } from 'https://esm.sh/three@0.168.0/examples/jsm/loaders/KTX2Loader.js';
-import { MeshoptDecoder } from 'https://esm.sh/three@0.168.0/examples/jsm/libs/meshopt_decoder.module.js';
 import { productionAssetManifest, selectAssetUrl } from './asset-manifest.js';
 
 const DRACO_PATH = 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/libs/draco/';
 const BASIS_PATH = 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/libs/basis/';
+const MODULE_URLS = Object.freeze({
+  draco: 'https://esm.sh/three@0.168.0/examples/jsm/loaders/DRACOLoader.js',
+  gltf: 'https://esm.sh/three@0.168.0/examples/jsm/loaders/GLTFLoader.js',
+  ktx2: 'https://esm.sh/three@0.168.0/examples/jsm/loaders/KTX2Loader.js',
+  meshopt: 'https://esm.sh/three@0.168.0/examples/jsm/libs/meshopt_decoder.module.js',
+});
 
 function configureTexture(texture, renderer) {
   if (!texture?.isTexture) return;
@@ -53,6 +55,28 @@ function showFallbacks(objects) {
   for (const object of objects) object.visible = true;
 }
 
+async function createLoader(renderer) {
+  const [dracoModule, gltfModule, ktx2Module, meshoptModule] = await Promise.all([
+    import(MODULE_URLS.draco),
+    import(MODULE_URLS.gltf),
+    import(MODULE_URLS.ktx2),
+    import(MODULE_URLS.meshopt),
+  ]);
+
+  const draco = new dracoModule.DRACOLoader();
+  draco.setDecoderPath(DRACO_PATH);
+
+  const ktx2 = new ktx2Module.KTX2Loader();
+  ktx2.setTranscoderPath(BASIS_PATH);
+  ktx2.detectSupport(renderer);
+
+  const loader = new gltfModule.GLTFLoader();
+  loader.setDRACOLoader(draco);
+  loader.setKTX2Loader(ktx2);
+  loader.setMeshoptDecoder(meshoptModule.MeshoptDecoder);
+  return loader;
+}
+
 export class ProductionAssetRuntime {
   constructor(THREE, scene, renderer, { coarsePointer = false } = {}) {
     this.THREE = THREE;
@@ -61,18 +85,12 @@ export class ProductionAssetRuntime {
     this.coarsePointer = coarsePointer;
     this.loaded = new Map();
     this.failed = new Set();
+    this.loaderPromise = null;
+  }
 
-    const draco = new DRACOLoader();
-    draco.setDecoderPath(DRACO_PATH);
-
-    const ktx2 = new KTX2Loader();
-    ktx2.setTranscoderPath(BASIS_PATH);
-    ktx2.detectSupport(renderer);
-
-    this.loader = new GLTFLoader();
-    this.loader.setDRACOLoader(draco);
-    this.loader.setKTX2Loader(ktx2);
-    this.loader.setMeshoptDecoder(MeshoptDecoder);
+  getLoader() {
+    if (!this.loaderPromise) this.loaderPromise = createLoader(this.renderer);
+    return this.loaderPromise;
   }
 
   async loadEntry(entry) {
@@ -85,7 +103,8 @@ export class ProductionAssetRuntime {
     const fallbacks = collectFallbacks(this.scene, entry.replaceAssetTypes);
 
     try {
-      const gltf = await this.loader.loadAsync(url);
+      const loader = await this.getLoader();
+      const gltf = await loader.loadAsync(url);
       const root = gltf.scene || gltf.scenes?.[0];
       if (!root) throw new Error(`No scene root found in ${url}`);
 
