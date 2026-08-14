@@ -38,12 +38,16 @@ function configureModel(root, renderer, entry, coarsePointer) {
   });
 }
 
-function collectFallbacks(scene, assetTypes = []) {
-  if (!assetTypes.length) return [];
-  const wanted = new Set(assetTypes);
+function collectFallbacks(scene, entry) {
+  const assetTypes = new Set(entry.replaceAssetTypes || []);
+  const userDataKeys = entry.replaceUserDataKeys || [];
+  if (!assetTypes.size && !userDataKeys.length) return [];
+
   const fallback = [];
   scene.traverse((object) => {
-    if (wanted.has(object.userData?.assetType)) fallback.push(object);
+    const matchesAssetType = assetTypes.has(object.userData?.assetType);
+    const matchesUserData = userDataKeys.some((key) => Boolean(object.userData?.[key]));
+    if (matchesAssetType || matchesUserData) fallback.push(object);
   });
   return fallback;
 }
@@ -116,7 +120,7 @@ export class ProductionAssetRuntime {
     const url = selectAssetUrl(entry, this.coarsePointer);
     if (!url) return null;
 
-    const fallbacks = collectFallbacks(this.scene, entry.replaceAssetTypes);
+    const fallbacks = collectFallbacks(this.scene, entry);
 
     try {
       const loader = await this.getLoader();

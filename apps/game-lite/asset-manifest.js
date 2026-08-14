@@ -15,7 +15,7 @@ export const productionAssetManifest = Object.freeze([
   },
   {
     id: 'pipe-rack',
-    enabled: false,
+    enabled: true,
     desktopUrl: './assets/production/pipe-rack.glb',
     mobileUrl: './assets/production/pipe-rack-mobile.glb',
     priority: 'normal',
@@ -24,6 +24,7 @@ export const productionAssetManifest = Object.freeze([
     loadDistance: 65,
     unloadDistance: 90,
     replaceAssetTypes: [],
+    replaceUserDataKeys: ['organizedPipe', 'pipeRackSupport'],
     castShadow: true,
     receiveShadow: true,
   },
