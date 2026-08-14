@@ -1,5 +1,6 @@
 import { createAdaptivePerformanceController } from './adaptive-performance.js';
 import { installPbrEnvironment } from './environment-lighting.js';
+import { installIndustrialVisualPass } from './industrial-visual-pass.js';
 import { ProductionAssetRuntime } from './production-assets.js';
 
 let installed = false;
@@ -66,10 +67,12 @@ export function installProductionRuntime(THREE) {
         const coarsePointer = matchMedia('(pointer: coarse)').matches;
         const assets = new ProductionAssetRuntime(THREE, scene, this, { coarsePointer });
         const performanceController = createAdaptivePerformanceController(this, { coarsePointer });
+        const visual = installIndustrialVisualPass(THREE, scene, this, { coarsePointer });
         const debug = createAssetDebugPanel(assets);
         state = {
           assets,
           performanceController,
+          visual,
           debug,
           environmentStarted: false,
           loadStarted: false,
@@ -79,6 +82,7 @@ export function installProductionRuntime(THREE) {
         window.RiskMulateProduction = {
           assets,
           performance: performanceController,
+          visual,
           getDiagnostics: () => assets.getDiagnostics(),
         };
       }
