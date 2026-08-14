@@ -32,6 +32,12 @@ export async function createRapierPhysics({ gravity = [0, -9.81, 0] } = {}) {
     return world.createCollider(desc);
   }
 
+  function removeCollider(collider) {
+    if (!collider) return false;
+    world.removeCollider(collider, true);
+    return true;
+  }
+
   function createCharacter({
     position = [0, 1.1, 0],
     radius = 0.42,
@@ -89,6 +95,7 @@ export async function createRapierPhysics({ gravity = [0, -9.81, 0] } = {}) {
     world,
     addFixedBox,
     addFixedTrimesh,
+    removeCollider,
     createCharacter,
     moveCharacter,
     step,
