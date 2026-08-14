@@ -20,10 +20,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Blender
+      - name: Install Blender and glTF export dependency
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends blender
+          sudo apt-get install -y --no-install-recommends blender python3-numpy
 
       - name: Generate desktop tank cluster
         run: |
