@@ -1,4 +1,5 @@
 import { productionAssetManifest, selectAssetUrl } from './asset-manifest.js';
+import { extractColliderMeshes } from './collider-extraction.js';
 
 const DRACO_PATH = 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/libs/draco/';
 const BASIS_PATH = 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/libs/basis/';
@@ -125,10 +126,11 @@ export class ProductionAssetRuntime {
 
       configureModel(root, this.renderer, entry, this.coarsePointer);
       this.scene.add(root);
+      const colliders = extractColliderMeshes(this.THREE, root);
       hideFallbacks(fallbacks);
-      this.loaded.set(entry.id, { root, gltf, fallbacks, url });
+      this.loaded.set(entry.id, { root, gltf, fallbacks, colliders, url });
       window.dispatchEvent(new CustomEvent('riskmulate:asset-loaded', {
-        detail: { id: entry.id, url },
+        detail: { id: entry.id, url, colliderCount: colliders.length },
       }));
       return this.loaded.get(entry.id);
     } catch (error) {
