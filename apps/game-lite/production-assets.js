@@ -1,7 +1,7 @@
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
-import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { DRACOLoader } from 'https://esm.sh/three@0.168.0/examples/jsm/loaders/DRACOLoader.js';
+import { GLTFLoader } from 'https://esm.sh/three@0.168.0/examples/jsm/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'https://esm.sh/three@0.168.0/examples/jsm/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'https://esm.sh/three@0.168.0/examples/jsm/libs/meshopt_decoder.module.js';
 import { productionAssetManifest, selectAssetUrl } from './asset-manifest.js';
 
 const DRACO_PATH = 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/libs/draco/';
