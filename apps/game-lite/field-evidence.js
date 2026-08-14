@@ -1,5 +1,3 @@
-import { buildEmergencyResponseStation } from './emergency-response-station.js';
-
 function makeMaterials(THREE) {
   return {
     steel: new THREE.MeshStandardMaterial({ color: 0x4b5356, roughness: 0.72, metalness: 0.5 }),
@@ -155,15 +153,6 @@ function createCosmeticRust(THREE, scene, materials) {
 
 export function buildFieldEvidence(THREE, scene) {
   const materials = makeMaterials(THREE);
-
-  // Existing emergency controls make the process yard read like an operated facility,
-  // not a collection of hazards. The station remains a control, not a scored finding.
-  buildEmergencyResponseStation(THREE, scene, {
-    x: 6.5,
-    y: 0,
-    z: -3.35,
-    rotationY: 0,
-  });
 
   return [
     createDamagedSupport(THREE, scene, materials),
