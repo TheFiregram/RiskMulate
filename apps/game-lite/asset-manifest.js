@@ -39,6 +39,7 @@ export const productionAssetManifest = Object.freeze([
     loadDistance: 55,
     unloadDistance: 82,
     replaceAssetTypes: [],
+    replaceUserDataKeys: ['buildingModule'],
     castShadow: true,
     receiveShadow: true,
   },
