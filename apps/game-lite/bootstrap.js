@@ -17,7 +17,7 @@ import { installTabletHeldViewmodel } from './tablet-held-viewmodel.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
-const { mobileLite } = getMobilePerformanceProfile();
+const { mobileLite, coarsePointer } = getMobilePerformanceProfile();
 
 installNavigationBridge(THREE);
 installLegacyBuildingWallUpgrade(THREE);
@@ -42,5 +42,30 @@ installFirstPersonGloveAssets(THREE);
 installIndustrialAudio();
 installTabletHeldViewmodel();
 const playerPhysics = installRapierPlayerController(THREE);
-await import('./game.js');
+
+// game.js still uses `(pointer: coarse)` as its renderer/mobile-control switch.
+// For narrow or low-memory devices that report a fine pointer, expose a coarse
+// result only during module initialization so they receive the same low-cost
+// antialiasing, DPR and shadow settings as the rest of the mobile-lite path.
+const nativeMatchMedia = globalThis.matchMedia;
+if (mobileLite && !coarsePointer && typeof nativeMatchMedia === 'function') {
+  globalThis.matchMedia = (query) => {
+    const result = nativeMatchMedia.call(globalThis, query);
+    if (query !== '(pointer: coarse)') return result;
+    return new Proxy(result, {
+      get(target, property) {
+        if (property === 'matches') return true;
+        const value = Reflect.get(target, property, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+  };
+}
+
+try {
+  await import('./game.js');
+} finally {
+  if (nativeMatchMedia) globalThis.matchMedia = nativeMatchMedia;
+}
+
 playerPhysics.finishCapture();
