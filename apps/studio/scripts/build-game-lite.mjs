@@ -27,6 +27,8 @@ const indexPath = resolve(distDir, 'index.html');
 const gamePath = resolve(distDir, 'game.js');
 const cdnThree = 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
 const cdnAddons = 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/';
+const coarsePointerProbe = "const coarsePointer = matchMedia('(pointer: coarse)').matches;";
+const mobileLiteProbe = "const coarsePointer = Boolean(globalThis.RiskMulateMobilePerformance?.mobileLite ?? matchMedia('(pointer: coarse)').matches);";
 
 writeFileSync(
   indexPath,
@@ -34,7 +36,13 @@ writeFileSync(
     .replace(cdnThree, './vendor/three/three.module.js')
     .replace(cdnAddons, './vendor/three/addons/'),
 );
-writeFileSync(gamePath, readFileSync(gamePath, 'utf8').replace(`'${cdnThree}'`, `'three'`));
+writeFileSync(
+  gamePath,
+  readFileSync(gamePath, 'utf8')
+    .replace(`'${cdnThree}'`, `'three'`)
+    .replace(coarsePointerProbe, mobileLiteProbe),
+);
 
 console.log(`RiskMulate game copied from ${gameDir} to ${distDir}`);
 console.log('Three.js, addons, and Rapier bundled into the production output.');
+console.log('Production renderer uses the shared mobile-lite profile.');
