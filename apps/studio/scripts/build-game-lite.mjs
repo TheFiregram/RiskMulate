@@ -9,6 +9,8 @@ const gameDir = resolve(studioDir, '../game-lite');
 const distDir = resolve(studioDir, 'dist');
 const threeDir = resolve(repoDir, 'node_modules/three');
 const threeVendorDir = resolve(distDir, 'vendor/three');
+const rapierDir = resolve(repoDir, 'node_modules/@dimforge/rapier3d-compat');
+const rapierVendorDir = resolve(distDir, 'vendor/rapier');
 
 rmSync(distDir, { recursive: true, force: true });
 mkdirSync(distDir, { recursive: true });
@@ -17,6 +19,9 @@ cpSync(gameDir, distDir, { recursive: true });
 mkdirSync(threeVendorDir, { recursive: true });
 cpSync(resolve(threeDir, 'build/three.module.js'), resolve(threeVendorDir, 'three.module.js'));
 cpSync(resolve(threeDir, 'examples/jsm'), resolve(threeVendorDir, 'addons'), { recursive: true });
+
+mkdirSync(rapierVendorDir, { recursive: true });
+cpSync(resolve(rapierDir, 'rapier.mjs'), resolve(rapierVendorDir, 'rapier.mjs'));
 
 const indexPath = resolve(distDir, 'index.html');
 const gamePath = resolve(distDir, 'game.js');
@@ -32,4 +37,4 @@ writeFileSync(
 writeFileSync(gamePath, readFileSync(gamePath, 'utf8').replace(`'${cdnThree}'`, `'three'`));
 
 console.log(`RiskMulate game copied from ${gameDir} to ${distDir}`);
-console.log('Three.js and addons bundled into the production output.');
+console.log('Three.js, addons, and Rapier bundled into the production output.');
