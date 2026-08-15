@@ -18,11 +18,25 @@ import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
 const { mobileLite } = getMobilePerformanceProfile();
 
+function installProductionRuntimeAfterMobileStartup() {
+  if (!mobileLite) {
+    installProductionRuntime(THREE);
+    return;
+  }
+
+  const start = () => installProductionRuntime(THREE);
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(start, { timeout: 3500 });
+  } else {
+    setTimeout(start, 2500);
+  }
+}
+
 installNavigationBridge(THREE);
 installLegacyBuildingWallUpgrade(THREE);
 installWallSurfaceSwap(THREE);
 installContinuitySimulation();
-installProductionRuntime(THREE);
+installProductionRuntimeAfterMobileStartup();
 installProductionFlangePack(THREE);
 
 // The authored foreground replacements introduced after the density pass are
