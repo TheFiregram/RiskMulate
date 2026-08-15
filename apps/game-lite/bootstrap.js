@@ -12,6 +12,7 @@ import { installProductionFlangePack } from './production-flange-pack.js';
 import { installProductionRuntime } from './production-runtime.js';
 import { installSidePipeRackDetail } from './side-pipe-rack-detail.js';
 import { installTabletHeldViewmodel } from './tablet-held-viewmodel.js';
+import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
 installNavigationBridge(THREE);
@@ -23,6 +24,7 @@ installProductionFlangePack(THREE);
 installForegroundVesselDetail(THREE);
 installOverheadProcessBridgeDetail(THREE);
 installSidePipeRackDetail(THREE);
+installUtilityStackDetail(THREE);
 installFirstPersonHands(THREE);
 installFirstPersonGloveAssets(THREE);
 installIndustrialAudio();
