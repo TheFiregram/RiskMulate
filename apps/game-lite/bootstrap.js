@@ -10,6 +10,7 @@ import { installOverheadProcessBridgeDetail } from './overhead-process-bridge-de
 import { installRapierPlayerController } from './player-rapier-controller.js';
 import { installProductionFlangePack } from './production-flange-pack.js';
 import { installProductionRuntime } from './production-runtime.js';
+import { installSidePipeRackDetail } from './side-pipe-rack-detail.js';
 import { installTabletHeldViewmodel } from './tablet-held-viewmodel.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
@@ -21,6 +22,7 @@ installProductionRuntime(THREE);
 installProductionFlangePack(THREE);
 installForegroundVesselDetail(THREE);
 installOverheadProcessBridgeDetail(THREE);
+installSidePipeRackDetail(THREE);
 installFirstPersonHands(THREE);
 installFirstPersonGloveAssets(THREE);
 installIndustrialAudio();
