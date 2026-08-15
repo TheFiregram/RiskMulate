@@ -1,6 +1,7 @@
 const RAPIER_MODULE_URL = 'https://esm.sh/@dimforge/rapier3d-compat@0.19.3';
 
 let rapierPromise;
+let sharedPhysicsPromise;
 
 async function loadRapier() {
   if (!rapierPromise) {
@@ -101,4 +102,11 @@ export async function createRapierPhysics({ gravity = [0, -9.81, 0] } = {}) {
     step,
     disposeCharacter,
   };
+}
+
+export function getSharedRapierPhysics(options = { gravity: [0, 0, 0] }) {
+  if (!sharedPhysicsPromise) {
+    sharedPhysicsPromise = createRapierPhysics(options);
+  }
+  return sharedPhysicsPromise;
 }
