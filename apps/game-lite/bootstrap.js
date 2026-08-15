@@ -9,6 +9,7 @@ import { installMobileAuthoredDetailLite } from './mobile-authored-detail-lite.j
 import { getMobilePerformanceProfile } from './mobile-performance.js';
 import { installNavigationBridge } from './navigation-bridge.js';
 import { installOverheadProcessBridgeDetail } from './overhead-process-bridge-detail.js';
+import { installPerformanceDiagnostics } from './performance-diagnostics.js';
 import { installRapierPlayerController } from './player-rapier-controller.js';
 import { installProductionFlangePack } from './production-flange-pack.js';
 import { installProductionRuntime } from './production-runtime.js';
@@ -25,6 +26,7 @@ installWallSurfaceSwap(THREE);
 installContinuitySimulation();
 installProductionRuntime(THREE);
 installProductionFlangePack(THREE);
+installPerformanceDiagnostics(THREE);
 
 if (mobileLite) {
   // Phones keep the low-cost instanced facility layer, then add shared-geometry
