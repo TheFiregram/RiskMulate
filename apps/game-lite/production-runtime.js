@@ -1,6 +1,7 @@
 import { createAdaptivePerformanceController } from './adaptive-performance.js';
 import { installPbrEnvironment } from './environment-lighting.js';
 import { installIndustrialVisualPass } from './industrial-visual-pass.js';
+import { getMobilePerformanceProfile } from './mobile-performance.js';
 import { ProductionAssetRuntime } from './production-assets.js';
 import { createProductionColliderBridge } from './production-collider-bridge.js';
 import { installSpawnVisualPassTwo } from './spawn-visual-pass-two.js';
@@ -68,7 +69,8 @@ export function installProductionRuntime(THREE) {
     if (isMainGameScene) {
       let state = states.get(this);
       if (!state) {
-        const coarsePointer = matchMedia('(pointer: coarse)').matches;
+        const { mobileLite } = getMobilePerformanceProfile();
+        const coarsePointer = mobileLite;
         const assets = new ProductionAssetRuntime(THREE, scene, this, { coarsePointer });
         const performanceController = createAdaptivePerformanceController(this, { coarsePointer });
         const visual = installIndustrialVisualPass(THREE, scene, this, { coarsePointer });
@@ -94,6 +96,7 @@ export function installProductionRuntime(THREE) {
           colliders: null,
           getDiagnostics: () => ({
             ...assets.getDiagnostics(),
+            mobileLite,
             rapier: state.colliderBridge?.getDiagnostics?.() || null,
           }),
         };
