@@ -1,24 +1,43 @@
 import { getSharedRapierPhysics } from './rapier-physics.js';
 
-export function createPlayerRapierController({
-  player,
-  obstacles,
-  playableHalfSize,
-  bodyCenterY = 1.0,
-  obstacleHeight = 5.0,
-  boundaryThickness = 0.6,
-} = {}) {
+const WORLD_HALF_SIZE = 26.65;
+const OBSTACLE_HEIGHT = 5.0;
+const BOUNDARY_THICKNESS = 0.6;
+const PLAYER_BODY_CENTER_Y = 1.0;
+const PLAYER_RADIUS = 0.42;
+const PLAYER_HALF_HEIGHT = 0.58;
+
+function isLegacyObstacle(value) {
+  if (!value || typeof value !== 'object') return false;
+  const keys = Object.keys(value).sort().join(',');
+  return keys === 'd,w,x,z'
+    && Number.isFinite(value.x)
+    && Number.isFinite(value.z)
+    && Number.isFinite(value.w)
+    && Number.isFinite(value.d);
+}
+
+export function installRapierPlayerController(THREE) {
+  const capturedObstacles = [];
+  let obstacleArray = null;
+  let captureActive = true;
   let physics = null;
   let character = null;
+  let cameraPosition = null;
+  let lastRequestedX = null;
+  let lastRequestedZ = null;
   let ready = false;
   let failed = false;
   let staticColliderCount = 0;
+  let correctionCount = 0;
 
   const diagnostics = {
-    mode: 'initializing',
+    mode: 'legacy-bootstrap',
     ready: false,
     failed: false,
+    capturedObstacleCount: 0,
     staticColliderCount: 0,
+    correctionCount: 0,
     lastError: null,
   };
 
@@ -26,20 +45,33 @@ export function createPlayerRapierController({
     getDiagnostics: () => ({ ...diagnostics }),
   };
 
-  function addLegacyStaticColliders() {
-    for (const obstacle of obstacles) {
+  const originalPush = Array.prototype.push;
+  Array.prototype.push = function captureLegacyObstacle(...items) {
+    if (captureActive && items.length === 1 && isLegacyObstacle(items[0])) {
+      obstacleArray = this;
+      capturedObstacles.push({ ...items[0] });
+      diagnostics.capturedObstacleCount = capturedObstacles.length;
+    }
+    return originalPush.apply(this, items);
+  };
+
+  const originalSet = THREE.Vector3.prototype.set;
+  const trackedCameraPositions = new WeakSet();
+
+  function addStaticColliders() {
+    for (const obstacle of capturedObstacles) {
       physics.addFixedBox({
-        center: [obstacle.x, obstacleHeight / 2, obstacle.z],
-        size: [obstacle.w, obstacleHeight, obstacle.d],
+        center: [obstacle.x, OBSTACLE_HEIGHT / 2, obstacle.z],
+        size: [obstacle.w, OBSTACLE_HEIGHT, obstacle.d],
       });
       staticColliderCount += 1;
     }
 
-    const span = playableHalfSize * 2 + boundaryThickness * 2;
-    const wallCenter = playableHalfSize + boundaryThickness / 2;
-    const wallY = obstacleHeight / 2;
-    const verticalWall = [boundaryThickness, obstacleHeight, span];
-    const horizontalWall = [span, obstacleHeight, boundaryThickness];
+    const span = WORLD_HALF_SIZE * 2 + BOUNDARY_THICKNESS * 2;
+    const wallCenter = WORLD_HALF_SIZE + BOUNDARY_THICKNESS / 2;
+    const wallY = OBSTACLE_HEIGHT / 2;
+    const verticalWall = [BOUNDARY_THICKNESS, OBSTACLE_HEIGHT, span];
+    const horizontalWall = [span, OBSTACLE_HEIGHT, BOUNDARY_THICKNESS];
 
     physics.addFixedBox({ center: [-wallCenter, wallY, 0], size: verticalWall });
     physics.addFixedBox({ center: [wallCenter, wallY, 0], size: verticalWall });
@@ -48,52 +80,100 @@ export function createPlayerRapierController({
     staticColliderCount += 4;
   }
 
-  async function initialize() {
+  async function initializePhysics(position) {
+    if (ready || failed || character) return;
     try {
       physics = await getSharedRapierPhysics({ gravity: [0, 0, 0] });
-      addLegacyStaticColliders();
+      addStaticColliders();
       character = physics.createCharacter({
-        position: [player.x, bodyCenterY, player.z],
-        radius: player.radius,
-        halfHeight: 0.58,
+        position: [position.x, PLAYER_BODY_CENTER_Y, position.z],
+        radius: PLAYER_RADIUS,
+        halfHeight: PLAYER_HALF_HEIGHT,
         offset: 0.02,
         stepHeight: 0.28,
         stepWidth: 0.16,
         snapToGround: 0.18,
         maxSlopeDegrees: 46,
       });
+
+      // Keep the legacy rectangles as a boot/error fallback, then retire them once
+      // the Rapier capsule and equivalent static colliders are live.
+      if (obstacleArray) obstacleArray.length = 0;
+
       ready = true;
-      diagnostics.mode = 'rapier';
+      diagnostics.mode = 'rapier-character-controller';
       diagnostics.ready = true;
       diagnostics.staticColliderCount = staticColliderCount;
       window.dispatchEvent(new CustomEvent('riskmulate:player-physics-ready', {
-        detail: { staticColliderCount },
+        detail: {
+          capturedObstacleCount: capturedObstacles.length,
+          staticColliderCount,
+        },
       }));
     } catch (error) {
       failed = true;
       diagnostics.mode = 'legacy-fallback';
       diagnostics.failed = true;
       diagnostics.lastError = error instanceof Error ? error.message : String(error);
-      console.error('[RiskMulate] Rapier player controller failed; retaining legacy collision fallback', error);
+      console.error('[RiskMulate] Rapier player controller failed; legacy collision remains active', error);
     }
   }
 
-  initialize();
+  THREE.Vector3.prototype.set = function setWithRapierNavigation(x, y, z) {
+    if (!trackedCameraPositions.has(this)) return originalSet.call(this, x, y, z);
 
-  function move(dx, dz, dt) {
-    if (!ready || !physics || !character) return false;
+    if (lastRequestedX === null || lastRequestedZ === null) {
+      lastRequestedX = x;
+      lastRequestedZ = z;
+      return originalSet.call(this, x, y, z);
+    }
+
+    const dx = x - lastRequestedX;
+    const dz = z - lastRequestedZ;
+    lastRequestedX = x;
+    lastRequestedZ = z;
+
+    if (!ready || !physics || !character) return originalSet.call(this, x, y, z);
+    if (Math.abs(dx) < 1e-7 && Math.abs(dz) < 1e-7) return originalSet.call(this, this.x, y, this.z);
+
+    const requestedDistance = Math.hypot(dx, dz);
     physics.moveCharacter(character, [dx, 0, dz]);
-    physics.step(dt);
+    physics.step(1 / 60);
     const position = character.body.translation();
-    player.x = position.x;
-    player.z = position.z;
-    return true;
-  }
+    const appliedDx = position.x - this.x;
+    const appliedDz = position.z - this.z;
+    const appliedDistance = Math.hypot(appliedDx, appliedDz);
+    if (appliedDistance + 1e-5 < requestedDistance) {
+      correctionCount += 1;
+      diagnostics.correctionCount = correctionCount;
+    }
+    return originalSet.call(this, position.x, y, position.z);
+  };
+
+  const originalRender = THREE.WebGLRenderer.prototype.render;
+  THREE.WebGLRenderer.prototype.render = function renderWithRapierPlayer(scene, camera) {
+    const mainCamera =
+      !scene?.userData?.firstPersonHandsOverlay
+      && this.domElement?.parentElement?.id === 'game'
+      && camera?.isPerspectiveCamera;
+
+    if (mainCamera && !trackedCameraPositions.has(camera.position)) {
+      cameraPosition = camera.position;
+      trackedCameraPositions.add(cameraPosition);
+      lastRequestedX = cameraPosition.x;
+      lastRequestedZ = cameraPosition.z;
+      initializePhysics(cameraPosition);
+    }
+
+    return originalRender.call(this, scene, camera);
+  };
 
   return {
-    move,
-    isReady: () => ready,
-    hasFailed: () => failed,
+    finishCapture() {
+      captureActive = false;
+      Array.prototype.push = originalPush;
+      if (cameraPosition && !ready && !failed) initializePhysics(cameraPosition);
+    },
     getDiagnostics: () => ({ ...diagnostics }),
   };
 }
