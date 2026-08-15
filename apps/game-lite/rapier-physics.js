@@ -1,4 +1,4 @@
-const RAPIER_MODULE_URL = 'https://esm.sh/@dimforge/rapier3d-compat@0.19.3';
+const RAPIER_MODULE_URL = './vendor/rapier/rapier.mjs';
 
 let rapierPromise;
 let sharedPhysicsPromise;
