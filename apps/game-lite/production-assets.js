@@ -24,10 +24,136 @@ function configureModel(root, renderer, entry, coarsePointer) {
     if (!object.isMesh) return;
     object.castShadow = Boolean(entry.castShadow) && !coarsePointer;
     object.receiveShadow = entry.receiveShadow !== false;
+    object.userData.riskmulateBaseCastShadow = object.castShadow;
     if (Array.isArray(object.material)) object.material.forEach((material) => configureMaterial(material, renderer));
     else configureMaterial(object.material, renderer);
     object.frustumCulled = true;
   });
+}
+
+function isColliderMesh(object) {
+  return String(object?.name || '').startsWith('COLLIDER_');
+}
+
+function canInstanceMesh(object) {
+  if (!object?.isMesh || object.isSkinnedMesh || isColliderMesh(object)) return false;
+  if (!object.geometry || !object.material || Array.isArray(object.material)) return false;
+  if (object.children.length) return false;
+  if (object.morphTargetInfluences?.length) return false;
+  if (Object.keys(object.userData || {}).some((key) => key !== 'riskmulateBaseCastShadow')) return false;
+  return true;
+}
+
+function buildInstanceBatches(THREE, root, entry) {
+  const minimum = Math.max(3, entry.instanceMinCount ?? 4);
+  const groups = new Map();
+  const sourceMeshes = [];
+
+  root.updateMatrixWorld(true);
+  const rootInverse = root.matrixWorld.clone().invert();
+
+  root.traverse((object) => {
+    if (!canInstanceMesh(object)) return;
+    const key = [
+      object.geometry.uuid,
+      object.material.uuid,
+      object.castShadow ? 1 : 0,
+      object.receiveShadow ? 1 : 0,
+      object.renderOrder || 0,
+    ].join('|');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(object);
+  });
+
+  let batchIndex = 0;
+  let instancedSourceMeshes = 0;
+  const batches = [];
+
+  for (const meshes of groups.values()) {
+    if (meshes.length < minimum) continue;
+    const first = meshes[0];
+    const batch = new THREE.InstancedMesh(first.geometry, first.material, meshes.length);
+    batch.name = `INSTANCE_${entry.id}_${batchIndex}`;
+    batch.castShadow = first.castShadow;
+    batch.receiveShadow = first.receiveShadow;
+    batch.renderOrder = first.renderOrder;
+    batch.frustumCulled = true;
+    batch.userData.productionInstanceBatch = true;
+    batch.userData.sourceMeshCount = meshes.length;
+    batch.userData.riskmulateBaseCastShadow = first.castShadow;
+
+    meshes.forEach((mesh, index) => {
+      const localMatrix = new THREE.Matrix4().multiplyMatrices(rootInverse, mesh.matrixWorld);
+      batch.setMatrixAt(index, localMatrix);
+      sourceMeshes.push(mesh);
+    });
+    batch.instanceMatrix.needsUpdate = true;
+    root.add(batch);
+    batches.push(batch);
+    instancedSourceMeshes += meshes.length;
+    batchIndex += 1;
+  }
+
+  for (const mesh of sourceMeshes) mesh.removeFromParent();
+  root.updateMatrixWorld(true);
+
+  return { batches, instancedSourceMeshes };
+}
+
+function isFarDetailMesh(object) {
+  if (!object?.isMesh || isColliderMesh(object)) return false;
+  const name = String(object.name || '').toLowerCase();
+  if (/shell|wall|roof|floor|column|beam|main|body|tank|pipe[_-]?run/.test(name)) return false;
+  if (/bolt|nut|washer|brace|rail|rung|grate|tag|handle|trim|cap|ring|cable|conduit|nozzle/.test(name)) return true;
+
+  object.geometry?.computeBoundingSphere?.();
+  const radius = object.geometry?.boundingSphere?.radius ?? Infinity;
+  const vertexCount = object.geometry?.attributes?.position?.count || 0;
+  return radius <= 0.24 && vertexCount >= 80;
+}
+
+function collectDistanceLodMeshes(root) {
+  const detailMeshes = [];
+  root.traverse((object) => {
+    if (isFarDetailMesh(object)) detailMeshes.push(object);
+  });
+  return detailMeshes;
+}
+
+function optimizeStaticAsset(THREE, root, entry) {
+  const instanceResult = buildInstanceBatches(THREE, root, entry);
+  const detailMeshes = collectDistanceLodMeshes(root);
+  return {
+    instanceBatches: instanceResult.batches,
+    instancedSourceMeshes: instanceResult.instancedSourceMeshes,
+    detailMeshes,
+    detailLodActive: false,
+    shadowLodActive: false,
+  };
+}
+
+function setDetailLod(record, far) {
+  if (!record?.optimization || record.optimization.detailLodActive === far) return;
+  for (const mesh of record.optimization.detailMeshes) mesh.visible = !far;
+  record.optimization.detailLodActive = far;
+}
+
+function setShadowLod(record, far) {
+  if (!record?.optimization || record.optimization.shadowLodActive === far) return;
+  record.root.traverse((object) => {
+    if (!object.isMesh || isColliderMesh(object)) return;
+    const base = Boolean(object.userData?.riskmulateBaseCastShadow);
+    object.castShadow = far ? false : base;
+  });
+  record.optimization.shadowLodActive = far;
+}
+
+function applyDistanceLod(record, entry, distance) {
+  if (!record?.optimization) return;
+  const detailDistance = entry.detailLodDistance ?? Infinity;
+  const shadowDistance = entry.shadowLodDistance ?? Infinity;
+  setDetailLod(record, distance > detailDistance);
+  setShadowLod(record, distance > shadowDistance);
 }
 
 function collectFallbacks(scene, entry) {
@@ -123,16 +249,26 @@ export class ProductionAssetRuntime {
       if (!root) throw new Error(`No scene root found in ${url}`);
 
       configureModel(root, this.renderer, entry, this.coarsePointer);
+      const optimization = optimizeStaticAsset(this.THREE, root, entry);
       this.scene.add(root);
       const colliders = extractColliderMeshes(this.THREE, root);
       hideFallbacks(fallbacks);
-      this.loaded.set(entry.id, { root, gltf, fallbacks, colliders, url });
+      this.loaded.set(entry.id, { root, gltf, fallbacks, colliders, optimization, url });
       this.failed.delete(entry.id);
 
       window.dispatchEvent(new CustomEvent('riskmulate:asset-loaded', {
-        detail: { id: entry.id, url, colliderCount: colliders.length },
+        detail: {
+          id: entry.id,
+          url,
+          colliderCount: colliders.length,
+          instanceBatchCount: optimization.instanceBatches.length,
+          instancedSourceMeshes: optimization.instancedSourceMeshes,
+        },
       }));
-      console.info(`[RiskMulate] Production asset loaded: ${entry.id}`);
+      console.info(`[RiskMulate] Production asset loaded: ${entry.id}`, {
+        instanceBatchCount: optimization.instanceBatches.length,
+        instancedSourceMeshes: optimization.instancedSourceMeshes,
+      });
       return this.loaded.get(entry.id);
     } catch (error) {
       showFallbacks(fallbacks);
@@ -170,10 +306,13 @@ export class ProductionAssetRuntime {
       const distance = horizontalDistance(camera, entry.anchor);
       const loadDistance = entry.loadDistance ?? Infinity;
       const unloadDistance = Math.max(loadDistance, entry.unloadDistance ?? loadDistance);
+      const record = this.loaded.get(entry.id);
 
-      if (this.loaded.has(entry.id) && !entry.preload && distance > unloadDistance) {
+      if (record) applyDistanceLod(record, entry, distance);
+
+      if (record && !entry.preload && distance > unloadDistance) {
         this.restoreFallback(entry.id);
-      } else if (!this.loaded.has(entry.id) && !this.pending.has(entry.id) && distance <= loadDistance) {
+      } else if (!record && !this.pending.has(entry.id) && distance <= loadDistance) {
         void this.loadEntry(entry);
       }
     }
@@ -198,6 +337,14 @@ export class ProductionAssetRuntime {
         url: detail.url,
         message: detail.message,
         attempts: detail.attempts,
+      })),
+      optimization: [...this.loaded.entries()].map(([id, record]) => ({
+        id,
+        instanceBatchCount: record.optimization?.instanceBatches.length || 0,
+        instancedSourceMeshes: record.optimization?.instancedSourceMeshes || 0,
+        detailMeshCount: record.optimization?.detailMeshes.length || 0,
+        detailLodActive: Boolean(record.optimization?.detailLodActive),
+        shadowLodActive: Boolean(record.optimization?.shadowLodActive),
       })),
     };
   }
