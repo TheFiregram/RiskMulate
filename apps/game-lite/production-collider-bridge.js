@@ -1,7 +1,7 @@
-import { createRapierPhysics } from './rapier-physics.js';
+import { getSharedRapierPhysics } from './rapier-physics.js';
 
 export async function createProductionColliderBridge(assets) {
-  const physics = await createRapierPhysics({ gravity: [0, 0, 0] });
+  const physics = await getSharedRapierPhysics({ gravity: [0, 0, 0] });
   const registered = new Map();
 
   function registerAsset(id) {
