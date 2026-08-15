@@ -20,6 +20,22 @@ import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
 const { mobileLite } = getMobilePerformanceProfile();
 
+function installInputOnboarding() {
+  const controls = document.querySelector('.start-controls');
+  const paused = document.getElementById('paused');
+  if (!controls) return;
+
+  if (mobileLite) {
+    controls.innerHTML = '<kbd>LEFT</kbd> MOVE <kbd>RIGHT</kbd> LOOK <kbd>INSPECT</kbd> EVIDENCE <kbd>TABLET</kbd> RISK WORK';
+    if (paused) paused.textContent = 'Touch the scene to resume look control.';
+    controls.setAttribute('aria-label', 'Touch controls: left side to move, right side to look, Inspect for evidence, Tablet for risk work');
+    return;
+  }
+
+  controls.setAttribute('aria-label', 'Keyboard controls: WASD move, E inspect, Tab tablet, Shift sprint');
+}
+
+installInputOnboarding();
 installNavigationBridge(THREE);
 installLegacyBuildingWallUpgrade(THREE);
 installWallSurfaceSwap(THREE);
