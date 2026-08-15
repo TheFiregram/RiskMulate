@@ -5,6 +5,7 @@ import { installFirstPersonGloveAssets } from './first-person-glove-assets.js';
 import { installFirstPersonHands } from './first-person-hands.js';
 import { installForegroundVesselDetail } from './foreground-vessel-detail.js';
 import { installIndustrialAudio } from './industrial-audio.js';
+import { installMobileAuthoredDetailLite } from './mobile-authored-detail-lite.js';
 import { getMobilePerformanceProfile } from './mobile-performance.js';
 import { installNavigationBridge } from './navigation-bridge.js';
 import { installOverheadProcessBridgeDetail } from './overhead-process-bridge-detail.js';
@@ -25,10 +26,11 @@ installContinuitySimulation();
 installProductionRuntime(THREE);
 installProductionFlangePack(THREE);
 
-// The authored foreground replacements introduced after the density pass are
-// intentionally desktop-only for now. Their many unique geometries and shadow
-// casters can exhaust mobile WebGL memory before the first usable frame.
-if (!mobileLite) {
+if (mobileLite) {
+  // Phones keep the low-cost instanced facility layer, then add shared-geometry
+  // vessel/stack silhouettes without the unique desktop geometries or shadows.
+  installMobileAuthoredDetailLite(THREE);
+} else {
   installForegroundVesselDetail(THREE);
   installOverheadProcessBridgeDetail(THREE);
   installSidePipeRackDetail(THREE);
