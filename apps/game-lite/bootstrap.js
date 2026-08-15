@@ -5,6 +5,7 @@ import { installFirstPersonGloveAssets } from './first-person-glove-assets.js';
 import { installFirstPersonHands } from './first-person-hands.js';
 import { installForegroundVesselDetail } from './foreground-vessel-detail.js';
 import { installIndustrialAudio } from './industrial-audio.js';
+import { getMobilePerformanceProfile } from './mobile-performance.js';
 import { installNavigationBridge } from './navigation-bridge.js';
 import { installOverheadProcessBridgeDetail } from './overhead-process-bridge-detail.js';
 import { installRapierPlayerController } from './player-rapier-controller.js';
@@ -15,16 +16,25 @@ import { installTabletHeldViewmodel } from './tablet-held-viewmodel.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
+const { mobileLite } = getMobilePerformanceProfile();
+
 installNavigationBridge(THREE);
 installLegacyBuildingWallUpgrade(THREE);
 installWallSurfaceSwap(THREE);
 installContinuitySimulation();
 installProductionRuntime(THREE);
 installProductionFlangePack(THREE);
-installForegroundVesselDetail(THREE);
-installOverheadProcessBridgeDetail(THREE);
-installSidePipeRackDetail(THREE);
-installUtilityStackDetail(THREE);
+
+// The authored foreground replacements introduced after the density pass are
+// intentionally desktop-only for now. Their many unique geometries and shadow
+// casters can exhaust mobile WebGL memory before the first usable frame.
+if (!mobileLite) {
+  installForegroundVesselDetail(THREE);
+  installOverheadProcessBridgeDetail(THREE);
+  installSidePipeRackDetail(THREE);
+  installUtilityStackDetail(THREE);
+}
+
 installFirstPersonHands(THREE);
 installFirstPersonGloveAssets(THREE);
 installIndustrialAudio();
