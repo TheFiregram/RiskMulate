@@ -34,6 +34,12 @@ export const FINDING_REPAIR_MAP = Object.freeze({
     teaching:
       'Lockout removes the electrical fault pathway from service until competent repair. Warning signs alone would not control the mechanism.',
   },
+  'temp-hose': {
+    actionId: 'secure-temp-hose',
+    verb: 'Secure hose',
+    teaching:
+      'Removing or retaining the temporary hose closes the disconnect pathway. Temporary works need explicit controls before pressure is introduced.',
+  },
   'support-vibration': {
     actionId: 'support-startup-hold',
     verb: 'Tag startup hold',
@@ -125,7 +131,7 @@ export function applyFieldRepair(findingId) {
   if (!progress.treatmentSelection.includes(repair.actionId)) {
     progress.treatmentSelection.push(repair.actionId);
   }
-  progress.score = Math.min(scenario.maxScore || 660, (progress.score || 0) + 35);
+  progress.score = Math.min(scenario.maxScore || 760, (progress.score || 0) + 35);
   progress.found = (progress.discoveredRiskIds || []).length > 0;
 
   writeProgress(progress);
