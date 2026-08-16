@@ -152,7 +152,6 @@ function createCosmeticRust(THREE, scene, materials) {
 }
 
 function createTempHose(THREE, scene, materials) {
-  // Temporary transfer hose — axis-aligned segments only (mobile-safe, no quaternion).
   const root = makeFindingRoot(THREE, scene, 'temp-hose', 'Inspect temporary transfer hose', [-6.2, 0, -3.4]);
   const hoseMat = new THREE.MeshStandardMaterial({ color: 0x2f3d2a, roughness: 0.88, metalness: 0.08 });
   const coupling = materials.darkSteel;
@@ -174,6 +173,38 @@ function createTempHose(THREE, scene, materials) {
   return root;
 }
 
+function createRearEgress(THREE, scene, materials) {
+  // Blocked rear egress near gate house — same emergency-access pathway as plant-side obstruction.
+  // Teaching: clearing one route does not close residual risk if another egress is still blocked.
+  const root = makeFindingRoot(THREE, scene, 'rear-egress', 'Inspect blocked rear egress route', [-8.2, 0, 17.2]);
+
+  const pallet = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 1.2), materials.darkSteel);
+  pallet.position.set(0, 0.12, 0);
+  root.add(pallet);
+
+  for (const [x, z] of [[-0.45, -0.25], [0.45, -0.25], [-0.45, 0.3], [0.45, 0.3]]) {
+    const stack = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.45), materials.steel);
+    stack.position.set(x, 0.55, z);
+    root.add(stack);
+  }
+
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.4, 8), materials.darkSteel);
+  post.position.set(0.85, 0.7, 0.15);
+  root.add(post);
+
+  const barrier = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.08), materials.rust);
+  barrier.position.set(0.15, 1.15, 0.15);
+  root.add(barrier);
+
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.32, 0.04), materials.freshWear);
+  sign.position.set(-0.55, 1.25, 0.4);
+  root.add(sign);
+
+  root.userData.interactable = true;
+  root.userData.prompt = 'Inspect blocked rear egress';
+  return root;
+}
+
 export function buildFieldEvidence(THREE, scene) {
   const materials = makeMaterials(THREE);
 
@@ -184,5 +215,6 @@ export function buildFieldEvidence(THREE, scene) {
     createAccessObstruction(THREE, scene, materials),
     createTempHose(THREE, scene, materials),
     createCosmeticRust(THREE, scene, materials),
+    createRearEgress(THREE, scene, materials),
   ];
 }
