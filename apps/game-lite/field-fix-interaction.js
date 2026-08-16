@@ -79,8 +79,12 @@ export function installFieldFixInteraction() {
     for (const hit of hits) {
       let object = hit.object;
       while (object) {
-        if (object.userData?.interactable && object.userData?.findingId && hit.distance <= 4.2) {
-          return object.userData.findingId;
+        if (object.userData?.interactable && hit.distance <= 4.2) {
+          if (object.userData.findingId) return object.userData.findingId;
+          // Legacy flange meshes may only carry leaking flag.
+          if (object.userData.leaking || (object.userData.flange && object.userData.label?.toLowerCase?.().includes('leak'))) {
+            return 'flange-leak';
+          }
         }
         object = object.parent;
       }
@@ -89,8 +93,9 @@ export function installFieldFixInteraction() {
   }
 
   function resolveActiveFindingId() {
-    const exposed = window.RiskMulateInteraction?.activeInteractable?.userData?.findingId;
-    if (exposed) return exposed;
+    const active = window.RiskMulateInteraction?.activeInteractable?.userData;
+    if (active?.findingId) return active.findingId;
+    if (active?.leaking) return 'flange-leak';
     const rayHit = raycastFindingId();
     if (rayHit) return rayHit;
     const progress = progressFromStorage();
