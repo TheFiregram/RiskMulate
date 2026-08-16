@@ -15,6 +15,7 @@ const ACTION_TO_RISK = Object.freeze({
   'clear-access': 'emergency-access',
   'electrical-loto': 'electrical-fault',
   'support-startup-hold': 'pipe-fatigue',
+  'secure-temp-hose': 'hose-disconnect',
 });
 
 function ensureToast() {
@@ -48,8 +49,10 @@ function injectStyle() {
       pointer-events: none;
       transition: opacity 160ms ease, transform 160ms ease;
       transform: translateY(8px);
-      z-index: 43;
-      backdrop-filter: blur(8px);
+      z-index: 42;
+      font-size: 12px;
+      line-height: 1.4;
+      backdrop-filter: blur(6px);
     }
     .residual-outcome-toast.show {
       opacity: 1;
@@ -57,24 +60,21 @@ function injectStyle() {
     }
     .residual-outcome-toast strong {
       display: block;
-      margin-bottom: 4px;
-      font-size: 10px;
+      font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #9fd7ab;
+      color: #9fe0b0;
+      margin-bottom: 4px;
     }
     .residual-outcome-toast span {
       display: block;
-      font-size: 12px;
-      line-height: 1.4;
-      color: #d5e6da;
+      margin-bottom: 6px;
     }
     .residual-outcome-toast em {
       display: block;
-      margin-top: 6px;
       font-style: normal;
+      color: #b7c9be;
       font-size: 11px;
-      color: #a8c4b0;
     }
     @media (max-width: 760px) {
       .residual-outcome-toast {
