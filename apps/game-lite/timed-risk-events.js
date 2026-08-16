@@ -203,6 +203,13 @@ export function installTimedRiskEvents() {
 
       fired.add(seed.id);
       showBanner(seed);
+      window.dispatchEvent(new CustomEvent('riskmulate:timed-escalation', {
+        detail: {
+          findingId: seed.findingId,
+          seedId: seed.id,
+          teaching: seed.teaching,
+        },
+      }));
 
       if (seed.findingId === 'flange-leak') {
         setFlangeLeakIntensity(1.85);
