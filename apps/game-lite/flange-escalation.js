@@ -44,6 +44,9 @@ export function installFlangeEscalation() {
   window.addEventListener('riskmulate:timed-event', (event) => {
     if (event.detail?.findingId === 'flange-leak') setFlangeLeakIntensity(1.85);
   });
+  window.addEventListener('riskmulate:timed-escalation', (event) => {
+    if (event.detail?.findingId === 'flange-leak') setFlangeLeakIntensity(1.85);
+  });
   window.addEventListener('riskmulate:field-repair', (event) => {
     if (event.detail?.findingId === 'flange-leak') setFlangeLeakIntensity(1);
   });
