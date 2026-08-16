@@ -21,7 +21,19 @@ export function installFieldFixInteraction() {
   const promptEl = document.querySelector('#prompt');
   const mobileFix = document.querySelector('#mobileFix');
 
-  // Free joystick → movement bridge (game.js may only use local mobileMove vars).
+  // Free joystick → movement bridge.
+  // game.js stores mobileMove in a closure; when the bridge is absent we map stick
+  // deflection onto synthetic WASD key events so the existing movePlayer path works.
+  const held = new Set();
+  function syncKey(code, active) {
+    if (active && !held.has(code)) {
+      held.add(code);
+      window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    } else if (!active && held.has(code)) {
+      held.delete(code);
+      window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true }));
+    }
+  }
   if (!window.RiskMulateMobileMove) {
     let x = 0;
     let y = 0;
@@ -31,6 +43,11 @@ export function installFieldFixInteraction() {
         y = ny || 0;
         window.__riskmulateMoveX = x;
         window.__riskmulateMoveY = y;
+        const dead = 0.28;
+        syncKey('KeyW', y < -dead);
+        syncKey('KeyS', y > dead);
+        syncKey('KeyA', x < -dead);
+        syncKey('KeyD', x > dead);
         window.dispatchEvent(new CustomEvent('riskmulate:mobile-move', { detail: { x, y } }));
       },
       get() {
@@ -75,7 +92,7 @@ export function installFieldFixInteraction() {
       const coarse = matchMedia('(pointer: coarse)').matches;
       const verb = repair?.verb || 'Apply field control';
       if (promptEl.classList.contains('show')) {
-        promptEl.textContent = coarse ? `FIX · ${verb}` : `F · ${verb}`;
+        promptEl.textContent = coarse ? `FIX \u00b7 ${verb}` : `F \u00b7 ${verb}`;
       }
     }
   }
@@ -133,7 +150,7 @@ export function installFieldFixInteraction() {
         const coarse = matchMedia('(pointer: coarse)').matches;
         const cta = document.createElement('div');
         cta.className = 'field-fix-cta';
-        cta.innerHTML = `<strong>Field control available</strong><span>Return to this equipment and press <kbd>${coarse ? 'FIX' : 'F'}</kbd> to ${repair.verb.toLowerCase()}. Treatment happens at the plant — not only on the tablet.</span>`;
+        cta.innerHTML = `<strong>Field control available</strong><span>Return to this equipment and press <kbd>${coarse ? 'FIX' : 'F'}</kbd> to ${repair.verb.toLowerCase()}. Treatment happens at the plant \u2014 not only on the tablet.</span>`;
         const card = tabletBody.querySelector('.evidence-card');
         card?.appendChild(cta);
         break;
