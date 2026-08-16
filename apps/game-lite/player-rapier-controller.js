@@ -6,15 +6,20 @@ const BOUNDARY_THICKNESS = 0.6;
 const PLAYER_BODY_CENTER_Y = 1.0;
 const PLAYER_RADIUS = 0.42;
 const PLAYER_HALF_HEIGHT = 0.58;
+const MAX_CAPTURED_OBSTACLES = 256;
 
 function isLegacyObstacle(value) {
   if (!value || typeof value !== 'object') return false;
-  const keys = Object.keys(value).sort().join(',');
-  return keys === 'd,w,x,z'
-    && Number.isFinite(value.x)
-    && Number.isFinite(value.z)
-    && Number.isFinite(value.w)
-    && Number.isFinite(value.d);
+  // Avoid Object.keys().sort().join() on every push; check the four known fields first.
+  if (!('x' in value) || !('z' in value) || !('w' in value) || !('d' in value)) return false;
+  if (!Number.isFinite(value.x) || !Number.isFinite(value.z) || !Number.isFinite(value.w) || !Number.isFinite(value.d)) {
+    return false;
+  }
+  // Reject richer objects that happen to carry x/z/w/d.
+  for (const key of Object.keys(value)) {
+    if (key !== 'x' && key !== 'z' && key !== 'w' && key !== 'd') return false;
+  }
+  return true;
 }
 
 export function installRapierPlayerController(THREE) {
@@ -46,10 +51,29 @@ export function installRapierPlayerController(THREE) {
   };
 
   const originalPush = Array.prototype.push;
+
+  function restoreArrayPush() {
+    if (Array.prototype.push !== originalPush) {
+      Array.prototype.push = originalPush;
+    }
+  }
+
   Array.prototype.push = function captureLegacyObstacle(...items) {
-    if (captureActive && items.length === 1 && isLegacyObstacle(items[0])) {
+    if (
+      captureActive
+      && items.length === 1
+      && isLegacyObstacle(items[0])
+      && capturedObstacles.length < MAX_CAPTURED_OBSTACLES
+    ) {
       obstacleArray = this;
-      capturedObstacles.push({ ...items[0] });
+      // CRITICAL: use the original implementation. Calling this.push / capturedObstacles.push
+      // would re-enter the monkey-patch and overflow the stack.
+      originalPush.call(capturedObstacles, {
+        x: items[0].x,
+        z: items[0].z,
+        w: items[0].w,
+        d: items[0].d,
+      });
       diagnostics.capturedObstacleCount = capturedObstacles.length;
     }
     return originalPush.apply(this, items);
@@ -116,6 +140,10 @@ export function installRapierPlayerController(THREE) {
       diagnostics.failed = true;
       diagnostics.lastError = error instanceof Error ? error.message : String(error);
       console.error('[RiskMulate] Rapier player controller failed; legacy collision remains active', error);
+    } finally {
+      // Always stop capturing once physics has attempted to boot.
+      captureActive = false;
+      restoreArrayPush();
     }
   }
 
@@ -171,7 +199,7 @@ export function installRapierPlayerController(THREE) {
   return {
     finishCapture() {
       captureActive = false;
-      Array.prototype.push = originalPush;
+      restoreArrayPush();
       if (cameraPosition && !ready && !failed) initializePhysics(cameraPosition);
     },
     getDiagnostics: () => ({ ...diagnostics }),
