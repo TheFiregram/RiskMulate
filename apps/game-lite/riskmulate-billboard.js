@@ -6,8 +6,9 @@
  *
  * Orientation note:
  * PlaneGeometry faces +Z by default. Facing the spawn (−Z) requires
- * rotation.y = Math.PI, which mirrors UVs. Unmirror with texture.repeat.x = -1
- * (NOT mesh.scale.x — negative scale also flips the normal and breaks FrontSide).
+ * rotation.y = Math.PI, which mirrors UVs. Viewing the +Z face from behind
+ * also mirrors left/right relative to the reader. Unmirror both faces with
+ * texture.repeat.x = -1 (NOT mesh.scale.x — negative scale flips normals).
  */
 
 function makeTexture(THREE, canvas, { mirrorX = false } = {}) {
@@ -164,9 +165,9 @@ function buildBillboard(THREE, scene) {
   canvas.height = 512;
   paintCanvas(canvas);
 
-  // Spawn-facing texture: unmirrored after 180° yaw via UV repeat, not mesh scale.
+  // Both faces UV-unmirrored so text reads L→R from spawn and from the far yard.
   const frontTex = makeTexture(THREE, canvas, { mirrorX: true });
-  const rearTex = makeTexture(THREE, canvas, { mirrorX: false });
+  const rearTex = makeTexture(THREE, canvas, { mirrorX: true });
 
   const frontMat = new THREE.MeshBasicMaterial({
     map: frontTex,
@@ -186,7 +187,7 @@ function buildBillboard(THREE, scene) {
   const panelW = 7.55;
   const panelH = 3.75;
 
-  // Spawn-facing face (normal toward −Z / player). No mesh.scale — UV handles unmirror.
+  // Spawn-facing face (normal toward −Z / player).
   const front = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), frontMat);
   front.name = 'riskmulate-billboard-face-front';
   front.position.set(0, 4.05, -0.1);
