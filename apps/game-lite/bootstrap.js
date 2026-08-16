@@ -29,6 +29,7 @@ import { installInputPolish } from './input-polish.js';
 import { installStickZoneReset } from './stick-zone-reset.js';
 import { installFocusGuidance } from './focus-guidance.js';
 import { installMonitorReviewLoop } from './monitor-review-loop.js';
+import { installScenarioDebrief } from './scenario-debrief.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
@@ -143,6 +144,7 @@ softInstall('billboard', () => installRiskMulateBillboard());
 softInstall('stick-zone-reset', () => installStickZoneReset());
 softInstall('focus-guidance', () => installFocusGuidance());
 softInstall('monitor-review', () => installMonitorReviewLoop());
+softInstall('scenario-debrief', () => installScenarioDebrief());
 softInstall('input-polish', () => installInputPolish());
 try {
   playerPhysics.finishCapture();
