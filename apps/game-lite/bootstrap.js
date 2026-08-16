@@ -31,6 +31,7 @@ import { installStickZoneReset } from './stick-zone-reset.js';
 import { installFocusGuidance } from './focus-guidance.js';
 import { installMonitorReviewLoop } from './monitor-review-loop.js';
 import { installScenarioDebrief } from './scenario-debrief.js';
+import { installClassReadiness } from './class-readiness.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
@@ -133,20 +134,19 @@ softInstall('tablet-viewmodel', () => installTabletHeldViewmodel());
 const playerPhysics = installRapierPlayerController(THREE);
 try {
   const gameModule = await import('./game.js');
-  // Self-extracting core resolves RiskMulateScene asynchronously — wait for it.
   if (gameModule?.gameReady) await gameModule.gameReady;
 } catch (error) {
   showBootError('Core game failed to load. Hard-refresh, or clear site data for this origin.');
   console.error('[RiskMulate] game.js import failed', error);
   throw error;
 }
-// Ensure rear environment + billboard attach after scene exists (mobile-safe).
 softInstall('rear-gate', () => installRearGateEnvironment());
 softInstall('billboard', () => installRiskMulateBillboard());
 softInstall('stick-zone-reset', () => installStickZoneReset());
 softInstall('focus-guidance', () => installFocusGuidance());
 softInstall('monitor-review', () => installMonitorReviewLoop());
 softInstall('scenario-debrief', () => installScenarioDebrief());
+softInstall('class-readiness', () => installClassReadiness());
 softInstall('input-polish', () => installInputPolish());
 try {
   playerPhysics.finishCapture();
