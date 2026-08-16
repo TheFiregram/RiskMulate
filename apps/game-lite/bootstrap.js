@@ -128,7 +128,9 @@ softInstall('industrial-audio', () => installIndustrialAudio());
 softInstall('tablet-viewmodel', () => installTabletHeldViewmodel());
 const playerPhysics = installRapierPlayerController(THREE);
 try {
-  await import('./game.js');
+  const gameModule = await import('./game.js');
+  // Self-extracting core resolves RiskMulateScene asynchronously — wait for it.
+  if (gameModule?.gameReady) await gameModule.gameReady;
 } catch (error) {
   showBootError('Core game failed to load. Hard-refresh, or clear site data for this origin.');
   console.error('[RiskMulate] game.js import failed', error);
