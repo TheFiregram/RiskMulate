@@ -1,5 +1,6 @@
 import { scenario } from './scenario.js';
 import { isFindingFixed, isFindingFixable } from './field-repair.js';
+import { setFlangeLeakIntensity } from './flanges.js';
 
 /**
  * Timed risk event seeds — continuous risk loop
@@ -181,9 +182,8 @@ export function installTimedRiskEvents() {
       if (fired.has(seed.id)) continue;
       if (elapsed < seed.afterSeconds) continue;
 
-      // Only escalate pathways the student has already observed — teaches monitoring of known residual risk.
       if (!inspected.includes(seed.findingId)) {
-        fired.add(seed.id); // skip permanently until reset; avoid nagging on unobserved areas
+        fired.add(seed.id);
         continue;
       }
       if (isFindingFixed(seed.findingId, progress)) {
@@ -194,7 +194,10 @@ export function installTimedRiskEvents() {
       fired.add(seed.id);
       showBanner(seed);
 
-      // Small continuity pressure: untreated monitored risk costs a few points once.
+      if (seed.findingId === 'flange-leak') {
+        setFlangeLeakIntensity(1.85);
+      }
+
       try {
         const next = { ...progress };
         next.score = Math.max(0, (next.score || 0) - 8);
@@ -229,13 +232,11 @@ export function installTimedRiskEvents() {
     timerId = window.setInterval(tick, 1000);
   }
 
-  // Start when the player leaves the start screen.
   const startButton = document.querySelector('#startButton');
   startButton?.addEventListener('click', () => {
     window.setTimeout(startClock, 1200);
   }, { once: true });
 
-  // If a session was already running (reload mid-game).
   const startEl = document.querySelector('#start');
   if (startEl && (startEl.hidden || getComputedStyle(startEl).display === 'none')) {
     startClock();
@@ -244,7 +245,6 @@ export function installTimedRiskEvents() {
   window.addEventListener('riskmulate:field-repair', (event) => {
     const findingId = event.detail?.findingId;
     if (!findingId) return;
-    // Cancel pending escalation messaging for that pathway (already fired stays fired).
     for (const seed of EVENT_SEEDS) {
       if (seed.findingId === findingId) fired.add(seed.id);
     }
