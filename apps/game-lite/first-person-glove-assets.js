@@ -72,7 +72,7 @@ export function installFirstPersonGloveAssets(THREE) {
 
   addEventListener('keydown', (event) => {
     keys.add(event.code);
-    if (event.code === 'KeyE') playInteraction();
+    if (event.code === 'KeyE' || event.code === 'KeyF') playInteraction();
   });
   addEventListener('keyup', (event) => keys.delete(event.code));
 
@@ -80,6 +80,9 @@ export function installFirstPersonGloveAssets(THREE) {
   document.querySelector('#stickZone')?.addEventListener('touchend', () => { touchMoving = false; }, { passive: true });
   document.querySelector('#stickZone')?.addEventListener('touchcancel', () => { touchMoving = false; }, { passive: true });
   document.querySelector('#mobileInteract')?.addEventListener('click', () => playInteraction());
+  document.querySelector('#mobileFix')?.addEventListener('click', () => playInteraction());
+  window.addEventListener('riskmulate:hands-interact', () => playInteraction());
+  window.addEventListener('riskmulate:field-repair', () => playInteraction());
 
   function playInteraction() {
     if (!animationState || animationState.interactionPlaying || !animationState.actions.interact.length) return;
@@ -93,83 +96,74 @@ export function installFirstPersonGloveAssets(THREE) {
     }, 520);
   }
 
-  function animate() {
+  function tick() {
     const now = performance.now() * 0.001;
     const dt = Math.min(0.05, Math.max(0, now - lastTime));
     lastTime = now;
+    if (animationState?.mixer) animationState.mixer.update(dt);
 
-    if (animationState) {
-      animationState.mixer.update(dt);
-      const moving = touchMoving || [...movementKeys].some((code) => keys.has(code));
-      const nextKind = moving ? 'walk' : 'idle';
-      if (!animationState.interactionPlaying && nextKind !== animationState.baseKind) {
-        animationState.baseKind = nextKind;
-        animationState.playGroup(nextKind);
+    const moving = touchMoving || [...movementKeys].some((code) => keys.has(code));
+    if (animationState && !animationState.interactionPlaying) {
+      const next = moving ? 'walk' : 'idle';
+      if (animationState.baseKind !== next) {
+        animationState.baseKind = next;
+        animationState.playGroup(next);
       }
     }
-    rafId = requestAnimationFrame(animate);
+
+    rafId = requestAnimationFrame(tick);
   }
 
-  async function loadIntoHands() {
-    if (loading || installed) return;
-    const hands = window.RiskMulateHands;
-    const overlay = hands?.overlay;
-    if (!overlay?.root) return;
+  function attachToCamera(camera, model) {
+    if (!camera || !model) return;
+    model.position.set(0, -0.12, -0.28);
+    model.rotation.set(0.05, 0, 0);
+    model.scale.setScalar(1);
+    camera.add(model);
+  }
 
+  function tryInstall() {
+    if (installed || loading) return;
+    const coarse = matchMedia('(pointer: coarse)').matches;
+    const url = resolveAssetUrl(coarse ? MOBILE_URL : DESKTOP_URL);
     loading = true;
-    const coarsePointer = matchMedia('(pointer: coarse)').matches;
-    const selectedUrl = coarsePointer ? MOBILE_URL : DESKTOP_URL;
-    const resolvedUrl = resolveAssetUrl(selectedUrl);
-
-    try {
-      const loader = new GLTFLoader();
-      const gltf = await loader.loadAsync(resolvedUrl);
-      const model = gltf.scene || gltf.scenes?.[0];
-      if (!model) throw new Error('First-person glove GLB has no scene root');
-
-      configureModel(model);
-      overlay.root.add(model);
-      overlay.left.visible = false;
-      overlay.right.visible = false;
-      animationState = installAnimationState(THREE, overlay, model, gltf.animations || []);
-      installed = true;
-
-      Object.assign(window.RiskMulateHands, {
-        assetReady: true,
-        assetFailed: false,
-        assetUrl: resolvedUrl,
-        animationClips: (gltf.animations || []).map((clip) => clip.name),
-        assetModel: model,
-      });
-      window.dispatchEvent(new CustomEvent('riskmulate:gloves-loaded', {
-        detail: {
-          url: resolvedUrl,
-          animationClips: window.RiskMulateHands.animationClips,
-        },
-      }));
-    } catch (error) {
-      console.error('[RiskMulate] First-person glove asset failed; keeping procedural fallback.', error);
-      Object.assign(window.RiskMulateHands, {
-        assetReady: false,
-        assetFailed: true,
-        assetUrl: resolvedUrl,
-        assetError: error instanceof Error ? error.message : String(error),
-      });
-      window.dispatchEvent(new CustomEvent('riskmulate:gloves-error', {
-        detail: { url: resolvedUrl, message: window.RiskMulateHands.assetError },
-      }));
-    } finally {
-      loading = false;
-    }
+    const loader = new GLTFLoader();
+    loader.load(
+      url,
+      (gltf) => {
+        const model = gltf.scene;
+        if (!model) throw new Error('First-person glove GLB has no scene root');
+        configureModel(model);
+        animationState = installAnimationState(THREE, null, model, gltf.animations || []);
+        const camera = window.RiskMulateScene?.camera;
+        if (camera) attachToCamera(camera, model);
+        else {
+          const onReady = () => {
+            attachToCamera(window.RiskMulateScene?.camera, model);
+            window.removeEventListener('riskmulate:hands-ready', onReady);
+          };
+          window.addEventListener('riskmulate:hands-ready', onReady);
+        }
+        installed = true;
+        loading = false;
+        if (!rafId) rafId = requestAnimationFrame(tick);
+        window.dispatchEvent(new CustomEvent('riskmulate:gloves-loaded', {
+          detail: { url, clips: (gltf.animations || []).map((c) => c.name) },
+        }));
+      },
+      undefined,
+      (error) => {
+        loading = false;
+        console.error('[RiskMulate] First-person glove asset failed; keeping procedural fallback.', error);
+        window.dispatchEvent(new CustomEvent('riskmulate:gloves-error', {
+          detail: { error: String(error) },
+        }));
+      },
+    );
   }
 
-  const scheduleLoad = () => queueMicrotask(() => void loadIntoHands());
-  window.addEventListener('riskmulate:hands-ready', scheduleLoad);
-  if (window.RiskMulateHands?.overlay) scheduleLoad();
-  rafId = requestAnimationFrame(animate);
-
-  return () => {
-    cancelAnimationFrame(rafId);
-    window.removeEventListener('riskmulate:hands-ready', scheduleLoad);
-  };
+  tryInstall();
+  window.addEventListener('riskmulate:hands-ready', () => {
+    if (!installed) tryInstall();
+  });
 }
