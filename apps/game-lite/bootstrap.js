@@ -29,13 +29,14 @@ function installInputOnboarding() {
   if (!controls) return;
 
   if (mobileLite) {
-    controls.innerHTML = '<kbd>LEFT</kbd> MOVE <kbd>RIGHT</kbd> LOOK <kbd>INSPECT</kbd> EVIDENCE <kbd>FIX</kbd> CONTROL <kbd>TABLET</kbd> RISK WORK';
+    controls.innerHTML = '<kbd>LEFT</kbd> MOVE <kbd>RIGHT</kbd> LOOK <kbd>INSPECT</kbd> EVIDENCE <kbd>FIX</kbd> FIELD CONTROL <kbd>TABLET</kbd> RISK WORK';
     if (paused) paused.textContent = 'Touch the scene to resume look control.';
-    controls.setAttribute('aria-label', 'Touch controls: left side to move, right side to look, Inspect for evidence, Tablet for risk work');
+    controls.setAttribute('aria-label', 'Touch controls: left half to move (stick follows finger), right to look, Inspect for evidence, Fix for field control at equipment, Tablet for risk work');
     return;
   }
 
-  controls.setAttribute('aria-label', 'Keyboard controls: WASD move, E inspect, Tab tablet, Shift sprint');
+  controls.innerHTML = '<kbd>WASD</kbd> MOVE <kbd>E</kbd> INSPECT <kbd>F</kbd> FIELD FIX <kbd>TAB</kbd> TABLET <kbd>SHIFT</kbd> SPRINT';
+  controls.setAttribute('aria-label', 'Keyboard controls: WASD move, E inspect, F field fix at equipment, Tab tablet, Shift sprint');
 }
 
 installInputOnboarding();
