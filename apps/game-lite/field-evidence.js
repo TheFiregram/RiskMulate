@@ -151,6 +151,49 @@ function createCosmeticRust(THREE, scene, materials) {
   return root;
 }
 
+function createTempHose(THREE, scene, materials) {
+  const root = makeFindingRoot(THREE, scene, 'temp-hose', 'Inspect temporary transfer hose', [-6.2, 0, -3.4]);
+
+  const hoseMat = new THREE.MeshStandardMaterial({ color: 0x2f3d2a, roughness: 0.88, metalness: 0.08 });
+  const coupling = materials.darkSteel;
+
+  const points = [
+    [0, 0.42, -0.9],
+    [0.15, 0.55, -0.35],
+    [0.05, 0.62, 0.25],
+    [-0.2, 0.48, 0.85],
+  ];
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const a = points[i];
+    const b = points[i + 1];
+    const mx = (a[0] + b[0]) / 2;
+    const my = (a[1] + b[1]) / 2;
+    const mz = (a[2] + b[2]) / 2;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const dz = b[2] - a[2];
+    const len = Math.hypot(dx, dy, dz) || 0.1;
+    const seg = addCylinder(THREE, root, 0.055, len, hoseMat, [mx, my, mz], 'y', 10);
+    seg.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(dx / len, dy / len, dz / len),
+    );
+  }
+
+  addCylinder(THREE, root, 0.08, 0.14, coupling, [0, 0.42, -0.98], 'z', 12);
+  addCylinder(THREE, root, 0.08, 0.14, coupling, [-0.2, 0.48, 0.95], 'z', 12);
+  addBox(THREE, root, [0.35, 0.08, 0.35], materials.steel, [0, 0.12, -1.05]);
+  addBox(THREE, root, [0.35, 0.08, 0.35], materials.steel, [-0.2, 0.12, 0.98]);
+
+  const wear = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.018, 6, 12), materials.freshWear);
+  wear.position.set(0, 0.42, -0.98);
+  wear.rotation.x = Math.PI / 2;
+  root.add(wear);
+
+  addHitVolume(THREE, root, [1.6, 1.2, 2.4], [0, 0.55, 0]);
+  return root;
+}
+
 export function buildFieldEvidence(THREE, scene) {
   const materials = makeMaterials(THREE);
 
@@ -159,6 +202,7 @@ export function buildFieldEvidence(THREE, scene) {
     createElectricalFault(THREE, scene, materials),
     createStormDrainFinding(THREE, scene, materials),
     createAccessObstruction(THREE, scene, materials),
+    createTempHose(THREE, scene, materials),
     createCosmeticRust(THREE, scene, materials),
   ];
 }
