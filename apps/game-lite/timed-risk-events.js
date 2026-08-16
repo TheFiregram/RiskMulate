@@ -65,6 +65,16 @@ const EVENT_SEEDS = Object.freeze([
       'LOTO removes the energy source from service. Warning signs alone do not control the mechanism.',
     severity: 'warning',
   },
+  {
+    id: 'escalate-temp-hose',
+    findingId: 'temp-hose',
+    afterSeconds: 115,
+    title: 'Temporary connection still live',
+    body: 'The unsecured transfer hose remains in service. Under vibration or pressure rise, disconnect becomes more likely.',
+    teaching:
+      'Temporary modifications accumulate residual risk until explicitly controlled. Monitor and review catches work that was never formally closed out.',
+    severity: 'warning',
+  },
 ]);
 
 function readProgress() {
