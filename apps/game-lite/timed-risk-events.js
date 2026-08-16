@@ -75,6 +75,16 @@ const EVENT_SEEDS = Object.freeze([
       'Temporary modifications accumulate residual risk until explicitly controlled. Monitor and review catches work that was never formally closed out.',
     severity: 'warning',
   },
+  {
+    id: 'rear-egress-cue',
+    findingId: 'rear-egress',
+    afterSeconds: 95,
+    title: 'Rear egress still blocked',
+    body: 'Secondary emergency egress near the gate remains obstructed. Residual response-time risk stays elevated.',
+    teaching:
+      'Monitor & review: the same residual risk can be driven by multiple locations. Treat each initiating obstruction that feeds emergency-access exposure.',
+    severity: 'warning',
+  },
 ]);
 
 function readProgress() {
