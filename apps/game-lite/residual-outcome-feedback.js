@@ -88,7 +88,7 @@ function injectStyle() {
   document.head.appendChild(style);
 }
 
-function showResidual(actionId, progress) {
+function showResidual(actionId, progress, findingId) {
   const riskId = ACTION_TO_RISK[actionId];
   if (!riskId) return;
   const risk = scenario.risks.find((item) => item.id === riskId);
@@ -103,15 +103,34 @@ function showResidual(actionId, progress) {
   const residuals = computeResidualProfile(scenario, selection);
   const after = residuals[riskId] || before;
 
+  // Multi-location pathway: emergency-access is fed by plant-side obstruction AND rear egress.
+  let note =
+    'Treatment changed residual likelihood on this pathway. Impact stays high until the consequence is fully removed from the design basis.';
+  if (actionId === 'clear-access') {
+    const fixed = new Set(Array.isArray(progress?.fieldFixedIds) ? progress.fieldFixedIds : []);
+    const plantSide = fixed.has('access-obstruction');
+    const rearSide = fixed.has('rear-egress');
+    if (plantSide && rearSide) {
+      note =
+        'Both initiating locations for emergency-access are controlled. Residual response-time risk is reduced across the pad and the rear gate.';
+    } else if (plantSide && !rearSide) {
+      note =
+        'Plant-side access is clear, but rear egress remains obstructed. The same residual pathway can stay partially open from a second location.';
+    } else if (rearSide && !plantSide) {
+      note =
+        'Rear egress is clear, but the plant-side service route is still blocked. Residual emergency-access risk is only partially treated.';
+    }
+  }
+
   const el = ensureToast();
   el.innerHTML = `
     <strong>Residual risk update</strong>
     <span>${risk.name}: inherent L${before.likelihood}×I${before.impact}=${before.score} → residual L${after.likelihood}×I${after.impact}=${after.score}</span>
-    <em>Treatment changed residual likelihood on this pathway. Impact stays high until the consequence is fully removed from the design basis.</em>
+    <em>${note}</em>
   `;
   el.classList.add('show');
   clearTimeout(showResidual._timer);
-  showResidual._timer = setTimeout(() => el.classList.remove('show'), 5200);
+  showResidual._timer = setTimeout(() => el.classList.remove('show'), 5600);
 }
 
 export function installResidualOutcomeFeedback() {
@@ -122,7 +141,7 @@ export function installResidualOutcomeFeedback() {
 
   window.addEventListener('riskmulate:field-repair', (event) => {
     const detail = event.detail || {};
-    showResidual(detail.actionId, detail.progress);
+    showResidual(detail.actionId, detail.progress, detail.findingId);
   });
 
   const api = { installed: true, showResidual };
