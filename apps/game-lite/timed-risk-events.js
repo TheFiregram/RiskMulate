@@ -1,6 +1,6 @@
 import { scenario } from './scenario.js';
 import { isFindingFixed, isFindingFixable } from './field-repair.js';
-import { setFlangeLeakIntensity } from './flanges.js';
+import { setFlangeLeakIntensity } from './flange-escalation.js';
 
 /**
  * Timed risk event seeds — continuous risk loop

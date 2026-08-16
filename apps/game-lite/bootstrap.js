@@ -14,6 +14,7 @@ import { installPlantResponseEffects } from './plant-response-effects.js';
 import { installFieldRepair } from './field-repair.js';
 import { installFieldFixInteraction } from './field-fix-interaction.js';
 import { installTimedRiskEvents } from './timed-risk-events.js';
+import { installFlangeEscalation } from './flange-escalation.js';
 import { installMobileJoystick } from './mobile-joystick.js';
 import { installRapierPlayerController } from './player-rapier-controller.js';
 import { installProductionFlangePack } from './production-flange-pack.js';
@@ -50,14 +51,13 @@ installPlantResponseEffects(THREE);
 installFieldRepair();
 installFieldFixInteraction();
 installTimedRiskEvents();
+installFlangeEscalation();
 installMobileJoystick();
 installProductionRuntime(THREE);
 installProductionFlangePack(THREE);
 installPerformanceDiagnostics(THREE);
 
 if (mobileLite) {
-  // Phones keep the low-cost instanced facility layer, then add shared-geometry
-  // vessel/stack silhouettes without the unique desktop geometries or shadows.
   installMobileAuthoredDetailLite(THREE);
 } else {
   installForegroundVesselDetail(THREE);
