@@ -31,6 +31,51 @@ import { installFocusGuidance } from './focus-guidance.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
+/**
+ * Bootstrap
+ * ---------
+ * Critical path must remain playable even if an optional layer fails.
+ * Optional installers are wrapped so a broken module cannot black-screen mobile.
+ */
+
+function showBootError(message) {
+  try {
+    let el = document.querySelector('#riskmulate-boot-error');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'riskmulate-boot-error';
+      el.setAttribute('role', 'alert');
+      el.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:12px 14px;border-radius:10px;background:rgba(40,10,10,0.92);color:#f2d6d6;font:12px/1.4 system-ui;border:1px solid rgba(220,120,120,0.45);';
+      document.body.appendChild(el);
+    }
+    el.textContent = message;
+  } catch {
+    /* ignore */
+  }
+  console.error('[RiskMulate]', message);
+}
+
+function softInstall(label, fn) {
+  try {
+    return fn();
+  } catch (error) {
+    showBootError(`Optional layer failed: ${label}. Core play continues.`);
+    console.warn(`[RiskMulate] ${label} install failed`, error);
+    return null;
+  }
+}
+
+window.addEventListener('error', (event) => {
+  const msg = event?.error?.message || event?.message || 'Unknown runtime error';
+  if (String(msg).includes('Script error')) return;
+  showBootError(`Runtime: ${msg}`);
+});
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event?.reason;
+  const msg = reason?.message || String(reason || 'unhandled rejection');
+  showBootError(`Async: ${msg}`);
+});
+
 const { mobileLite } = getMobilePerformanceProfile();
 
 function installInputOnboarding() {
@@ -54,39 +99,49 @@ installNavigationBridge(THREE);
 installLegacyBuildingWallUpgrade(THREE);
 installWallSurfaceSwap(THREE);
 installContinuitySimulation();
-installPlantResponseEffects(THREE);
-installRearGateEnvironment();
-installRiskMulateBillboard();
-installFieldRepair();
-installFieldFixInteraction();
-installTimedRiskEvents();
-installFlangeEscalation();
-installResidualOutcomeFeedback();
-installMobileJoystick();
-installProductionRuntime(THREE);
-installProductionFlangePack(THREE);
-installPerformanceDiagnostics(THREE);
+softInstall('plant-response', () => installPlantResponseEffects(THREE));
+softInstall('rear-gate', () => installRearGateEnvironment());
+softInstall('billboard', () => installRiskMulateBillboard());
+softInstall('field-repair', () => installFieldRepair());
+softInstall('field-fix', () => installFieldFixInteraction());
+softInstall('timed-events', () => installTimedRiskEvents());
+softInstall('flange-escalation', () => installFlangeEscalation());
+softInstall('residual-feedback', () => installResidualOutcomeFeedback());
+softInstall('mobile-joystick', () => installMobileJoystick());
+softInstall('production-runtime', () => installProductionRuntime(THREE));
+softInstall('production-flange', () => installProductionFlangePack(THREE));
+softInstall('perf-diagnostics', () => installPerformanceDiagnostics(THREE));
 
 if (mobileLite) {
-  installMobileAuthoredDetailLite(THREE);
+  softInstall('mobile-detail', () => installMobileAuthoredDetailLite(THREE));
 } else {
-  installForegroundVesselDetail(THREE);
-  installOverheadProcessBridgeDetail(THREE);
-  installSidePipeRackDetail(THREE);
-  installUtilityStackDetail(THREE);
+  softInstall('vessel-detail', () => installForegroundVesselDetail(THREE));
+  softInstall('overhead-bridge', () => installOverheadProcessBridgeDetail(THREE));
+  softInstall('pipe-rack', () => installSidePipeRackDetail(THREE));
+  softInstall('utility-stack', () => installUtilityStackDetail(THREE));
 }
 
-installFirstPersonHands(THREE);
-installHighVisGloves();
-installFirstPersonGloveAssets(THREE);
-installIndustrialAudio();
-installTabletHeldViewmodel();
+softInstall('fp-hands', () => installFirstPersonHands(THREE));
+softInstall('high-vis-gloves', () => installHighVisGloves());
+softInstall('glove-assets', () => installFirstPersonGloveAssets(THREE));
+softInstall('industrial-audio', () => installIndustrialAudio());
+softInstall('tablet-viewmodel', () => installTabletHeldViewmodel());
 const playerPhysics = installRapierPlayerController(THREE);
-await import('./game.js');
+try {
+  await import('./game.js');
+} catch (error) {
+  showBootError('Core game failed to load. Hard-refresh, or clear site data for this origin.');
+  console.error('[RiskMulate] game.js import failed', error);
+  throw error;
+}
 // Ensure rear environment + billboard attach after scene exists (mobile-safe).
-installRearGateEnvironment();
-installRiskMulateBillboard();
-installStickZoneReset();
-installFocusGuidance();
-installInputPolish();
-playerPhysics.finishCapture();
+softInstall('rear-gate', () => installRearGateEnvironment());
+softInstall('billboard', () => installRiskMulateBillboard());
+softInstall('stick-zone-reset', () => installStickZoneReset());
+softInstall('focus-guidance', () => installFocusGuidance());
+softInstall('input-polish', () => installInputPolish());
+try {
+  playerPhysics.finishCapture();
+} catch (error) {
+  console.warn('[RiskMulate] physics capture finish failed', error);
+}
