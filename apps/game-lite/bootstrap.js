@@ -32,6 +32,7 @@ import { installFocusGuidance } from './focus-guidance.js';
 import { installMonitorReviewLoop } from './monitor-review-loop.js';
 import { installScenarioDebrief } from './scenario-debrief.js';
 import { installClassReadiness } from './class-readiness.js';
+import { installFlangeFindingId } from './flange-finding-id.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
@@ -147,6 +148,7 @@ softInstall('focus-guidance', () => installFocusGuidance());
 softInstall('monitor-review', () => installMonitorReviewLoop());
 softInstall('scenario-debrief', () => installScenarioDebrief());
 softInstall('class-readiness', () => installClassReadiness());
+softInstall('flange-finding-id', () => installFlangeFindingId());
 softInstall('input-polish', () => installInputPolish());
 try {
   playerPhysics.finishCapture();
