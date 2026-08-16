@@ -272,6 +272,10 @@ scene.traverse((object) => {
     && radius >= 0.16;
 });
 
+// Expose the live scene so treatment visuals can bind to findings.
+window.RiskMulateScene = { scene, THREE, camera, renderer };
+window.RiskMulatePlantResponse?.registerScene?.(scene, THREE);
+
 const player = {
   x: 0,
   y: 1.72,
