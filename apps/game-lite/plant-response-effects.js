@@ -13,6 +13,7 @@ const FINDING_ACTION_MAP = Object.freeze({
   'flange-leak': 'isolate-line',
   'storm-drain': 'protect-drain',
   'access-obstruction': 'clear-access',
+  'rear-egress': 'clear-access',
   'electrical-panel': 'electrical-loto',
   'support-vibration': 'support-startup-hold',
   'temp-hose': 'secure-temp-hose',
@@ -213,6 +214,23 @@ function setFindingVisual(findingId, state) {
         }
         child.material.transparent = (child.material.userData.baseOpacity ?? 1) < 1;
         child.material.opacity = child.material.userData.baseOpacity ?? 1;
+      }
+    });
+  }
+
+  if (findingId === 'rear-egress') {
+    root.visible = state !== 'committed';
+    root.traverse((child) => {
+      if (!child.isMesh || !child.material || child.userData?.hitVolume) return;
+      if (state === 'committed') {
+        child.material.transparent = true;
+        child.material.opacity = 0.12;
+      } else if (state === 'projected') {
+        child.material.transparent = true;
+        child.material.opacity = 0.4;
+      } else {
+        child.material.transparent = false;
+        child.material.opacity = 1;
       }
     });
   }
