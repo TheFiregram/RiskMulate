@@ -3,15 +3,24 @@
  * ------------------------
  * Fixed double-sided yard identity board behind spawn.
  * Readable from either approach without spinning the face.
- * Front face uses scale.x = -1 after 180° yaw so text is not mirrored.
+ *
+ * Orientation note:
+ * PlaneGeometry faces +Z by default. Facing the spawn (−Z) requires
+ * rotation.y = Math.PI, which mirrors UVs. Unmirror with texture.repeat.x = -1
+ * (NOT mesh.scale.x — negative scale also flips the normal and breaks FrontSide).
  */
 
-function makeTexture(THREE, canvas) {
+function makeTexture(THREE, canvas, { mirrorX = false } = {}) {
   const texture = new THREE.CanvasTexture(canvas);
   if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
-  texture.needsUpdate = true;
   texture.flipY = true;
+  if (mirrorX) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.repeat.x = -1;
+    texture.offset.x = 1;
+  }
+  texture.needsUpdate = true;
   return texture;
 }
 
@@ -34,6 +43,7 @@ function paintCanvas(canvas) {
   ctx.fillStyle = '#e0923a';
   ctx.fillRect(w * 0.02, h * 0.035, w * 0.96, h * 0.032);
 
+  // Left accent bar (must stay on the left when viewed from spawn)
   ctx.fillStyle = '#e0923a';
   ctx.fillRect(w * 0.055, h * 0.13, w * 0.02, h * 0.24);
 
@@ -102,7 +112,6 @@ function buildBillboard(THREE, scene) {
 
   const root = new THREE.Group();
   root.name = 'riskmulate-billboard-root';
-  // Behind spawn: player turns ~180° from plant entry.
   root.position.set(0, 0, 20.6);
 
   const metal = new THREE.MeshStandardMaterial({ color: 0x3a4449, roughness: 0.7, metalness: 0.45 });
@@ -154,36 +163,40 @@ function buildBillboard(THREE, scene) {
   canvas.width = 1024;
   canvas.height = 512;
   paintCanvas(canvas);
-  const texture = makeTexture(THREE, canvas);
 
-  // FrontSide only — avoids reading the mirrored reverse of DoubleSide.
+  // Spawn-facing texture: unmirrored after 180° yaw via UV repeat, not mesh scale.
+  const frontTex = makeTexture(THREE, canvas, { mirrorX: true });
+  const rearTex = makeTexture(THREE, canvas, { mirrorX: false });
+
   const frontMat = new THREE.MeshBasicMaterial({
-    map: texture,
+    map: frontTex,
     toneMapped: false,
     fog: false,
     side: THREE.FrontSide,
     depthWrite: true,
   });
-  const rearMat = frontMat.clone();
-  rearMat.map = texture;
+  const rearMat = new THREE.MeshBasicMaterial({
+    map: rearTex,
+    toneMapped: false,
+    fog: false,
+    side: THREE.FrontSide,
+    depthWrite: true,
+  });
 
   const panelW = 7.55;
   const panelH = 3.75;
 
-  // Spawn-facing face (toward player / -Z).
-  // Plane default normal is +Z. Rotate 180° around Y so normal faces -Z.
-  // That rotation mirrors UVs horizontally → scale.x = -1 restores readable text.
+  // Spawn-facing face (normal toward −Z / player). No mesh.scale — UV handles unmirror.
   const front = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), frontMat);
   front.name = 'riskmulate-billboard-face-front';
-  front.position.set(0, 4.05, -0.1); // local -Z = toward spawn
+  front.position.set(0, 4.05, -0.1);
   front.rotation.y = Math.PI;
-  front.scale.x = -1;
   front.frustumCulled = false;
   front.renderOrder = 2;
   front.userData.billboard = true;
   root.add(front);
 
-  // Far-yard face (toward +Z). Default plane normal faces +Z — correct for viewers deeper in the yard.
+  // Far-yard face (normal toward +Z).
   const rear = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), rearMat);
   rear.name = 'riskmulate-billboard-face-rear';
   rear.position.set(0, 4.05, 0.1);
@@ -228,9 +241,7 @@ export function installRiskMulateBillboard() {
     installed: true,
     dispose() {},
   };
-  if (api.built && window.RiskMulateScene?.scene?.getObjectByName('riskmulate-billboard-face-front')) {
-    return api;
-  }
+  // Always rebuild so a previous mirrored board is replaced after this module update.
   api.built = false;
   window.RiskMulateBillboard = api;
 
