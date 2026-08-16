@@ -12,6 +12,7 @@ import { installOverheadProcessBridgeDetail } from './overhead-process-bridge-de
 import { installPerformanceDiagnostics } from './performance-diagnostics.js';
 import { installPlantResponseEffects } from './plant-response-effects.js';
 import { installFieldRepair } from './field-repair.js';
+import { installFieldFixInteraction } from './field-fix-interaction.js';
 import { installMobileJoystick } from './mobile-joystick.js';
 import { installRapierPlayerController } from './player-rapier-controller.js';
 import { installProductionFlangePack } from './production-flange-pack.js';
@@ -46,6 +47,7 @@ installWallSurfaceSwap(THREE);
 installContinuitySimulation();
 installPlantResponseEffects(THREE);
 installFieldRepair();
+installFieldFixInteraction();
 installMobileJoystick();
 installProductionRuntime(THREE);
 installProductionFlangePack(THREE);
