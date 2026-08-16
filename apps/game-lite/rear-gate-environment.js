@@ -113,14 +113,21 @@ function buildRearGate(THREE, scene) {
 }
 
 function registerRearColliders() {
-  if (window.RiskMulateRearGate?.collidersRegistered) return;
+  if (window.RiskMulateRearGate?.collidersRegistered) return true;
   const addObstacle = window.RiskMulateScene?.addObstacle;
-  if (typeof addObstacle !== 'function') return;
-  addObstacle({ x: -11.5, z: 22.0, w: 5.4, d: 4.2 });
-  addObstacle({ x: 14.5, z: 21.8, w: 8.7, d: 5.7 });
-  addObstacle({ x: -17.5, z: 18.8, w: 5.2, d: 2.6 });
-  addObstacle({ x: 0, z: 20.4, w: 8.2, d: 1.4 });
+  if (typeof addObstacle !== 'function') return false;
+  // Soft AABB blocks for gate house, stores, light racks, and billboard footprint.
+  const specs = [
+    { x: -11.5, z: 22.0, w: 5.4, d: 4.2 },
+    { x: 14.5, z: 21.8, w: 8.7, d: 5.7 },
+    { x: -17.5, z: 18.8, w: 5.2, d: 2.6 },
+    { x: 0, z: 20.6, w: 8.4, d: 1.6 },
+    { x: -8.5, z: 17.5, w: 2.2, d: 2.0 },
+    { x: 8.5, z: 17.5, w: 2.2, d: 2.0 },
+  ];
+  for (const spec of specs) addObstacle(spec);
   if (window.RiskMulateRearGate) window.RiskMulateRearGate.collidersRegistered = true;
+  return true;
 }
 
 function tryBuild() {
@@ -130,8 +137,9 @@ function tryBuild() {
   try {
     buildRearGate(THREE, scene);
     registerRearColliders();
+    // Mark built only when visuals exist; colliders may register on a later retry.
     if (window.RiskMulateRearGate) window.RiskMulateRearGate.built = true;
-    return true;
+    return Boolean(window.RiskMulateRearGate?.collidersRegistered);
   } catch (error) {
     console.warn('[RiskMulate] rear-gate build failed', error);
     return false;
@@ -139,15 +147,22 @@ function tryBuild() {
 }
 
 export function installRearGateEnvironment() {
-  if (window.RiskMulateRearGate?.built) return window.RiskMulateRearGate;
-
-  const api = window.RiskMulateRearGate || { built: false, installed: true };
+  const api = window.RiskMulateRearGate || { built: false, installed: true, collidersRegistered: false };
   window.RiskMulateRearGate = api;
 
-  if (tryBuild()) return api;
+  // Always attempt collider registration if the visual already exists but colliders missed the bridge.
+  if (api.built && !api.collidersRegistered) {
+    registerRearColliders();
+    if (api.collidersRegistered) return api;
+  }
+  if (api.built && api.collidersRegistered) return api;
+
+  if (tryBuild() && api.collidersRegistered) return api;
 
   const onReady = () => {
-    if (tryBuild()) {
+    tryBuild();
+    registerRearColliders();
+    if (api.collidersRegistered) {
       window.removeEventListener('riskmulate:scene-ready', onReady);
     }
   };
@@ -156,7 +171,9 @@ export function installRearGateEnvironment() {
   let attempts = 0;
   const timer = setInterval(() => {
     attempts += 1;
-    if (tryBuild() || attempts > 80) {
+    tryBuild();
+    registerRearColliders();
+    if (api.collidersRegistered || attempts > 80) {
       clearInterval(timer);
       window.removeEventListener('riskmulate:scene-ready', onReady);
     }
