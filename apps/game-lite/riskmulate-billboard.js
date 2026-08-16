@@ -3,6 +3,7 @@
  * ------------------------
  * Fixed double-sided yard identity board behind spawn.
  * Readable from either approach without spinning the face.
+ * Front face uses scale.x = -1 after 180° yaw so text is not mirrored.
  */
 
 function makeTexture(THREE, canvas) {
@@ -19,7 +20,6 @@ function paintCanvas(canvas) {
   const w = canvas.width;
   const h = canvas.height;
 
-  // Opaque industrial panel (never leave transparent)
   const bg = ctx.createLinearGradient(0, 0, 0, h);
   bg.addColorStop(0, '#102028');
   bg.addColorStop(0.5, '#152a36');
@@ -27,30 +27,24 @@ function paintCanvas(canvas) {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
-  // Outer gold frame band
   ctx.strokeStyle = '#d4ad35';
   ctx.lineWidth = Math.max(10, w * 0.014);
   ctx.strokeRect(w * 0.02, h * 0.035, w * 0.96, h * 0.93);
 
-  // Top accent bar
   ctx.fillStyle = '#e0923a';
   ctx.fillRect(w * 0.02, h * 0.035, w * 0.96, h * 0.032);
 
-  // Brand accent bar
   ctx.fillStyle = '#e0923a';
   ctx.fillRect(w * 0.055, h * 0.13, w * 0.02, h * 0.24);
 
-  // Brand
   ctx.fillStyle = '#f5fafc';
   ctx.font = `700 ${Math.round(h * 0.15)}px system-ui, -apple-system, sans-serif`;
   ctx.fillText('RISKMULATE', w * 0.09, h * 0.26);
 
-  // Sub-brand
   ctx.fillStyle = '#a8bcc6';
   ctx.font = `600 ${Math.round(h * 0.055)}px system-ui, -apple-system, sans-serif`;
   ctx.fillText('FIELD RISK  ·  CONTINUITY TRAINING', w * 0.09, h * 0.345);
 
-  // Divider
   ctx.strokeStyle = 'rgba(212,173,53,0.55)';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -58,17 +52,14 @@ function paintCanvas(canvas) {
   ctx.lineTo(w * 0.94, h * 0.4);
   ctx.stroke();
 
-  // Site name
   ctx.fillStyle = '#eef5f8';
   ctx.font = `700 ${Math.round(h * 0.072)}px system-ui, -apple-system, sans-serif`;
   ctx.fillText('NORTHBRIDGE FILTRATION WORKS', w * 0.055, h * 0.51);
 
-  // Rotation line
   ctx.fillStyle = '#b0c0c8';
   ctx.font = `500 ${Math.round(h * 0.05)}px system-ui, -apple-system, sans-serif`;
   ctx.fillText('Continuity Rotation 03  ·  Supply Integrity Window', w * 0.055, h * 0.595);
 
-  // Process strip
   ctx.fillStyle = 'rgba(224,146,58,0.2)';
   ctx.fillRect(w * 0.04, h * 0.67, w * 0.92, h * 0.25);
 
@@ -103,7 +94,6 @@ function disposeObject(object) {
 }
 
 function buildBillboard(THREE, scene) {
-  // Always rebuild so a partial/stale board cannot stick around empty.
   const existing = scene.getObjectByName('riskmulate-billboard-root');
   if (existing) {
     scene.remove(existing);
@@ -112,7 +102,7 @@ function buildBillboard(THREE, scene) {
 
   const root = new THREE.Group();
   root.name = 'riskmulate-billboard-root';
-  // Behind spawn (player turns ~180° from plant entry). Fixed orientation.
+  // Behind spawn: player turns ~180° from plant entry.
   root.position.set(0, 0, 20.6);
 
   const metal = new THREE.MeshStandardMaterial({ color: 0x3a4449, roughness: 0.7, metalness: 0.45 });
@@ -144,12 +134,10 @@ function buildBillboard(THREE, scene) {
   beam.position.set(0, 6.55, 0);
   root.add(beam);
 
-  // Core panel body
   const core = new THREE.Mesh(new THREE.BoxGeometry(7.7, 3.85, 0.12), metalDark);
   core.position.set(0, 4.05, 0);
   root.add(core);
 
-  // Gold frame rails
   const frameParts = [
     [7.95, 0.12, 0.22, 0, 6.0, 0],
     [7.95, 0.12, 0.22, 0, 2.1, 0],
@@ -168,32 +156,37 @@ function buildBillboard(THREE, scene) {
   paintCanvas(canvas);
   const texture = makeTexture(THREE, canvas);
 
-  // DoubleSide so the graphic is visible regardless of approach angle.
-  const faceMat = new THREE.MeshBasicMaterial({
+  // FrontSide only — avoids reading the mirrored reverse of DoubleSide.
+  const frontMat = new THREE.MeshBasicMaterial({
     map: texture,
     toneMapped: false,
     fog: false,
-    side: THREE.DoubleSide,
+    side: THREE.FrontSide,
     depthWrite: true,
   });
+  const rearMat = frontMat.clone();
+  rearMat.map = texture;
 
   const panelW = 7.55;
   const panelH = 3.75;
 
-  // Spawn-facing face (toward -Z / player).
-  const front = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), faceMat);
+  // Spawn-facing face (toward player / -Z).
+  // Plane default normal is +Z. Rotate 180° around Y so normal faces -Z.
+  // That rotation mirrors UVs horizontally → scale.x = -1 restores readable text.
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), frontMat);
   front.name = 'riskmulate-billboard-face-front';
-  front.position.set(0, 4.05, 0.1);
-  front.rotation.y = Math.PI; // normal toward -Z (spawn)
+  front.position.set(0, 4.05, -0.1); // local -Z = toward spawn
+  front.rotation.y = Math.PI;
+  front.scale.x = -1;
   front.frustumCulled = false;
   front.renderOrder = 2;
   front.userData.billboard = true;
   root.add(front);
 
-  // Far-yard face (toward +Z).
-  const rear = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), faceMat.clone());
+  // Far-yard face (toward +Z). Default plane normal faces +Z — correct for viewers deeper in the yard.
+  const rear = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), rearMat);
   rear.name = 'riskmulate-billboard-face-rear';
-  rear.position.set(0, 4.05, -0.1);
+  rear.position.set(0, 4.05, 0.1);
   rear.frustumCulled = false;
   rear.renderOrder = 2;
   rear.userData.billboard = true;
@@ -235,7 +228,6 @@ export function installRiskMulateBillboard() {
     installed: true,
     dispose() {},
   };
-  // Allow re-install after game core finishes loading.
   if (api.built && window.RiskMulateScene?.scene?.getObjectByName('riskmulate-billboard-face-front')) {
     return api;
   }
