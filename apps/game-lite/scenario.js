@@ -5,8 +5,8 @@ export const scenario = {
     'Maintain at least 90% of planned filtration-unit output through the disruption window without breaching quality, environmental, or safety limits.',
   acceptanceThreshold: 9,
   maxScore: 760,
-  inspectionCount: 7,
-  evidenceTotal: 14,
+  inspectionCount: 8,
+  evidenceTotal: 16,
   risk: {
     id: 'solvent-release',
     name: 'Solvent flange leak',
@@ -165,6 +165,18 @@ export const scenario = {
         'Housekeeping can affect risk when it changes response time or access to controls. The issue is the effect on objectives, not the untidiness itself.',
     },
     {
+      id: 'rear-egress',
+      label: 'Blocked rear egress route',
+      riskId: 'emergency-access',
+      evidence: [
+        'Pallet stacks and a temporary barrier block the marked rear egress near the gate house.',
+        'The route is part of the secondary emergency egress path away from the process pad.',
+        'If the plant-side service route is also obstructed, response time degrades further.',
+      ],
+      teaching:
+        'Multiple locations can feed the same residual risk pathway. Clearing one obstruction does not close residual emergency-access risk while another egress remains blocked.',
+    },
+    {
       id: 'temp-hose',
       label: 'Temporary transfer hose',
       riskId: 'hose-disconnect',
@@ -205,7 +217,7 @@ export const scenario = {
     {
       id: 'clear-access',
       minutes: 2,
-      label: 'Move the conduit/pallet out of the marked service and emergency route.',
+      label: 'Move stored materials out of marked service and emergency egress routes.',
       required: true,
       riskIds: ['emergency-access'],
     },
@@ -330,6 +342,7 @@ export const scenario = {
       'The damaged support and electrical trip history are separate initiating mechanisms, so they belong as distinct risk threads rather than being hidden under the flange entry.',
       'The stormwater drain changes the consequence pathway of a spill and should be treated as part of the connected control strategy.',
       'The housekeeping obstruction matters because it can delay access to controls during an incident.',
+      'Multiple locations can feed one residual pathway — clearing plant-side access does not close residual risk if rear egress remains blocked.',
       'The cosmetic tank discoloration demonstrates why observations and defects should not automatically become risk-register entries.',
     ],
     counterfactual:
