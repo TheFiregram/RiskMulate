@@ -9,8 +9,8 @@ import {
  * Field FIX interaction + free-move bridge
  * ---------------------------------------
  * Educational purpose: treatment happens at the equipment after evidence is recorded.
- * This module self-hosts raycast prompts and joystick→WASD mapping so the playable
- * loop works even before a full native game.js rewrite lands.
+ * Raycast prompts + Fix action. Move bridge is fallback only — free joystick + game.js
+ * own locomotion when available.
  */
 
 export function installFieldFixInteraction() {
@@ -21,8 +21,6 @@ export function installFieldFixInteraction() {
   const promptEl = document.querySelector('#prompt');
   const mobileFix = document.querySelector('#mobileFix');
 
-  // Free joystick → movement. Prefer RiskMulateMobileMove if game.js registers it;
-  // otherwise synthesize WASD so movePlayer keeps working.
   const held = new Set();
   function syncKey(code, active) {
     if (active && !held.has(code)) {
@@ -34,31 +32,28 @@ export function installFieldFixInteraction() {
     }
   }
 
-  const existingMove = window.RiskMulateMobileMove;
-  window.RiskMulateMobileMove = {
-    set(nx, ny) {
-      const x = nx || 0;
-      const y = ny || 0;
-      window.__riskmulateMoveX = x;
-      window.__riskmulateMoveY = y;
-      if (existingMove?.set && existingMove !== window.RiskMulateMobileMove) {
-        existingMove.set(x, y);
-      }
-      const dead = 0.28;
-      // Always keep WASD synthesis as a reliable fallback path.
-      syncKey('KeyW', y < -dead);
-      syncKey('KeyS', y > dead);
-      syncKey('KeyA', x < -dead);
-      syncKey('KeyD', x > dead);
-      window.dispatchEvent(new CustomEvent('riskmulate:mobile-move', { detail: { x, y } }));
-    },
-    get() {
-      return {
-        x: window.__riskmulateMoveX || 0,
-        y: window.__riskmulateMoveY || 0,
-      };
-    },
-  };
+  // Fallback only if game.js has not registered a native bridge yet.
+  if (!window.RiskMulateMobileMove) {
+    window.RiskMulateMobileMove = {
+      set(nx, ny) {
+        const x = nx || 0;
+        const y = ny || 0;
+        window.__riskmulateMoveX = x;
+        window.__riskmulateMoveY = y;
+        const dead = 0.12;
+        syncKey('KeyW', y < -dead);
+        syncKey('KeyS', y > dead);
+        syncKey('KeyA', x < -dead);
+        syncKey('KeyD', x > dead);
+      },
+      get() {
+        return {
+          x: window.__riskmulateMoveX || 0,
+          y: window.__riskmulateMoveY || 0,
+        };
+      },
+    };
+  }
 
   function progressFromStorage() {
     try {
@@ -113,12 +108,11 @@ export function installFieldFixInteraction() {
     const ready = Boolean(findingId && isFindingFixable(findingId, progress));
     document.body.classList.toggle('field-fix-ready', ready);
 
-    // When looking at a fixable finding, upgrade the prompt text if possible.
     if (ready && promptEl && !document.querySelector('#tablet')?.classList.contains('open')) {
       const repair = getRepairForFinding(findingId);
       const coarse = matchMedia('(pointer: coarse)').matches;
       const verb = repair?.verb || 'Apply field control';
-      promptEl.textContent = coarse ? `FIX · ${verb}` : `F · ${verb}`;
+      promptEl.textContent = coarse ? `FIX \u00b7 ${verb}` : `F \u00b7 ${verb}`;
       promptEl.classList.add('show');
     }
     return ready;
@@ -145,7 +139,7 @@ export function installFieldFixInteraction() {
       detail: { kind: 'fix', findingId, verb: result.verb },
     }));
     if (promptEl) {
-      promptEl.textContent = `CONTROLLED · ${result.verb}`;
+      promptEl.textContent = `CONTROLLED \u00b7 ${result.verb}`;
       promptEl.classList.add('show');
     }
     syncFixReadyClass();
@@ -157,9 +151,7 @@ export function installFieldFixInteraction() {
   });
 
   addEventListener('keydown', (event) => {
-    if (event.code === 'KeyF' && !event.repeat) {
-      doFix();
-    }
+    if (event.code === 'KeyF' && !event.repeat) doFix();
   });
 
   window.addEventListener('riskmulate:progress', () => syncFixReadyClass());
@@ -180,29 +172,13 @@ export function installFieldFixInteraction() {
         const coarse = matchMedia('(pointer: coarse)').matches;
         const cta = document.createElement('div');
         cta.className = 'field-fix-cta';
-        cta.innerHTML = `<strong>Field control available</strong><span>Return to this equipment and press <kbd>${coarse ? 'FIX' : 'F'}</kbd> to ${repair.verb.toLowerCase()}. Treatment happens at the plant — not only on the tablet.</span>`;
+        cta.innerHTML = `<strong>Field control available</strong><span>Return to this equipment and press <kbd>${coarse ? 'FIX' : 'F'}</kbd> to ${repair.verb.toLowerCase()}. Treatment happens at the plant \u2014 not only on the tablet.</span>`;
         tabletBody.querySelector('.evidence-card')?.appendChild(cta);
         break;
       }
     });
     observer.observe(tabletBody, { childList: true, subtree: true });
   }
-
-  // High-vis glove tint after procedural hands boot (does not require hands.js rewrite).
-  window.addEventListener('riskmulate:hands-ready', () => {
-    const overlay = window.RiskMulateHands?.overlay;
-    if (!overlay?.root) return;
-    overlay.root.traverse((object) => {
-      if (!object.isMesh || !object.material) return;
-      const mat = object.material;
-      // Dark glove-like materials only.
-      if (mat.color && mat.color.getHex && mat.color.getHex() <= 0x30393d) {
-        mat.color.setHex(0xd4a24a);
-        if ('emissive' in mat && mat.emissive?.setHex) mat.emissive.setHex(0x5a3a12);
-        mat.needsUpdate = true;
-      }
-    });
-  });
 
   const api = { installed: true, doFix, syncFixReadyClass, resolveActiveFindingId };
   window.RiskMulateFieldFixInteraction = api;
