@@ -3,6 +3,7 @@ import { buildTankConnections } from './tank-connections.js';
 let cachedMaterials;
 const animatedDrops = [];
 let rackNormalized = false;
+let leakingFlangeGroup = null;
 
 function seededRandom(seed) {
   let value = seed >>> 0;
@@ -280,6 +281,8 @@ export function createIndustrialFlange(THREE, scene, options = {}) {
   group.position.set(x, y, z);
   group.scale.setScalar(scale);
   group.userData.flange = true;
+  group.userData.leaking = Boolean(leaking);
+  group.userData.controlled = false;
   if (interactive) {
     group.userData.interactable = true;
     group.userData.label = label;
@@ -307,9 +310,12 @@ export function createIndustrialFlange(THREE, scene, options = {}) {
   }
 
   if (leaking) {
+    leakingFlangeGroup = group;
+
     const stain = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.31, 3, 6), materials.stain);
     stain.position.set(0.02, -0.48, 0.24);
     stain.rotation.z = 0.08;
+    stain.userData.leakStain = true;
     group.add(stain);
 
     const dropSpecs = [
@@ -318,11 +324,12 @@ export function createIndustrialFlange(THREE, scene, options = {}) {
       { x: -0.03, y: -0.59, z: 0.245, size: 0.028, phase: 0.82 },
     ];
     for (const spec of dropSpecs) {
-      const drop = new THREE.Mesh(new THREE.SphereGeometry(spec.size, 8, 6), materials.leak);
+      const drop = new THREE.Mesh(new THREE.SphereGeometry(spec.size, 8, 6), materials.leak.clone());
       drop.scale.y = 1.8;
       drop.position.set(spec.x, spec.y, spec.z);
       drop.userData.baseY = spec.y;
       drop.userData.phase = spec.phase;
+      drop.userData.leakDrop = true;
       group.add(drop);
       animatedDrops.push(drop);
     }
@@ -345,11 +352,54 @@ export function createIndustrialFlange(THREE, scene, options = {}) {
   return group;
 }
 
+/**
+ * Educational plant response: isolating the solvent line stops the visible leak pathway.
+ * Projected plans fade the leak; committed isolation hides drips and dries the joint.
+ */
+export function setLeakingFlangeControlled(controlled, { projected = false } = {}) {
+  if (!leakingFlangeGroup) return false;
+  leakingFlangeGroup.userData.controlled = Boolean(controlled);
+  leakingFlangeGroup.userData.projectedControl = Boolean(projected && controlled);
+
+  for (const drop of animatedDrops) {
+    if (controlled && !projected) {
+      drop.visible = false;
+      drop.material.opacity = 0;
+    } else if (controlled && projected) {
+      drop.visible = true;
+      drop.material.opacity = 0.28;
+    } else {
+      drop.visible = true;
+      drop.material.opacity = 0.88;
+    }
+  }
+
+  leakingFlangeGroup.traverse((child) => {
+    if (child.userData?.leakStain && child.material) {
+      child.material.opacity = controlled
+        ? (projected ? 0.32 : 0.18)
+        : 0.72;
+      child.material.needsUpdate = true;
+    }
+  });
+
+  if (controlled && !projected) {
+    leakingFlangeGroup.userData.label = 'Isolated flange (controlled)';
+  } else if (controlled && projected) {
+    leakingFlangeGroup.userData.label = 'Projected isolation — leak pathway reduced';
+  } else {
+    leakingFlangeGroup.userData.label = 'Inspect leaking flange';
+  }
+  return true;
+}
+
 export function updateFlangeEffects(timeSeconds) {
   for (const drop of animatedDrops) {
+    if (!drop.visible) continue;
     const cycle = (timeSeconds * 0.42 + drop.userData.phase) % 1;
     drop.position.y = drop.userData.baseY - cycle * 0.18;
     const fade = 1 - Math.max(0, (cycle - 0.72) / 0.28);
-    drop.material.opacity = 0.5 + fade * 0.38;
+    const baseOpacity = drop.material.opacity > 0.4 ? 0.5 : 0.18;
+    drop.material.opacity = baseOpacity + fade * (drop.material.opacity > 0.4 ? 0.38 : 0.12);
   }
 }
