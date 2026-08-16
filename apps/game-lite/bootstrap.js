@@ -11,6 +11,8 @@ import { installNavigationBridge } from './navigation-bridge.js';
 import { installOverheadProcessBridgeDetail } from './overhead-process-bridge-detail.js';
 import { installPerformanceDiagnostics } from './performance-diagnostics.js';
 import { installPlantResponseEffects } from './plant-response-effects.js';
+import { installFieldRepair } from './field-repair.js';
+import { installMobileJoystick } from './mobile-joystick.js';
 import { installRapierPlayerController } from './player-rapier-controller.js';
 import { installProductionFlangePack } from './production-flange-pack.js';
 import { installProductionRuntime } from './production-runtime.js';
@@ -27,7 +29,7 @@ function installInputOnboarding() {
   if (!controls) return;
 
   if (mobileLite) {
-    controls.innerHTML = '<kbd>LEFT</kbd> MOVE <kbd>RIGHT</kbd> LOOK <kbd>INSPECT</kbd> EVIDENCE <kbd>TABLET</kbd> RISK WORK';
+    controls.innerHTML = '<kbd>LEFT</kbd> MOVE <kbd>RIGHT</kbd> LOOK <kbd>INSPECT</kbd> EVIDENCE <kbd>FIX</kbd> CONTROL <kbd>TABLET</kbd> RISK WORK';
     if (paused) paused.textContent = 'Touch the scene to resume look control.';
     controls.setAttribute('aria-label', 'Touch controls: left side to move, right side to look, Inspect for evidence, Tablet for risk work');
     return;
@@ -42,6 +44,8 @@ installLegacyBuildingWallUpgrade(THREE);
 installWallSurfaceSwap(THREE);
 installContinuitySimulation();
 installPlantResponseEffects(THREE);
+installFieldRepair();
+installMobileJoystick();
 installProductionRuntime(THREE);
 installProductionFlangePack(THREE);
 installPerformanceDiagnostics(THREE);
