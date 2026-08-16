@@ -54,7 +54,6 @@ function buildRearGate(THREE, scene) {
   const asphalt = mat(THREE, 0x2a2c2e, 0.98, 0.02);
   const stripe = mat(THREE, 0xd8d2c4, 0.9, 0.02);
 
-  // Closer apron so it reads clearly from spawn on mobile FOV
   box(THREE, group, 42, 0.04, 8.2, asphalt, 0, 0.02, 20.8);
   box(THREE, group, 42, 0.015, 0.18, stripe, 0, 0.045, 20.8);
 
@@ -113,12 +112,24 @@ function buildRearGate(THREE, scene) {
   return group;
 }
 
+function registerRearColliders() {
+  if (window.RiskMulateRearGate?.collidersRegistered) return;
+  const addObstacle = window.RiskMulateScene?.addObstacle;
+  if (typeof addObstacle !== 'function') return;
+  addObstacle({ x: -11.5, z: 22.0, w: 5.4, d: 4.2 });
+  addObstacle({ x: 14.5, z: 21.8, w: 8.7, d: 5.7 });
+  addObstacle({ x: -17.5, z: 18.8, w: 5.2, d: 2.6 });
+  addObstacle({ x: 0, z: 20.4, w: 8.2, d: 1.4 });
+  if (window.RiskMulateRearGate) window.RiskMulateRearGate.collidersRegistered = true;
+}
+
 function tryBuild() {
   const scene = window.RiskMulateScene?.scene;
   const THREE = window.RiskMulateScene?.THREE;
   if (!scene || !THREE) return false;
   try {
     buildRearGate(THREE, scene);
+    registerRearColliders();
     if (window.RiskMulateRearGate) window.RiskMulateRearGate.built = true;
     return true;
   } catch (error) {
