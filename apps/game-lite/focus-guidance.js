@@ -30,7 +30,7 @@ const GUIDANCE = Object.freeze([
   {
     id: 'broaden-walkdown',
     afterMs: 48000,
-    caption: 'Continue the walkdown: supports, electrical entry, drain route, access path, and temporary hose connections.',
+    caption: 'Continue the walkdown: supports, electrical entry, drain route, access paths, rear egress, and temporary hose connections.',
     voice: 'Continue the walkdown. Check supports, electrical entry, the drain route, access path, and temporary connections.',
     requireInspected: ['flange-leak'],
   },
@@ -40,6 +40,14 @@ const GUIDANCE = Object.freeze([
     caption: 'Temporary transfer hoses introduce disconnect risk under pressure. Inspect and secure them before startup.',
     voice: 'Temporary transfer hoses introduce disconnect risk under pressure. Inspect and secure them before startup.',
     unlessInspected: ['temp-hose'],
+    requireInspected: ['flange-leak'],
+  },
+  {
+    id: 'rear-egress-prompt',
+    afterMs: 82000,
+    caption: 'Turn toward the rear gate. A second egress obstruction can keep residual emergency-access risk open even after the plant-side route is cleared.',
+    voice: 'Check the rear gate egress. One cleared path is not enough if a second route remains blocked.',
+    unlessInspected: ['rear-egress'],
     requireInspected: ['flange-leak'],
   },
   {
