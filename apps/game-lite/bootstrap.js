@@ -27,6 +27,7 @@ import { installSidePipeRackDetail } from './side-pipe-rack-detail.js';
 import { installTabletHeldViewmodel } from './tablet-held-viewmodel.js';
 import { installInputPolish } from './input-polish.js';
 import { installStickZoneReset } from './stick-zone-reset.js';
+import { installFocusGuidance } from './focus-guidance.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
@@ -86,5 +87,6 @@ await import('./game.js');
 installRearGateEnvironment();
 installRiskMulateBillboard();
 installStickZoneReset();
+installFocusGuidance();
 installInputPolish();
 playerPhysics.finishCapture();
