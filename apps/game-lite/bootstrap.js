@@ -3,6 +3,7 @@ import { installLegacyBuildingWallUpgrade } from './buildingWalls.js';
 import { installContinuitySimulation } from './continuity-simulation.js';
 import { installFirstPersonGloveAssets } from './first-person-glove-assets.js';
 import { installFirstPersonHands } from './first-person-hands.js';
+import { installHighVisGloves } from './high-vis-gloves.js';
 import { installForegroundVesselDetail } from './foreground-vessel-detail.js';
 import { installIndustrialAudio } from './industrial-audio.js';
 import { installMobileAuthoredDetailLite } from './mobile-authored-detail-lite.js';
@@ -69,6 +70,7 @@ if (mobileLite) {
 }
 
 installFirstPersonHands(THREE);
+installHighVisGloves();
 installFirstPersonGloveAssets(THREE);
 installIndustrialAudio();
 installTabletHeldViewmodel();
