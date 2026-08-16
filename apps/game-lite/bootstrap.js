@@ -23,6 +23,7 @@ import { installProductionFlangePack } from './production-flange-pack.js';
 import { installProductionRuntime } from './production-runtime.js';
 import { installSidePipeRackDetail } from './side-pipe-rack-detail.js';
 import { installTabletHeldViewmodel } from './tablet-held-viewmodel.js';
+import { installInputPolish } from './input-polish.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
@@ -76,4 +77,5 @@ installIndustrialAudio();
 installTabletHeldViewmodel();
 const playerPhysics = installRapierPlayerController(THREE);
 await import('./game.js');
+installInputPolish();
 playerPhysics.finishCapture();
