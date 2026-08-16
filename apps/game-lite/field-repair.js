@@ -28,6 +28,12 @@ export const FINDING_REPAIR_MAP = Object.freeze({
     teaching:
       'Clearing the service route restores emergency access time. Housekeeping matters when it changes response capability against objectives.',
   },
+  'rear-egress': {
+    actionId: 'clear-access',
+    verb: 'Clear rear egress',
+    teaching:
+      'Secondary egress is part of residual emergency-access risk. Clearing the plant-side route alone does not restore full response capability.',
+  },
   'electrical-panel': {
     actionId: 'electrical-loto',
     verb: 'Lock out circuit',
