@@ -33,6 +33,20 @@ function alignAuthorityWindow() {
   }
 }
 
+function injectFieldReadoutPolish() {
+  if (document.querySelector('#field-readout-polish')) return;
+  const style = document.createElement('style');
+  style.id = 'field-readout-polish';
+  style.textContent = `
+    .field-readout>div:nth-child(3){border-left-color:rgba(158,224,176,.7)}
+    .field-readout>div:nth-child(4){border-left-color:rgba(227,160,82,.64)}
+    @media (max-width: 760px) {
+      .field-readout{width:132px !important}
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function injectStyle() {
   if (document.querySelector('#session-reset-style')) return;
   const style = document.createElement('style');
@@ -69,6 +83,7 @@ export function installSessionReset() {
   }
 
   injectStyle();
+  injectFieldReadoutPolish();
   alignAuthorityWindow();
 
   const startCard = document.querySelector('#start .start-card');
