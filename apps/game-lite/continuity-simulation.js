@@ -25,6 +25,10 @@ const ACTION_EFFECTS = Object.freeze({
     outputPenalty: 6,
     likelihoodCaps: { 'pipe-fatigue': 1 },
   },
+  'secure-temp-hose': {
+    outputPenalty: 0,
+    likelihoodCaps: { 'hose-disconnect': 1 },
+  },
   'warning-sign': {
     outputPenalty: 0,
     likelihoodCaps: {},
@@ -122,8 +126,6 @@ export function computeContinuityState(currentScenario, progress = {}) {
     : 'WITHIN LIMIT';
   const fieldFixedIds = new Set(asArray(progress.fieldFixedIds));
   const accessLocationsFixed = ['access-obstruction', 'rear-egress'].filter((id) => fieldFixedIds.has(id));
-  // Full response readiness when emergency-access not in play, or both field locations cleared,
-  // or clear-access chosen via tablet portfolio without fieldFixed entries (legacy path).
   const responseReady = !discovered.has('emergency-access')
     || (has('clear-access') && accessLocationsFixed.length >= 2)
     || (has('clear-access') && accessLocationsFixed.length === 0);
