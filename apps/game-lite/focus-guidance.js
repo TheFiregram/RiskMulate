@@ -5,8 +5,8 @@
  * without a non-diegetic tutorial wall. Captions stay short; speech is optional
  * and muted by default unless the player enables it.
  *
- * Voice path: pre-baked ElevenLabs MP3s under assets/audio/guidance/{id}.mp3
- * with browser speechSynthesis fallback when clips are missing.
+ * Voice path: ElevenLabs clips under assets/audio/guidance/{id}.mp3
+ * (or .mp3.b64 text fallback), with browser speechSynthesis if missing.
  */
 
 const GUIDANCE = Object.freeze([
@@ -175,42 +175,50 @@ function stopVoice() {
   }
 }
 
-/**
- * Prefer pre-generated ElevenLabs clips under assets/audio/guidance/{id}.mp3.
- * Falls back to browser speechSynthesis so VO still works before clips are baked.
- */
+async function playElevenLabsClip(guidanceId) {
+  const mp3Url = new URL(`./assets/audio/guidance/${guidanceId}.mp3`, import.meta.url).href;
+  try {
+    const head = await fetch(mp3Url, { method: 'HEAD' });
+    if (head.ok) return mp3Url;
+  } catch { /* try b64 */ }
+
+  const b64Url = new URL(`./assets/audio/guidance/${guidanceId}.mp3.b64`, import.meta.url).href;
+  const res = await fetch(b64Url);
+  if (!res.ok) throw new Error('missing clip');
+  const b64 = (await res.text()).trim();
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: 'audio/mpeg' });
+  return URL.createObjectURL(blob);
+}
+
 function speak(text, guidanceId) {
   if (!window.RiskMulateFocusGuidance?.voiceEnabled) return;
   stopVoice();
 
-  const clipUrl = guidanceId
-    ? new URL(`./assets/audio/guidance/${guidanceId}.mp3`, import.meta.url).href
-    : null;
+  if (!guidanceId) {
+    speakBrowser(text);
+    return;
+  }
 
-  if (clipUrl) {
-    try {
-      const audio = new Audio(clipUrl);
+  playElevenLabsClip(guidanceId)
+    .then((src) => {
+      if (!window.RiskMulateFocusGuidance?.voiceEnabled) return;
+      const audio = new Audio(src);
       audio.volume = 0.88;
       activeVo = audio;
-      const playPromise = audio.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
-          speakBrowser(text);
-        });
-      }
+      audio.play().catch(() => speakBrowser(text));
       audio.addEventListener('ended', () => {
         if (activeVo === audio) activeVo = null;
+        if (src.startsWith('blob:')) URL.revokeObjectURL(src);
       }, { once: true });
       audio.addEventListener('error', () => {
         if (activeVo === audio) activeVo = null;
         speakBrowser(text);
       }, { once: true });
-      return;
-    } catch {
-      /* fall through */
-    }
-  }
-  speakBrowser(text);
+    })
+    .catch(() => speakBrowser(text));
 }
 
 function speakBrowser(text) {
@@ -282,7 +290,7 @@ export function installFocusGuidance() {
 
     const elapsed = performance.now() - startedAt;
     const progress = readProgress();
-    const inspected = new Set(progress.inspectedFindingIds || []);
+    const inspected = new Set(progress.fieldFixedIds || []);
     const fieldFixed = new Set(progress.fieldFixedIds || []);
 
     for (const step of GUIDANCE) {
