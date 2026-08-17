@@ -109,8 +109,6 @@ installLegacyBuildingWallUpgrade(THREE);
 installWallSurfaceSwap(THREE);
 installContinuitySimulation();
 softInstall('plant-response', () => installPlantResponseEffects(THREE));
-softInstall('rear-gate', () => installRearGateEnvironment());
-softInstall('billboard', () => installRiskMulateBillboard());
 softInstall('field-repair', () => installFieldRepair());
 softInstall('field-fix', () => installFieldFixInteraction());
 softInstall('timed-events', () => installTimedRiskEvents());
