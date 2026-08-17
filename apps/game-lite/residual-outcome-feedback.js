@@ -103,7 +103,7 @@ function showResidual(actionId, progress, findingId) {
   const residuals = computeResidualProfile(scenario, selection, progress || {});
   const after = residuals[riskId] || before;
 
-  // Multi-location pathway: emergency-access is fed by plant-side obstruction AND rear egress.
+  // Pathway-specific residual teaching (ISO 31000: residual remains until consequence drivers change).
   let note =
     'Treatment changed residual likelihood on this pathway. Impact stays high until the consequence is fully removed from the design basis.';
   if (actionId === 'clear-access') {
@@ -120,6 +120,21 @@ function showResidual(actionId, progress, findingId) {
       note =
         'Rear egress is clear, but the plant-side service route is still blocked. Residual emergency-access risk is only partially treated.';
     }
+  } else if (actionId === 'secure-temp-hose') {
+    note =
+      'Secondary retention (or removal) lowers hose-disconnect likelihood before pressure is introduced. Residual impact stays high if a release still occurs.';
+  } else if (actionId === 'isolate-line') {
+    note =
+      'Isolation reduces solvent-release likelihood during the disruption window. Flange residual can remain above acceptance until repair is verified.';
+  } else if (actionId === 'protect-drain') {
+    note =
+      'Drain protection changes the consequence pathway of a spill — residual environmental-release likelihood drops even if the initiating leak is still present.';
+  } else if (actionId === 'electrical-loto') {
+    note =
+      'LOTO removes energy from the fault pathway. Residual electrical risk stays controlled only while isolation is maintained and repair is completed.';
+  } else if (actionId === 'support-startup-hold') {
+    note =
+      'A startup hold does not repair the support — it reduces exposure to vibration-driven fatigue until mechanical integrity is restored.';
   }
 
   const el = ensureToast();
