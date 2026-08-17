@@ -93,7 +93,10 @@ export function applyFieldRepair(findingId) {
     return {
       ok: false,
       reason: 'observation',
-      message: 'This observation does not require a field repair on the available evidence.',
+      message:
+        findingId === 'cosmetic-rust'
+          ? 'Cosmetic discoloration is an observation, not a risk. Do not inflate the register — residual exposure is unchanged.'
+          : 'This observation does not require a field repair on the available evidence.',
     };
   }
 
