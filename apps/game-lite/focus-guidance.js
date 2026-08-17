@@ -51,6 +51,14 @@ const GUIDANCE = Object.freeze([
     requireInspected: ['flange-leak'],
   },
   {
+    id: 'multipath-access-followup',
+    afterMs: 0,
+    caption: 'Plant-side access is controlled, but residual emergency-access risk stays open while rear egress is blocked. Clear both initiating locations.',
+    voice: 'Plant-side access is controlled, but residual emergency access risk stays open while rear egress is blocked.',
+    requireFieldFixed: ['access-obstruction'],
+    unlessFieldFixed: ['rear-egress'],
+  },
+  {
     id: 'monitor-review',
     afterMs: 95000,
     caption: 'Untreated findings escalate over time. Monitor and review is continuous — residual risk changes when you treat, not when you close a checklist.',
@@ -218,6 +226,7 @@ export function installFocusGuidance() {
     const elapsed = performance.now() - startedAt;
     const progress = readProgress();
     const inspected = new Set(progress.inspectedFindingIds || []);
+    const fieldFixed = new Set(progress.fieldFixedIds || []);
 
     for (const step of GUIDANCE) {
       if (fired.has(step.id)) continue;
@@ -226,7 +235,14 @@ export function installFocusGuidance() {
         fired.add(step.id);
         continue;
       }
+      if (step.unlessFieldFixed?.some((id) => fieldFixed.has(id))) {
+        fired.add(step.id);
+        continue;
+      }
       if (step.requireInspected && !step.requireInspected.every((id) => inspected.has(id))) {
+        continue;
+      }
+      if (step.requireFieldFixed && !step.requireFieldFixed.every((id) => fieldFixed.has(id))) {
         continue;
       }
       fired.add(step.id);
