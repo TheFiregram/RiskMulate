@@ -34,6 +34,7 @@ import { installScenarioDebrief } from './scenario-debrief.js';
 import { installClassReadiness } from './class-readiness.js';
 import { installFlangeFindingId } from './flange-finding-id.js';
 import { installSessionReset } from './session-reset.js';
+import { scenario as riskmulateScenario } from './scenario.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
@@ -81,6 +82,8 @@ window.addEventListener('unhandledrejection', (event) => {
   const msg = reason?.message || String(reason || 'unhandled rejection');
   showBootError(`Async: ${msg}`);
 });
+
+window.RiskMulateScenario = riskmulateScenario;
 
 const { mobileLite } = getMobilePerformanceProfile();
 
