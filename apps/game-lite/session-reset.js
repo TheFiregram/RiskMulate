@@ -19,6 +19,20 @@ function clearRiskMulateStorage() {
   return keys.length;
 }
 
+function alignAuthorityWindow() {
+  try {
+    const strongs = document.querySelectorAll('.start-mission-grid strong');
+    for (const el of strongs) {
+      if (/\d+-minute response window/i.test(el.textContent || '')) {
+        const minutes = window.RiskMulateScenario?.treatmentBudgetMinutes || 23;
+        el.textContent = `${minutes}-minute response window`;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 function injectStyle() {
   if (document.querySelector('#session-reset-style')) return;
   const style = document.createElement('style');
@@ -55,6 +69,7 @@ export function installSessionReset() {
   }
 
   injectStyle();
+  alignAuthorityWindow();
 
   const startCard = document.querySelector('#start .start-card');
   if (startCard && !document.querySelector('#sessionResetBtn')) {
