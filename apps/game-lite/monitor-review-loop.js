@@ -25,8 +25,9 @@ function inherentScore(risk) {
   return risk.inherentLikelihood * risk.inherentImpact;
 }
 
-function residualFor(risk, selection) {
+function residualFor(risk, selection, progress = {}) {
   const treated = Array.isArray(selection) ? selection : [];
+  const fieldFixed = new Set(Array.isArray(progress.fieldFixedIds) ? progress.fieldFixedIds : []);
   let L = risk.inherentLikelihood;
   let I = risk.inherentImpact;
 
@@ -43,6 +44,15 @@ function residualFor(risk, selection) {
   if (rule && rule.actions.some((a) => treated.includes(a))) {
     L = Math.min(L, rule.L);
   }
+
+  // Multipath: both access locations required for full emergency-access residual.
+  if (risk.id === 'emergency-access' && treated.includes('clear-access')) {
+    const plantSide = fieldFixed.has('access-obstruction');
+    const rearSide = fieldFixed.has('rear-egress');
+    if (plantSide && rearSide) L = Math.min(L, 1);
+    else if (plantSide || rearSide) L = 2;
+  }
+
   return { likelihood: L, impact: I, score: L * I };
 }
 
@@ -183,14 +193,14 @@ function showRegister(progress) {
   const rows = scenario.risks
     .map((risk) => {
       const before = inherentScore(risk);
-      const after = residualFor(risk, selection);
+      const after = residualFor(risk, selection, progress);
       return {
         name: risk.name,
         before,
         after: after.score,
         reduced: after.score < before,
-        text: `L${after.likelihood}×I${after.impact}=${after.score}`,
-        inherent: `L${risk.inherentLikelihood}×I${risk.inherentImpact}=${before}`,
+        text: `L${after.likelihood}\u00d7I${after.impact}=${after.score}`,
+        inherent: `L${risk.inherentLikelihood}\u00d7I${risk.inherentImpact}=${before}`,
       };
     })
     .sort((a, b) => b.after - a.after)
@@ -198,13 +208,13 @@ function showRegister(progress) {
 
   const el = ensureRegister();
   el.innerHTML = `
-    <strong>Monitor &amp; review · residual register</strong>
+    <strong>Monitor & review \u00b7 residual register</strong>
     ${rows
       .map(
         (row) => `
       <div class="row">
         <span class="name">${row.name}</span>
-        <span class="score ${row.reduced ? 'down' : ''}">${row.inherent} → ${row.text}</span>
+        <span class="score ${row.reduced ? 'down' : ''}">${row.inherent} \u2192 ${row.text}</span>
       </div>`,
       )
       .join('')}
@@ -218,7 +228,7 @@ function showRegister(progress) {
 function showMonitorPrompt(message, teaching) {
   const el = ensurePrompt();
   el.innerHTML = `
-    <strong>Monitor &amp; review</strong>
+    <strong>Monitor & review</strong>
     <span>${message}</span>
     ${teaching ? `<em style="display:block;margin-top:6px;font-style:normal;color:#a8b8a0;font-size:11px;line-height:1.35">${teaching}</em>` : ''}
   `;
@@ -248,7 +258,7 @@ export function installMonitorReviewLoop() {
     if (fixedCount >= 2 && fixedCount % 2 === 0) {
       showMonitorPrompt(
         'Controls are in place. Residual risk still needs review against plant objectives.',
-        'Do not treat “fixed” as “closed”. Confirm residual likelihood is acceptable and that monitoring continues.',
+        'Do not treat \u201cfixed\u201d as \u201cclosed\u201d. Confirm residual likelihood is acceptable and that monitoring continues.',
       );
     }
   });
@@ -258,7 +268,7 @@ export function installMonitorReviewLoop() {
     if (progress.complete) {
       showRegister(progress);
       showMonitorPrompt(
-        'Scenario window closed. Review residual risk — treatment reduced likelihood, not always impact.',
+        'Scenario window closed. Review residual risk \u2014 treatment reduced likelihood, not always impact.',
         'ISO 31000 cycle: monitor effectiveness, record residual, and feed lessons into the next context setting.',
       );
     }
@@ -270,7 +280,7 @@ export function installMonitorReviewLoop() {
       findingId
         ? `Escalation on ${findingId}: untreated uncertainty is changing residual exposure.`
         : 'Time pressure increased residual exposure on an open pathway.',
-      'Monitor & review is continuous — delay after identification can raise likelihood even before impact changes.',
+      'Monitor & review is continuous \u2014 delay after identification can raise likelihood even before impact changes.',
     );
   });
 
@@ -295,8 +305,8 @@ export function installMonitorReviewLoop() {
       promptIndex += 1;
       const sample = open[0];
       showMonitorPrompt(
-        `Open pathway still under monitor: ${sample}. Inspected ≠ treated.`,
-        'ISO 31000 separates identification from treatment. Residual risk stays until a control changes the cause–event chain.',
+        `Open pathway still under monitor: ${sample}. Inspected \u2260 treated.`,
+        'ISO 31000 separates identification from treatment. Residual risk stays until a control changes the cause\u2013event chain.',
       );
     }
 
