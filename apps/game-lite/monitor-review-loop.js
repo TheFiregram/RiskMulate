@@ -201,8 +201,8 @@ function showRegister(progress) {
         before,
         after: after.score,
         reduced: after.score < before,
-        text: `L${after.likelihood}\u00d7I${after.impact}=${after.score}`,
-        inherent: `L${risk.inherentLikelihood}\u00d7I${risk.inherentImpact}=${before}`,
+        text: `L${after.likelihood}×I${after.impact}=${after.score}`,
+        inherent: `L${risk.inherentLikelihood}×I${risk.inherentImpact}=${before}`,
       };
     })
     .sort((a, b) => b.after - a.after)
@@ -210,13 +210,13 @@ function showRegister(progress) {
 
   const el = ensureRegister();
   el.innerHTML = `
-    <strong>Monitor & review \u00b7 residual register</strong>
+    <strong>Monitor & review · residual register</strong>
     ${rows
       .map(
         (row) => `
       <div class="row">
         <span class="name">${row.name}</span>
-        <span class="score ${row.reduced ? 'down' : ''}">${row.inherent} \u2192 ${row.text}</span>
+        <span class="score ${row.reduced ? 'down' : ''}">${row.inherent} → ${row.text}</span>
       </div>`,
       )
       .join('')}
@@ -260,7 +260,7 @@ export function installMonitorReviewLoop() {
     if (fixedCount >= 2 && fixedCount % 2 === 0) {
       showMonitorPrompt(
         'Controls are in place. Residual risk still needs review against plant objectives.',
-        'Do not treat \u201cfixed\u201d as \u201cclosed\u201d. Confirm residual likelihood is acceptable and that monitoring continues.',
+        'Do not treat “fixed” as “closed”. Confirm residual likelihood is acceptable and that monitoring continues.',
       );
     }
   });
@@ -270,7 +270,7 @@ export function installMonitorReviewLoop() {
     if (progress.complete) {
       showRegister(progress);
       showMonitorPrompt(
-        'Scenario window closed. Review residual risk \u2014 treatment reduced likelihood, not always impact.',
+        'Scenario window closed. Review residual risk — treatment reduced likelihood, not always impact.',
         'ISO 31000 cycle: monitor effectiveness, record residual, and feed lessons into the next context setting.',
       );
     }
@@ -282,7 +282,7 @@ export function installMonitorReviewLoop() {
       findingId
         ? `Escalation on ${findingId}: untreated uncertainty is changing residual exposure.`
         : 'Time pressure increased residual exposure on an open pathway.',
-      'Monitor & review is continuous \u2014 delay after identification can raise likelihood even before impact changes.',
+      'Monitor & review is continuous — delay after identification can raise likelihood even before impact changes.',
     );
   });
 
@@ -307,8 +307,8 @@ export function installMonitorReviewLoop() {
       promptIndex += 1;
       const sample = open[0];
       showMonitorPrompt(
-        `Open pathway still under monitor: ${sample}. Inspected \u2260 treated.`,
-        'ISO 31000 separates identification from treatment. Residual risk stays until a control changes the cause\u2013event chain.',
+        `Open pathway still under monitor: ${sample}. Inspected ≠ treated.`,
+        'ISO 31000 separates identification from treatment. Residual risk stays until a control changes the cause–event chain.',
       );
     }
 
