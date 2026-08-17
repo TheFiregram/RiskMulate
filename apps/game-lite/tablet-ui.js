@@ -718,4 +718,8 @@ window.addEventListener('storage', (event) => {
   if (event.key === saveKey) refreshTabletChrome();
 });
 
+// Same-tab field FIX does not fire storage — refresh treat multipath notes live.
+window.addEventListener('riskmulate:progress', () => refreshTabletChrome());
+window.addEventListener('riskmulate:field-repair', () => refreshTabletChrome());
+
 window.setTabletView = (view) => navigateTabletView(view);
