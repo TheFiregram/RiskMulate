@@ -6,6 +6,7 @@ const phaseNameEl = document.querySelector('#phaseName');
 const phaseOrdinalEl = document.querySelector('#phaseOrdinal');
 const riskCountEl = document.querySelector('#hudRiskCount');
 const evidenceCountEl = document.querySelector('#hudEvidenceCount');
+const scoreEl = document.querySelector('#hudScore');
 const elapsedEl = document.querySelector('#hudElapsed');
 const objectiveToast = document.querySelector('#objectiveToast');
 const cycleSteps = [...document.querySelectorAll('.cycle-step')];
@@ -143,7 +144,6 @@ function updateHud() {
     phaseNameEl.textContent = 'Inspection';
   }
 
-  // Multi-pathway scenario: count discovered risks / captured evidence against scenario totals.
   const riskTotal = scenario.risks?.length || 6;
   const evidenceTotal = scenario.evidenceTotal || 16;
   const discovered = Array.isArray(progress.discoveredRiskIds)
@@ -154,6 +154,7 @@ function updateHud() {
     : (progress.found ? 1 : 0);
   if (riskCountEl) riskCountEl.textContent = `${discovered}/${riskTotal}`;
   if (evidenceCountEl) evidenceCountEl.textContent = `${evidence}/${evidenceTotal}`;
+  if (scoreEl) scoreEl.textContent = String(progress.score || 0);
   updateCycle(activeStage, progress);
 }
 
