@@ -100,7 +100,7 @@ function showResidual(actionId, progress, findingId) {
     score: risk.inherentLikelihood * risk.inherentImpact,
   };
   const selection = Array.isArray(progress?.treatmentSelection) ? progress.treatmentSelection : [];
-  const residuals = computeResidualProfile(scenario, selection);
+  const residuals = computeResidualProfile(scenario, selection, progress || {});
   const after = residuals[riskId] || before;
 
   // Multi-location pathway: emergency-access is fed by plant-side obstruction AND rear egress.
