@@ -101,7 +101,12 @@ export function computeContinuityState(currentScenario, progress = {}) {
   const treatmentCommitted = asArray(progress.answers)
     .some((answer) => answer?.stage === 'Treat' && answer?.correct === true);
   const mode = treatmentCommitted ? 'ACTIVE' : treatmentOpen ? 'PROJECTED' : 'BASELINE';
-  const effectiveSelection = treatmentOpen ? treatmentSelection : [];
+  // Field FIX writes treatmentSelection immediately — residual must reflect plant controls
+  // even before the formal Treat stage opens (ISO 31000: treat happens at the hazard).
+  const fieldDrivenSelection = asArray(progress.treatmentSelection);
+  const effectiveSelection = treatmentOpen || fieldDrivenSelection.length
+    ? fieldDrivenSelection
+    : [];
   const residuals = computeResidualProfile(currentScenario, effectiveSelection, progress);
   const minutesUsed = selected.reduce((sum, action) => sum + action.minutes, 0);
   const outputPenalty = treatmentOpen
@@ -131,7 +136,7 @@ export function computeContinuityState(currentScenario, progress = {}) {
   const accessLocationsFixed = ['access-obstruction', 'rear-egress'].filter((id) => fieldFixedIds.has(id));
   // Response capability is only restored when BOTH access locations are field-controlled.
   const responseReady = !discovered.has('emergency-access')
-    || (has('clear-access') && accessLocationsFixed.length >= 2);
+    || accessLocationsFixed.length >= 2;
   const responseWindowRemaining = Math.max(0, currentScenario.treatmentBudgetMinutes - minutesUsed);
   const approvalRequired = treatmentCommitted && highestResidual > currentScenario.acceptanceThreshold;
   const outputTargetMet = availableOutput >= 90;
@@ -143,6 +148,17 @@ export function computeContinuityState(currentScenario, progress = {}) {
       ? 'PLAN PENDING'
       : 'ASSESSING';
 
+  // ACCESS status is location-driven from field work (multipath teaching).
+  const accessKnown = discovered.has('emergency-access') || accessLocationsFixed.length > 0;
+  const accessPartial = accessKnown && accessLocationsFixed.length === 1;
+  const accessLabel = !accessKnown
+    ? 'CLEAR'
+    : accessLocationsFixed.length >= 2
+      ? 'CLEAR'
+      : accessPartial
+        ? 'PARTIAL'
+        : 'BLOCKED';
+
   return {
     mode,
     availableOutput,
@@ -150,6 +166,9 @@ export function computeContinuityState(currentScenario, progress = {}) {
     quality,
     containment,
     responseReady,
+    accessPartial,
+    accessLabel,
+    accessLocationsFixed: accessLocationsFixed.length,
     responseWindowRemaining,
     minutesUsed,
     highestResidual,
@@ -201,6 +220,7 @@ function mountPanels() {
         ${metricMarkup('output', 'OUTPUT CAP', '100%')}
         ${metricMarkup('quality', 'QUALITY', 'WITHIN LIMIT')}
         ${metricMarkup('containment', 'CONTAIN', 'GREEN')}
+        ${metricMarkup('access', 'ACCESS', 'CLEAR')}
         ${metricMarkup('window', 'WINDOW', `${scenario.treatmentBudgetMinutes}:00`)}
       </div>`;
     document.body.appendChild(fieldPanel);
@@ -219,6 +239,7 @@ function mountPanels() {
         ${metricMarkup('output', 'AVAILABLE OUTPUT', '100%')}
         ${metricMarkup('quality', 'QUALITY', 'WITHIN LIMIT')}
         ${metricMarkup('containment', 'CONTAINMENT', 'GREEN')}
+        ${metricMarkup('access', 'EGRESS ACCESS', 'CLEAR')}
         ${metricMarkup('residual', 'MAX RESIDUAL', '—')}
         ${metricMarkup('window', 'RESPONSE WINDOW', `${scenario.treatmentBudgetMinutes}:00`)}
       </div>
@@ -267,6 +288,7 @@ function renderState(state) {
     setPanelValue(panel, 'output', output);
     setPanelValue(panel, 'quality', state.quality);
     setPanelValue(panel, 'containment', state.containment);
+    setPanelValue(panel, 'access', state.accessLabel || 'CLEAR');
     setPanelValue(panel, 'window', windowText);
     setPanelValue(panel, 'residual', residualText);
   }
@@ -278,6 +300,9 @@ function renderState(state) {
   setMetricState(tabletPanel, 'quality', state.quality === 'PROTECTED' || state.quality === 'WITHIN LIMIT' ? 'good' : 'bad');
   setMetricState(fieldPanel, 'containment', state.containment === 'PROTECTED' || state.containment === 'GREEN' ? 'good' : 'bad');
   setMetricState(tabletPanel, 'containment', state.containment === 'PROTECTED' || state.containment === 'GREEN' ? 'good' : 'bad');
+  const accessState = state.accessLabel === 'CLEAR' ? 'good' : state.accessLabel === 'PARTIAL' ? 'neutral' : 'bad';
+  setMetricState(fieldPanel, 'access', accessState);
+  setMetricState(tabletPanel, 'access', accessState);
   setMetricState(tabletPanel, 'residual', state.highestResidual > scenario.acceptanceThreshold ? 'bad' : 'good');
   setMetricState(fieldPanel, 'window', state.responseWindowRemaining > 0 ? 'neutral' : 'bad');
   setMetricState(tabletPanel, 'window', state.responseWindowRemaining > 0 ? 'neutral' : 'bad');
