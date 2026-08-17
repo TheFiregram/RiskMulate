@@ -178,6 +178,25 @@ function ensureToast() {
   return el;
 }
 
+function showScorePulse(delta, total) {
+  let el = document.querySelector('#fieldScorePulse');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fieldScorePulse';
+    el.setAttribute('role', 'status');
+    el.style.cssText = 'position:fixed;left:50%;top:calc(var(--safe-top,8px) + 52px);transform:translateX(-50%) translateY(-6px);z-index:45;padding:6px 12px;border-radius:999px;background:rgba(12,40,24,0.92);border:1px solid rgba(111,191,128,0.5);color:#b6e6c2;font:700 11px/1.2 system-ui;letter-spacing:0.06em;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;';
+    document.body.appendChild(el);
+  }
+  el.textContent = `+${delta} FIELD CONTROL · SCORE ${total}`;
+  el.style.opacity = '1';
+  el.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(showScorePulse._timer);
+  showScorePulse._timer = setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-50%) translateY(-6px)';
+  }, 2200);
+}
+
 function showToast(title, body) {
   const el = ensureToast();
   el.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
@@ -255,6 +274,8 @@ export function installFieldRepair() {
   window.addEventListener('riskmulate:field-repair', (event) => {
     const detail = event.detail || {};
     showToast(`Field control · ${detail.verb || 'Applied'}`, detail.teaching || 'Control applied at the equipment.');
+    const total = Number(detail.progress?.score);
+    if (Number.isFinite(total) && total > 0) showScorePulse(35, total);
   });
 
   const api = {
