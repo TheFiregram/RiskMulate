@@ -4,25 +4,32 @@
  * Fixed double-sided yard identity board behind spawn.
  * Readable from either approach without spinning the face.
  *
- * Orientation note:
- * PlaneGeometry faces +Z by default. Facing the spawn (−Z) requires
- * rotation.y = Math.PI, which mirrors UVs. Viewing the +Z face from behind
- * also mirrors left/right relative to the reader. Unmirror both faces with
- * texture.repeat.x = -1 (NOT mesh.scale.x — negative scale flips normals).
+ * Why canvas-mirror (not texture.repeat.x = -1):
+ * PlaneGeometry faces +Z. Facing spawn (−Z) needs rotation.y = π, which
+ * mirrors UVs relative to the reader. Negative texture.repeat.x is unreliable
+ * on some mobile GPUs. Instead: paint a horizontally mirrored canvas for the
+ * rotated face so rotation + mirrored pixels cancel to L→R text.
  */
 
-function makeTexture(THREE, canvas, { mirrorX = false } = {}) {
+function makeTexture(THREE, canvas) {
   const texture = new THREE.CanvasTexture(canvas);
   if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
   texture.flipY = true;
-  if (mirrorX) {
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.repeat.x = -1;
-    texture.offset.x = 1;
-  }
   texture.needsUpdate = true;
   return texture;
+}
+
+/** Horizontally mirror a canvas so rotation.y = π yields readable L→R text. */
+function mirrorCanvasX(source) {
+  const c = document.createElement('canvas');
+  c.width = source.width;
+  c.height = source.height;
+  const ctx = c.getContext('2d');
+  ctx.translate(c.width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(source, 0, 0);
+  return c;
 }
 
 function paintCanvas(canvas) {
@@ -44,7 +51,7 @@ function paintCanvas(canvas) {
   ctx.fillStyle = '#e0923a';
   ctx.fillRect(w * 0.02, h * 0.035, w * 0.96, h * 0.032);
 
-  // Left accent bar (must stay on the left when viewed from spawn)
+  // Left accent bar — must read as left when viewed correctly
   ctx.fillStyle = '#e0923a';
   ctx.fillRect(w * 0.055, h * 0.13, w * 0.02, h * 0.24);
 
@@ -69,74 +76,60 @@ function paintCanvas(canvas) {
 
   ctx.fillStyle = '#b0c0c8';
   ctx.font = `500 ${Math.round(h * 0.05)}px system-ui, -apple-system, sans-serif`;
-  ctx.fillText('Continuity Rotation 03  ·  Supply Integrity Window', w * 0.055, h * 0.595);
+  ctx.fillText('Continuity Rotation 03  ·  Supply Integrity Window', w * 0.055, h * 0.59);
 
-  ctx.fillStyle = 'rgba(224,146,58,0.2)';
-  ctx.fillRect(w * 0.04, h * 0.67, w * 0.92, h * 0.25);
+  ctx.fillStyle = 'rgba(20, 36, 44, 0.92)';
+  ctx.fillRect(w * 0.055, h * 0.66, w * 0.89, h * 0.26);
 
-  ctx.fillStyle = '#efb05a';
-  ctx.font = `700 ${Math.round(h * 0.042)}px system-ui, -apple-system, sans-serif`;
-  ctx.fillText('ISO 31000', w * 0.055, h * 0.755);
+  ctx.fillStyle = '#e0923a';
+  ctx.font = `700 ${Math.round(h * 0.045)}px system-ui, -apple-system, sans-serif`;
+  ctx.fillText('ISO 31000', w * 0.07, h * 0.73);
 
-  ctx.fillStyle = '#e0eaf0';
+  ctx.fillStyle = '#d7e4ea';
   ctx.font = `600 ${Math.round(h * 0.038)}px system-ui, -apple-system, sans-serif`;
-  ctx.fillText('CONTEXT → IDENTIFY → ANALYZE → EVALUATE → TREAT → MONITOR', w * 0.055, h * 0.83);
+  ctx.fillText('CONTEXT → IDENTIFY → ANALYZE → EVALUATE → TREAT → MONITOR', w * 0.07, h * 0.8);
 
-  ctx.fillStyle = '#b8c8d0';
-  ctx.font = `500 ${Math.round(h * 0.036)}px system-ui, -apple-system, sans-serif`;
-  ctx.fillText('Walk the plant. Capture evidence at equipment. Apply field controls.', w * 0.055, h * 0.895);
+  ctx.fillStyle = '#9eb0ba';
+  ctx.font = `500 ${Math.round(h * 0.034)}px system-ui, -apple-system, sans-serif`;
+  ctx.fillText('Walk the plant. Capture evidence at equipment. Apply field controls.', w * 0.07, h * 0.875);
 }
 
-function disposeObject(object) {
-  object.traverse((child) => {
-    if (child.geometry) child.geometry.dispose?.();
-    if (child.material) {
-      if (Array.isArray(child.material)) {
-        child.material.forEach((m) => {
-          m.map?.dispose?.();
-          m.dispose?.();
-        });
-      } else {
-        child.material.map?.dispose?.();
+function disposePriorBillboard(scene) {
+  const prior = [];
+  scene.traverse((obj) => {
+    if (obj.name === 'riskmulate-billboard-root' || obj.userData?.billboardRoot) prior.push(obj);
+  });
+  for (const obj of prior) {
+    obj.parent?.remove(obj);
+    obj.traverse?.((child) => {
+      if (child.geometry) child.geometry.dispose?.();
+      if (child.material) {
+        if (child.material.map) child.material.map.dispose?.();
         child.material.dispose?.();
       }
-    }
-  });
+    });
+  }
 }
 
 function buildBillboard(THREE, scene) {
-  const existing = scene.getObjectByName('riskmulate-billboard-root');
-  if (existing) {
-    scene.remove(existing);
-    disposeObject(existing);
-  }
+  disposePriorBillboard(scene);
 
   const root = new THREE.Group();
   root.name = 'riskmulate-billboard-root';
-  root.position.set(0, 0, 20.6);
+  root.userData.billboardRoot = true;
+  // Behind spawn, facing the approach from the plant pad
+  root.position.set(0, 0, 22);
 
-  const metal = new THREE.MeshStandardMaterial({ color: 0x3a4449, roughness: 0.7, metalness: 0.45 });
-  const metalDark = new THREE.MeshStandardMaterial({ color: 0x1e2529, roughness: 0.78, metalness: 0.52 });
-  const yellow = new THREE.MeshStandardMaterial({
-    color: 0xc9a329,
-    roughness: 0.5,
-    metalness: 0.28,
-    emissive: 0x3a2a08,
-    emissiveIntensity: 0.2,
-  });
+  const metal = new THREE.MeshStandardMaterial({ color: 0x1a2228, metalness: 0.6, roughness: 0.45 });
+  const metalDark = new THREE.MeshStandardMaterial({ color: 0x0e1418, metalness: 0.5, roughness: 0.55 });
+  const yellow = new THREE.MeshStandardMaterial({ color: 0xc9a328, metalness: 0.35, roughness: 0.4 });
 
-  for (const x of [-3.9, 3.9]) {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 6.8, 12), metalDark);
-    post.position.set(x, 3.4, 0);
-    post.castShadow = false;
+  for (const x of [-3.6, 3.6]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 6.6, 10), metal);
+    post.position.set(x, 3.3, 0);
     root.add(post);
-
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.2, 0.58), metal);
-    base.position.set(x, 0.1, 0);
-    root.add(base);
-
-    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.12, 0.32), yellow);
-    cap.position.set(x, 6.75, 0);
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.18, 0.35), yellow);
+    cap.position.set(x, 6.7, 0);
     root.add(cap);
   }
 
@@ -165,9 +158,11 @@ function buildBillboard(THREE, scene) {
   canvas.height = 512;
   paintCanvas(canvas);
 
-  // Both faces UV-unmirrored so text reads L→R from spawn and from the far yard.
-  const frontTex = makeTexture(THREE, canvas, { mirrorX: true });
-  const rearTex = makeTexture(THREE, canvas, { mirrorX: true });
+  // Front (spawn-facing): rotated 180° → needs pre-mirrored pixels so text reads L→R
+  const frontCanvas = mirrorCanvasX(canvas);
+  const frontTex = makeTexture(THREE, frontCanvas);
+  // Rear (far yard): no rotation → normal pixels
+  const rearTex = makeTexture(THREE, canvas);
 
   const frontMat = new THREE.MeshBasicMaterial({
     map: frontTex,
@@ -187,10 +182,10 @@ function buildBillboard(THREE, scene) {
   const panelW = 7.55;
   const panelH = 3.75;
 
-  // Spawn-facing face (normal toward −Z / player).
+  // Spawn-facing face (normal toward −Z / player looking toward +Z).
   const front = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), frontMat);
   front.name = 'riskmulate-billboard-face-front';
-  front.position.set(0, 4.05, -0.1);
+  front.position.set(0, 4.05, -0.12);
   front.rotation.y = Math.PI;
   front.frustumCulled = false;
   front.renderOrder = 2;
@@ -200,7 +195,7 @@ function buildBillboard(THREE, scene) {
   // Far-yard face (normal toward +Z).
   const rear = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), rearMat);
   rear.name = 'riskmulate-billboard-face-rear';
-  rear.position.set(0, 4.05, 0.1);
+  rear.position.set(0, 4.05, 0.12);
   rear.frustumCulled = false;
   rear.renderOrder = 2;
   rear.userData.billboard = true;
@@ -242,7 +237,7 @@ export function installRiskMulateBillboard() {
     installed: true,
     dispose() {},
   };
-  // Always rebuild so a previous mirrored board is replaced after this module update.
+  // Force rebuild so a previous mirrored board is replaced after this module update.
   api.built = false;
   window.RiskMulateBillboard = api;
 
