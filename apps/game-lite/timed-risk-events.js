@@ -112,8 +112,12 @@ function showBanner(seed) {
   el.dataset.severity = seed.severity || 'info';
   el.innerHTML = `<strong>${seed.title}</strong><span>${seed.body}</span><em>${seed.teaching}</em>`;
   el.classList.add('show');
+  document.documentElement.dataset.timedRiskBanner = '1';
   clearTimeout(showBanner._timer);
-  showBanner._timer = setTimeout(() => el.classList.remove('show'), 5600);
+  showBanner._timer = setTimeout(() => {
+    el.classList.remove('show');
+    if (!el.classList.contains('show')) delete document.documentElement.dataset.timedRiskBanner;
+  }, 6200);
 }
 
 function injectBannerStyle() {
@@ -127,17 +131,20 @@ function injectBannerStyle() {
       top: calc(var(--safe-top, 12px) + 52px);
       transform: translateX(-50%) translateY(-8px);
       width: min(460px, calc(100vw - 24px));
+      max-height: min(42vh, 220px);
+      overflow: hidden;
       padding: 12px 14px;
       border-radius: 8px;
       border: 1px solid rgba(217, 163, 78, 0.45);
-      background: rgba(18, 12, 6, 0.9);
+      background: rgba(18, 12, 6, 0.94);
       color: #f3e6d2;
       opacity: 0;
       pointer-events: none;
       transition: opacity 180ms ease, transform 180ms ease;
-      z-index: 44;
+      z-index: 46;
       backdrop-filter: blur(8px);
       text-align: left;
+      box-sizing: border-box;
     }
     .timed-risk-banner.show {
       opacity: 1;
@@ -148,31 +155,35 @@ function injectBannerStyle() {
     }
     .timed-risk-banner strong {
       display: block;
-      margin-bottom: 4px;
+      margin: 0 0 6px;
       font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: #f0c27a;
+      line-height: 1.3;
     }
     .timed-risk-banner span {
       display: block;
+      margin: 0;
       font-size: 12px;
-      line-height: 1.4;
+      line-height: 1.45;
       color: #e8dcc8;
     }
     .timed-risk-banner em {
       display: block;
-      margin-top: 6px;
+      margin: 8px 0 0;
       font-style: normal;
       font-size: 11px;
-      line-height: 1.35;
+      line-height: 1.4;
       color: #b9a88c;
       border-top: 1px solid rgba(255,255,255,0.08);
       padding-top: 6px;
     }
     @media (max-width: 760px) {
       .timed-risk-banner {
-        top: calc(var(--safe-top, 8px) + 44px);
+        top: calc(var(--safe-top, 8px) + 48px);
+        width: calc(100vw - 20px);
+        max-height: min(38vh, 200px);
       }
     }
   `;
