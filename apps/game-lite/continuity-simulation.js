@@ -129,9 +129,9 @@ export function computeContinuityState(currentScenario, progress = {}) {
     : 'WITHIN LIMIT';
   const fieldFixedIds = new Set(asArray(progress.fieldFixedIds));
   const accessLocationsFixed = ['access-obstruction', 'rear-egress'].filter((id) => fieldFixedIds.has(id));
+  // Response capability is only restored when BOTH access locations are field-controlled.
   const responseReady = !discovered.has('emergency-access')
-    || (has('clear-access') && accessLocationsFixed.length >= 2)
-    || (has('clear-access') && accessLocationsFixed.length === 0);
+    || (has('clear-access') && accessLocationsFixed.length >= 2);
   const responseWindowRemaining = Math.max(0, currentScenario.treatmentBudgetMinutes - minutesUsed);
   const approvalRequired = treatmentCommitted && highestResidual > currentScenario.acceptanceThreshold;
   const outputTargetMet = availableOutput >= 90;
