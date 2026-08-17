@@ -324,7 +324,7 @@ export const scenario = {
     },
     {
       name: 'Monitor & Review',
-      prompt: 'After immediate treatment, the flange residual risk is L2 × I5 = 10; the other four residual scores are 5, 5, 4, and 3. What should happen next?',
+      prompt: 'After immediate field treatment, the flange residual risk is L2 × I5 = 10; the other residual scores fall to 5, 5, 4, 4, and 3 across the remaining pathways. What should happen next?',
       options: [
         'Record residual risks, assign owners, obtain approval for the residual score of 10, and monitor gas readings, flange condition, vibration, electrical condition, and drain protection.',
         'Close every risk permanently because controls have been selected.',
@@ -332,7 +332,7 @@ export const scenario = {
       ],
       correctIndex: 0,
       feedback:
-        'Treatment does not erase uncertainty. Residual risk must be recorded and reviewed. The flange residual score remains above the threshold, so approval and active monitoring are required.',
+        'Treatment does not erase uncertainty. Residual risk must be recorded and reviewed across every pathway — flange, support, electrical, drain, access, and temporary hose. The flange residual score remains above the threshold, so approval and active monitoring are required.',
     },
   ],
   debrief: {
@@ -347,6 +347,6 @@ export const scenario = {
       'The cosmetic tank discoloration demonstrates why observations and defects should not automatically become risk-register entries.',
     ],
     counterfactual:
-      'If the team repaired only the visible flange but ignored drainage, electrical condition, support vibration, and access, a future release or fault could still produce serious consequences through the untreated pathways.',
+      'If the team repaired only the visible flange but ignored drainage, electrical condition, support vibration, temporary hose retention, and access routes, a future release or fault could still produce serious consequences through the untreated pathways.',
   },
 };
