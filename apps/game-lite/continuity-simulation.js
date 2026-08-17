@@ -114,9 +114,20 @@ export function computeContinuityState(currentScenario, progress = {}) {
     : 0;
   const availableOutput = Math.max(0, 100 - outputPenalty);
   const discovered = new Set(asArray(progress.discoveredRiskIds));
+  // Prefer discovered pathways. Before formal classification, only count risks whose
+  // residual already moved because of field treatment — avoids showing inherent 20
+  // as "max residual" after clearing a single access route.
   const relevantResiduals = currentScenario.risks
-    .filter((risk) => discovered.size === 0 || discovered.has(risk.id))
-    .map((risk) => residuals[risk.id]);
+    .filter((risk) => {
+      if (discovered.has(risk.id)) return true;
+      if (discovered.size > 0) return false;
+      const residual = residuals[risk.id];
+      if (!residual) return false;
+      const inherentScore = risk.inherentLikelihood * risk.inherentImpact;
+      return residual.score < inherentScore;
+    })
+    .map((risk) => residuals[risk.id])
+    .filter(Boolean);
   const highestResidual = relevantResiduals.length
     ? Math.max(...relevantResiduals.map((risk) => risk.score))
     : 0;
@@ -213,7 +224,7 @@ function mountPanels() {
     fieldPanel = document.createElement('section');
     fieldPanel.id = 'continuityHud';
     fieldPanel.className = 'hud continuity-hud';
-    fieldPanel.setAttribute('aria-label', 'Live continuity status');
+    fieldPanel.setAttribute('aria-label', 'Live continuity status';
     fieldPanel.innerHTML = `
       <header><span>CONTINUITY</span><b data-value="mode">BASELINE</b></header>
       <div class="continuity-metrics">
