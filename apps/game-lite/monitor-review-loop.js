@@ -34,9 +34,9 @@ function residualFor(risk, selection, progress = {}) {
   const caps = {
     'solvent-release': { actions: ['isolate-line'], L: 2 },
     'environmental-release': { actions: ['protect-drain'], L: 1 },
-    'emergency-access': { actions: ['clear-access'], L: 1 },
+    // emergency-access is multipath — scored below from field locations
     'electrical-fault': { actions: ['electrical-loto'], L: 1 },
-    'pipe-fatigue': { actions: ['support-startup-hold', 'support-repair-now'], L: 2 },
+    'pipe-fatigue': { actions: ['support-startup-hold', 'support-repair-now'], L: 1 },
     'hose-disconnect': { actions: ['secure-temp-hose'], L: 1 },
   };
 
@@ -45,12 +45,14 @@ function residualFor(risk, selection, progress = {}) {
     L = Math.min(L, rule.L);
   }
 
-  // Multipath: both access locations required for full emergency-access residual.
+  // Multipath: tablet clear-access alone does not lower residual.
+  // One location → L=2 partial; both locations → L=1 full.
   if (risk.id === 'emergency-access' && treated.includes('clear-access')) {
     const plantSide = fieldFixed.has('access-obstruction');
     const rearSide = fieldFixed.has('rear-egress');
     if (plantSide && rearSide) L = Math.min(L, 1);
-    else if (plantSide || rearSide) L = 2;
+    else if (plantSide || rearSide) L = Math.min(L, 2);
+    // else keep inherent
   }
 
   return { likelihood: L, impact: I, score: L * I };
