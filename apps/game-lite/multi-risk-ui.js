@@ -61,8 +61,8 @@ function refreshMultiRiskChrome() {
     ? Math.max(...discoveredRisks.map((risk) => risk.residualLikelihood * risk.residualImpact))
     : null;
 
-  setText('#tabletInherent', showInherent && highestInherent !== null ? highestInherent : '—');
-  setText('#tabletResidual', showResidual && highestResidual !== null ? highestResidual : '—');
+  setText('#tabletInherent', showInherent && highestInherent !== null ? highestInherent : '\u2014');
+  setText('#tabletResidual', showResidual && highestResidual !== null ? highestResidual : '\u2014');
 
   const updateEl = document.querySelector('#tabletUpdate');
   const statusEl = document.querySelector('#tabletOverviewStatus');
@@ -71,12 +71,12 @@ function refreshMultiRiskChrome() {
 
   if (complete) {
     if (statusEl) statusEl.textContent = 'Residual approval required';
-    if (updateEl) updateEl.textContent = 'Five material risks were classified. The highest residual score is 10, so approval and active monitoring remain required.';
+    if (updateEl) updateEl.textContent = 'Six material risk pathways were classified. The highest residual score is 10, so approval and active monitoring remain required.';
     if (phaseEl) phaseEl.textContent = 'Debrief';
     if (workspaceTitle) workspaceTitle.textContent = 'Scenario debrief';
   } else if (stage < 0) {
     if (statusEl) statusEl.textContent = 'Collect field evidence';
-    if (updateEl) updateEl.textContent = `${inspectedFindingIds.length}/${scenario.inspectionCount} inspection points reviewed · ${evidenceCount}/${scenario.evidenceTotal} evidence items captured.`;
+    if (updateEl) updateEl.textContent = `${inspectedFindingIds.length}/${scenario.inspectionCount} inspection points reviewed \u00b7 ${evidenceCount}/${scenario.evidenceTotal} evidence items captured.`;
     if (phaseEl) phaseEl.textContent = 'Inspection';
     if (workspaceTitle) workspaceTitle.textContent = 'Field evidence';
   } else {
