@@ -290,7 +290,7 @@ export function installFocusGuidance() {
 
     const elapsed = performance.now() - startedAt;
     const progress = readProgress();
-    const inspected = new Set(progress.fieldFixedIds || []);
+    const inspected = new Set(progress.inspectedFindingIds || []);
     const fieldFixed = new Set(progress.fieldFixedIds || []);
 
     for (const step of GUIDANCE) {
