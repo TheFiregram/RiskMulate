@@ -4,6 +4,9 @@
  * Educational purpose: direct attention to the right plant zone and process step
  * without a non-diegetic tutorial wall. Captions stay short; speech is optional
  * and muted by default unless the player enables it.
+ *
+ * Voice path: pre-baked ElevenLabs MP3s under assets/audio/guidance/{id}.mp3
+ * with browser speechSynthesis fallback when clips are missing.
  */
 
 const GUIDANCE = Object.freeze([
@@ -156,8 +159,61 @@ function readProgress() {
   }
 }
 
-function speak(text) {
+/** Active HTMLAudioElement for factory VO (ElevenLabs clips). */
+let activeVo = null;
+
+function stopVoice() {
+  try {
+    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+  } catch { /* optional */ }
+  if (activeVo) {
+    try {
+      activeVo.pause();
+      activeVo.currentTime = 0;
+    } catch { /* optional */ }
+    activeVo = null;
+  }
+}
+
+/**
+ * Prefer pre-generated ElevenLabs clips under assets/audio/guidance/{id}.mp3.
+ * Falls back to browser speechSynthesis so VO still works before clips are baked.
+ */
+function speak(text, guidanceId) {
   if (!window.RiskMulateFocusGuidance?.voiceEnabled) return;
+  stopVoice();
+
+  const clipUrl = guidanceId
+    ? new URL(`./assets/audio/guidance/${guidanceId}.mp3`, import.meta.url).href
+    : null;
+
+  if (clipUrl) {
+    try {
+      const audio = new Audio(clipUrl);
+      audio.volume = 0.88;
+      activeVo = audio;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          speakBrowser(text);
+        });
+      }
+      audio.addEventListener('ended', () => {
+        if (activeVo === audio) activeVo = null;
+      }, { once: true });
+      audio.addEventListener('error', () => {
+        if (activeVo === audio) activeVo = null;
+        speakBrowser(text);
+      }, { once: true });
+      return;
+    } catch {
+      /* fall through */
+    }
+  }
+  speakBrowser(text);
+}
+
+function speakBrowser(text) {
   if (typeof speechSynthesis === 'undefined') return;
   try {
     speechSynthesis.cancel();
@@ -171,12 +227,12 @@ function speak(text) {
   }
 }
 
-function showCaption(text, voiceText) {
+function showCaption(text, voiceText, guidanceId) {
   const root = ensureUi();
   const el = root.querySelector('#focusGuidanceText');
   if (el) el.textContent = text;
   root.classList.add('show');
-  speak(voiceText || text);
+  speak(voiceText || text, guidanceId);
   clearTimeout(showCaption._hide);
   showCaption._hide = setTimeout(() => {
     root.classList.remove('show');
@@ -197,6 +253,7 @@ export function installFocusGuidance() {
     setVoiceEnabled(value) {
       voiceEnabled = Boolean(value);
       api.voiceEnabled = voiceEnabled;
+      if (!voiceEnabled) stopVoice();
       try {
         localStorage.setItem('riskmulate:focus-vo', voiceEnabled ? '1' : '0');
       } catch {}
@@ -246,7 +303,7 @@ export function installFocusGuidance() {
         continue;
       }
       fired.add(step.id);
-      showCaption(step.caption, step.voice);
+      showCaption(step.caption, step.voice, step.id);
     }
 
     raf = requestAnimationFrame(tick);
