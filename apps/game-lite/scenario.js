@@ -295,13 +295,13 @@ export const scenario = {
       name: 'Analyze',
       prompt: 'Which inherent-risk prioritization best matches the collected evidence before added treatment?',
       options: [
-        'Flange 20; pipe support 15; electrical 15; stormwater 12; emergency access 9.',
-        'All five risks should be scored 25 simply because they occur in a process works.',
+        'Flange 20; pipe support 15; electrical 15; stormwater 12; temporary hose 12; emergency access 9.',
+        'All six risks should be scored 25 simply because they occur in a process works.',
         'Emergency access 20; cosmetic rust 15; flange 9; electrical 6; stormwater 3.',
       ],
       correctIndex: 0,
       feedback:
-        'Likelihood and impact must be assessed separately using the evidence. The flange is highest at 20; pipe-support and electrical risks follow at 15; environmental release is 12; access delay is 9.',
+        'Likelihood and impact must be assessed separately using the evidence. The flange is highest at 20; pipe-support and electrical risks follow at 15; environmental release and temporary hose are each 12; access delay is 9.',
     },
     {
       name: 'Evaluate',
