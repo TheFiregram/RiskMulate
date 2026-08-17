@@ -62,6 +62,21 @@ const CHECKS = [
     label: 'Focus guidance captions',
     test: () => Boolean(window.RiskMulateFocusGuidance?.installed || document.querySelector('#focusGuidance')),
   },
+  {
+    id: 'billboard',
+    label: 'Site identity billboard',
+    test: () => Boolean(window.RiskMulateBillboard?.built || window.RiskMulateBillboard?.installed),
+  },
+  {
+    id: 'scenario-six',
+    label: 'Six-pathway scenario',
+    test: () => (window.RiskMulateScenario?.risks?.length || 0) >= 6,
+  },
+  {
+    id: 'hud-score',
+    label: 'Live SCORE readout',
+    test: () => Boolean(document.querySelector('#hudScore')),
+  },
 ];
 
 function showReadyBadge(summary) {
