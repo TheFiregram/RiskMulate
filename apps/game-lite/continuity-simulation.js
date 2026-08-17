@@ -338,6 +338,7 @@ export function installContinuitySimulation() {
   injectStyles();
   mountPanels();
   window.addEventListener('riskmulate:progress', (event) => refresh(event.detail || readProgress()));
+  window.addEventListener('riskmulate:field-repair', (event) => refresh(event.detail?.progress || readProgress()));
   window.addEventListener('storage', (event) => {
     if (event.key === saveKey) refresh();
   });
