@@ -308,3 +308,15 @@ body:has(.tablet.open) .field-readout{opacity:.08}
 @media(prefers-reduced-motion:reduce){
   .hud,.mobile-interact,.objective-toast{transition:none}
 }
+
+.tablet-treatment-note {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: #9fb4bd;
+  font-weight: 500;
+}
+.tablet-treatment-row.selected .tablet-treatment-note {
+  color: #c5d9a8;
+}
