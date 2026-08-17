@@ -161,25 +161,44 @@ function readProgress() {
 
 /** Active HTMLAudioElement for factory VO (ElevenLabs clips). */
 let activeVo = null;
+/** Keep SpeechSynthesisUtterance referenced — iOS GC can cut speech mid-line. */
+let activeUtterance = null;
+let speakGeneration = 0;
 
 function stopVoice() {
+  speakGeneration += 1;
   try {
     if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
   } catch { /* optional */ }
+  activeUtterance = null;
   if (activeVo) {
     try {
+      activeVo.onerror = null;
+      activeVo.onended = null;
       activeVo.pause();
-      activeVo.currentTime = 0;
+      activeVo.removeAttribute('src');
+      activeVo.load();
     } catch { /* optional */ }
     activeVo = null;
   }
 }
 
-async function playElevenLabsClip(guidanceId) {
+/**
+ * Resolve ElevenLabs clip URL.
+ * Prefer direct .mp3 GET (HEAD is unreliable on static hosts / mobile).
+ * Fall back to .mp3.b64 text assets when binary is absent.
+ */
+async function resolveClipUrl(guidanceId) {
   const mp3Url = new URL(`./assets/audio/guidance/${guidanceId}.mp3`, import.meta.url).href;
   try {
-    const head = await fetch(mp3Url, { method: 'HEAD' });
-    if (head.ok) return mp3Url;
+    const res = await fetch(mp3Url, { method: 'GET', cache: 'force-cache' });
+    if (res.ok) {
+      const buf = await res.arrayBuffer();
+      if (buf.byteLength > 1000) {
+        const blob = new Blob([buf], { type: 'audio/mpeg' });
+        return URL.createObjectURL(blob);
+      }
+    }
   } catch { /* try b64 */ }
 
   const b64Url = new URL(`./assets/audio/guidance/${guidanceId}.mp3.b64`, import.meta.url).href;
@@ -189,47 +208,75 @@ async function playElevenLabsClip(guidanceId) {
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  const blob = new Blob([bytes], { type: 'audio/mpeg' });
-  return URL.createObjectURL(blob);
+  return URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
 }
 
 function speak(text, guidanceId) {
   if (!window.RiskMulateFocusGuidance?.voiceEnabled) return;
   stopVoice();
+  const gen = speakGeneration;
 
   if (!guidanceId) {
-    speakBrowser(text);
+    speakBrowser(text, gen);
     return;
   }
 
-  playElevenLabsClip(guidanceId)
+  resolveClipUrl(guidanceId)
     .then((src) => {
-      if (!window.RiskMulateFocusGuidance?.voiceEnabled) return;
-      const audio = new Audio(src);
-      audio.volume = 0.88;
+      if (gen !== speakGeneration || !window.RiskMulateFocusGuidance?.voiceEnabled) {
+        if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+        return;
+      }
+      const audio = new Audio();
+      audio.preload = 'auto';
+      audio.volume = 0.9;
       activeVo = audio;
-      audio.play().catch(() => speakBrowser(text));
-      audio.addEventListener('ended', () => {
+      audio.onended = () => {
         if (activeVo === audio) activeVo = null;
         if (src.startsWith('blob:')) URL.revokeObjectURL(src);
-      }, { once: true });
-      audio.addEventListener('error', () => {
+      };
+      audio.onerror = () => {
         if (activeVo === audio) activeVo = null;
-        speakBrowser(text);
-      }, { once: true });
+        if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+        if (gen === speakGeneration) speakBrowser(text, gen);
+      };
+      audio.src = src;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          if (gen === speakGeneration) speakBrowser(text, gen);
+        });
+      }
     })
-    .catch(() => speakBrowser(text));
+    .catch(() => {
+      if (gen === speakGeneration) speakBrowser(text, gen);
+    });
 }
 
-function speakBrowser(text) {
+function speakBrowser(text, gen = speakGeneration) {
   if (typeof speechSynthesis === 'undefined') return;
+  if (gen !== speakGeneration) return;
   try {
     speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 1.02;
+    // Keep a live reference so mobile WebKit does not GC the utterance mid-speech.
+    activeUtterance = utter;
+    utter.rate = 1.0;
     utter.pitch = 1;
-    utter.volume = 0.85;
-    speechSynthesis.speak(utter);
+    utter.volume = 1;
+    utter.onend = () => {
+      if (activeUtterance === utter) activeUtterance = null;
+    };
+    utter.onerror = () => {
+      if (activeUtterance === utter) activeUtterance = null;
+    };
+    // Some iOS builds need a tick after cancel before speak.
+    setTimeout(() => {
+      if (gen !== speakGeneration || activeUtterance !== utter) return;
+      try {
+        speechSynthesis.speak(utter);
+      } catch { /* optional */ }
+    }, 40);
   } catch {
     /* voice optional */
   }
