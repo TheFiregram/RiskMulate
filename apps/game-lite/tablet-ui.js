@@ -252,10 +252,22 @@ function renderTreatmentPanel(progress) {
   const actions = recorded
     ? scenario.treatmentActions.filter((action) => selected.has(action.id))
     : scenario.treatmentActions;
+  const fieldFixed = new Set(Array.isArray(progress.fieldFixedIds) ? progress.fieldFixedIds : []);
   treatmentActionsListEl.innerHTML = actions.map((action) => {
     const isSelected = selected.has(action.id);
+    let extra = '';
+    if (action.id === 'clear-access' && isSelected) {
+      const plant = fieldFixed.has('access-obstruction');
+      const rear = fieldFixed.has('rear-egress');
+      const status = plant && rear
+        ? 'Field: both access locations controlled'
+        : plant || rear
+          ? 'Field: partial — one access location still open'
+          : 'Field: locations not yet controlled (multipath residual open)';
+      extra = `<small class="tablet-treatment-note">${status}</small>`;
+    }
     return `<div class="tablet-treatment-row ${isSelected ? 'selected' : ''} ${recorded ? 'recorded' : ''}">
-      <i>${isSelected ? '✓' : ''}</i><span>${action.label}</span><b>${action.minutes} min</b>
+      <i>${isSelected ? '✓' : ''}</i><span>${action.label}${extra}</span><b>${action.minutes} min</b>
     </div>`;
   }).join('') || '<div class="tablet-treatment-row"><i>•</i><span>No controls have been selected yet.</span><b>—</b></div>';
 }
