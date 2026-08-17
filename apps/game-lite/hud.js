@@ -143,8 +143,17 @@ function updateHud() {
     phaseNameEl.textContent = 'Inspection';
   }
 
-  riskCountEl.textContent = progress.found ? '1/1' : '0/1';
-  evidenceCountEl.textContent = progress.found ? '1/1' : '0/1';
+  // Multi-pathway scenario: count discovered risks / captured evidence against scenario totals.
+  const riskTotal = scenario.risks?.length || 6;
+  const evidenceTotal = scenario.evidenceTotal || 16;
+  const discovered = Array.isArray(progress.discoveredRiskIds)
+    ? progress.discoveredRiskIds.length
+    : (progress.found ? 1 : 0);
+  const evidence = Array.isArray(progress.evidenceIds)
+    ? progress.evidenceIds.length
+    : (progress.found ? 1 : 0);
+  if (riskCountEl) riskCountEl.textContent = `${discovered}/${riskTotal}`;
+  if (evidenceCountEl) evidenceCountEl.textContent = `${evidence}/${evidenceTotal}`;
   updateCycle(activeStage, progress);
 }
 
@@ -177,6 +186,7 @@ startButton?.addEventListener('click', () => {
   showObjectiveBrief();
 });
 
+window.addEventListener('riskmulate:progress', () => updateHud());
 window.addEventListener('storage', (event) => {
   if (event.key === saveKey) updateHud();
 });
