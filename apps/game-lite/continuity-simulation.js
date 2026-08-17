@@ -224,7 +224,7 @@ function mountPanels() {
     fieldPanel = document.createElement('section');
     fieldPanel.id = 'continuityHud';
     fieldPanel.className = 'hud continuity-hud';
-    fieldPanel.setAttribute('aria-label', 'Live continuity status';
+    fieldPanel.setAttribute('aria-label', 'Live continuity status');
     fieldPanel.innerHTML = `
       <header><span>CONTINUITY</span><b data-value="mode">BASELINE</b></header>
       <div class="continuity-metrics">
@@ -333,7 +333,7 @@ function refresh(progress = readProgress()) {
 }
 
 export function installContinuitySimulation() {
-  if (installed) return;
+  if (installed) return window.RiskMulateContinuity;
   installed = true;
   injectStyles();
   mountPanels();
@@ -342,4 +342,11 @@ export function installContinuitySimulation() {
     if (event.key === saveKey) refresh();
   });
   refresh();
+  window.RiskMulateContinuity = {
+    installed: true,
+    computeResidualProfile,
+    computeContinuityState,
+    refresh,
+  };
+  return window.RiskMulateContinuity;
 }
