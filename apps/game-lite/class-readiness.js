@@ -54,6 +54,31 @@ const CHECKS = [
   },
 ];
 
+function showReadyBadge(summary) {
+  if (document.querySelector('#class-readiness-badge')) return;
+  const el = document.createElement('div');
+  el.id = 'class-readiness-badge';
+  el.setAttribute('role', 'status');
+  el.style.cssText = 'position:fixed;top:calc(var(--safe-top,8px) + 8px);right:10px;z-index:50;padding:6px 10px;border-radius:999px;font:10px/1.2 system-ui;letter-spacing:0.06em;text-transform:uppercase;pointer-events:none;opacity:0;transition:opacity .3s ease;';
+  if (summary.ready) {
+    el.style.background = 'rgba(12,40,24,0.88)';
+    el.style.border = '1px solid rgba(111,191,128,0.45)';
+    el.style.color = '#b6e6c2';
+    el.textContent = 'Teaching loop ready';
+  } else {
+    el.style.background = 'rgba(40,28,10,0.9)';
+    el.style.border = '1px solid rgba(217,163,78,0.45)';
+    el.style.color = '#f0d6a8';
+    el.textContent = `Loop partial ${summary.passed}/${summary.total}`;
+  }
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+  setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 400);
+  }, 4200);
+}
+
 function runChecks() {
   const results = CHECKS.map((check) => {
     let ok = false;
@@ -79,8 +104,16 @@ function runChecks() {
   };
   if (failed.length) {
     console.warn('[RiskMulate] Class-readiness gaps:', failed.map((f) => f.label).join(', '));
+    if (!window.__riskmulateClassBadgeShown && failed.length <= 3) {
+      window.__riskmulateClassBadgeShown = true;
+      showReadyBadge(summary);
+    }
   } else {
     console.info('[RiskMulate] Class-readiness: all core teaching bridges online');
+    if (!window.__riskmulateClassBadgeShown) {
+      window.__riskmulateClassBadgeShown = true;
+      showReadyBadge(summary);
+    }
   }
   return summary;
 }
