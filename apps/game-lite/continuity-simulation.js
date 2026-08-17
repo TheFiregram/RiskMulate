@@ -11,7 +11,8 @@ const ACTION_EFFECTS = Object.freeze({
   },
   'clear-access': {
     outputPenalty: 0,
-    likelihoodCaps: { 'emergency-access': 1 },
+    // emergency-access residual is multipath (plant-side + rear egress) — scored below
+    likelihoodCaps: {},
   },
   'electrical-loto': {
     outputPenalty: 3,
@@ -69,15 +70,17 @@ export function computeResidualProfile(currentScenario, selection = [], progress
     }
 
     // Multipath residual: emergency-access is fed by plant-side obstruction AND rear egress.
-    // One location controlled → partial residual; both controlled → full residual cap.
+    // Tablet selection alone does not lower residual — field locations must be controlled.
+    // One location → partial (L=2); both locations → full (L=1).
     if (risk.id === 'emergency-access' && selected.has('clear-access')) {
       const plantSide = fieldFixed.has('access-obstruction');
       const rearSide = fieldFixed.has('rear-egress');
       if (plantSide && rearSide) {
         likelihood = Math.min(likelihood, 1);
       } else if (plantSide || rearSide) {
-        likelihood = 2;
+        likelihood = Math.min(likelihood, 2);
       }
+      // else: keep inherent — pathway not yet controlled in the field
     }
 
     profile[risk.id] = {
