@@ -32,7 +32,6 @@ export function installFieldFixInteraction() {
     }
   }
 
-  // Fallback only if game.js has not registered a native bridge yet.
   if (!window.RiskMulateMobileMove) {
     window.RiskMulateMobileMove = {
       set(nx, ny) {
@@ -81,7 +80,6 @@ export function installFieldFixInteraction() {
       while (object) {
         if (object.userData?.interactable && hit.distance <= 4.2) {
           if (object.userData.findingId) return object.userData.findingId;
-          // Legacy flange meshes may only carry leaking flag.
           if (object.userData.leaking || (object.userData.flange && object.userData.label?.toLowerCase?.().includes('leak'))) {
             return 'flange-leak';
           }
@@ -137,6 +135,18 @@ export function installFieldFixInteraction() {
       if (promptEl && result.message) {
         promptEl.textContent = result.message;
         promptEl.classList.add('show');
+      }
+      const toast = document.querySelector('#fieldRepairToast');
+      if (toast && result.message) {
+        const title = result.reason === 'observation'
+          ? 'Observation — not a field control'
+          : result.reason === 'not-inspected'
+            ? 'Inspect before treat'
+            : 'Field control blocked';
+        toast.innerHTML = `<strong>${title}</strong><span>${result.message}</span>`;
+        toast.classList.add('show');
+        clearTimeout(toast._hide);
+        toast._hide = setTimeout(() => toast.classList.remove('show'), 4200);
       }
       return;
     }
