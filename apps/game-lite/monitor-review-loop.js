@@ -134,16 +134,29 @@ function injectStyle() {
       transform: translateX(-50%) translateY(-6px);
       z-index: 43;
       max-width: min(440px, calc(100vw - 24px));
+      max-height: min(36vh, 180px);
+      overflow: hidden;
       padding: 10px 12px;
       border-radius: 12px;
-      background: rgba(12, 18, 22, 0.9);
+      background: rgba(12, 18, 22, 0.94);
       border: 1px solid rgba(150, 180, 120, 0.35);
       color: #dce8d8;
-      font: 12px/1.4 system-ui, -apple-system, sans-serif;
+      font: 12px/1.45 system-ui, -apple-system, sans-serif;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.25s ease, transform 0.25s ease;
       text-align: left;
+      box-sizing: border-box;
+    }
+    /* Sit below timed-risk banner when both would compete for top-center space */
+    html[data-timed-risk-banner="1"] .monitor-prompt {
+      top: auto;
+      bottom: calc(var(--safe-bottom, 12px) + 210px);
+      transform: translateX(-50%) translateY(6px);
+      z-index: 42;
+    }
+    html[data-timed-risk-banner="1"] .monitor-prompt.show {
+      transform: translateX(-50%) translateY(0);
     }
     .monitor-prompt.show {
       opacity: 1;
@@ -151,15 +164,39 @@ function injectStyle() {
     }
     .monitor-prompt strong {
       display: block;
-      margin-bottom: 4px;
+      margin: 0 0 6px;
       font-size: 10px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: #b6d48a;
+      line-height: 1.3;
+    }
+    .monitor-prompt span {
+      display: block;
+      margin: 0;
+      line-height: 1.45;
+    }
+    .monitor-prompt em {
+      display: block;
+      margin-top: 6px;
+      font-style: normal;
+      color: #a8b8a0;
+      font-size: 11px;
+      line-height: 1.4;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 6px;
     }
     @media (max-width: 760px) {
       .monitor-register {
         bottom: calc(var(--safe-bottom, 12px) + 190px);
+      }
+      .monitor-prompt {
+        top: calc(var(--safe-top, 8px) + 96px);
+        max-width: calc(100vw - 20px);
+      }
+      html[data-timed-risk-banner="1"] .monitor-prompt {
+        top: auto;
+        bottom: calc(var(--safe-bottom, 12px) + 200px);
       }
     }
   `;
@@ -232,7 +269,7 @@ function showMonitorPrompt(message, teaching) {
   el.innerHTML = `
     <strong>Monitor & review</strong>
     <span>${message}</span>
-    ${teaching ? `<em style="display:block;margin-top:6px;font-style:normal;color:#a8b8a0;font-size:11px;line-height:1.35">${teaching}</em>` : ''}
+    ${teaching ? `<em>${teaching}</em>` : ''}
   `;
   el.classList.add('show');
   clearTimeout(showMonitorPrompt._timer);
@@ -277,6 +314,12 @@ export function installMonitorReviewLoop() {
   });
 
   window.addEventListener('riskmulate:timed-escalation', (event) => {
+    // Timed-risk banner already carries title + body + teaching for the same event.
+    // Skip the stacked monitor prompt while that banner is visible to avoid overlapping copy.
+    if (document.documentElement.dataset.timedRiskBanner === '1') return;
+    const banner = document.querySelector('#timedRiskBanner');
+    if (banner && banner.classList.contains('show')) return;
+
     const findingId = event.detail?.findingId;
     showMonitorPrompt(
       findingId
