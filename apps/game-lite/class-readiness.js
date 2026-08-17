@@ -77,6 +77,18 @@ const CHECKS = [
     label: 'Live SCORE readout',
     test: () => Boolean(document.querySelector('#hudScore')),
   },
+  {
+    id: 'multipath-residual',
+    label: 'Multipath residual engine',
+    test: () => typeof window.RiskMulateContinuity?.computeResidualProfile === 'function'
+      || typeof window.RiskMulateContinuity?.installed === 'boolean'
+      || Boolean(document.querySelector('#continuityHud')),
+  },
+  {
+    id: 'monitor-review',
+    label: 'Monitor residual register',
+    test: () => Boolean(window.RiskMulateMonitorReview?.installed),
+  },
 ];
 
 function showReadyBadge(summary) {
