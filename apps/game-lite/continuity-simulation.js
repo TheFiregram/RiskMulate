@@ -49,8 +49,9 @@ function selectedActions(currentScenario, selection) {
   return currentScenario.treatmentActions.filter((action) => ids.has(action.id));
 }
 
-export function computeResidualProfile(currentScenario, selection = []) {
+export function computeResidualProfile(currentScenario, selection = [], progress = {}) {
   const selected = new Set(asArray(selection));
+  const fieldFixed = new Set(asArray(progress.fieldFixedIds));
   const profile = {};
 
   for (const risk of currentScenario.risks) {
@@ -61,6 +62,18 @@ export function computeResidualProfile(currentScenario, selection = []) {
       const effect = ACTION_EFFECTS[actionId];
       const likelihoodCap = effect?.likelihoodCaps?.[risk.id];
       if (Number.isFinite(likelihoodCap)) likelihood = Math.min(likelihood, likelihoodCap);
+    }
+
+    // Multipath residual: emergency-access is fed by plant-side obstruction AND rear egress.
+    // One location controlled → partial residual; both controlled → full residual cap.
+    if (risk.id === 'emergency-access' && selected.has('clear-access')) {
+      const plantSide = fieldFixed.has('access-obstruction');
+      const rearSide = fieldFixed.has('rear-egress');
+      if (plantSide && rearSide) {
+        likelihood = Math.min(likelihood, 1);
+      } else if (plantSide || rearSide) {
+        likelihood = 2;
+      }
     }
 
     profile[risk.id] = {
@@ -82,7 +95,7 @@ export function computeContinuityState(currentScenario, progress = {}) {
     .some((answer) => answer?.stage === 'Treat' && answer?.correct === true);
   const mode = treatmentCommitted ? 'ACTIVE' : treatmentOpen ? 'PROJECTED' : 'BASELINE';
   const effectiveSelection = treatmentOpen ? treatmentSelection : [];
-  const residuals = computeResidualProfile(currentScenario, effectiveSelection);
+  const residuals = computeResidualProfile(currentScenario, effectiveSelection, progress);
   const minutesUsed = selected.reduce((sum, action) => sum + action.minutes, 0);
   const outputPenalty = treatmentOpen
     ? selected.reduce((sum, action) => sum + (ACTION_EFFECTS[action.id]?.outputPenalty || 0), 0)
@@ -107,7 +120,13 @@ export function computeContinuityState(currentScenario, progress = {}) {
       ? 'PROTECTED'
       : 'EXPOSED'
     : 'WITHIN LIMIT';
-  const responseReady = !discovered.has('emergency-access') || has('clear-access');
+  const fieldFixedIds = new Set(asArray(progress.fieldFixedIds));
+  const accessLocationsFixed = ['access-obstruction', 'rear-egress'].filter((id) => fieldFixedIds.has(id));
+  // Full response readiness when emergency-access not in play, or both field locations cleared,
+  // or clear-access chosen via tablet portfolio without fieldFixed entries (legacy path).
+  const responseReady = !discovered.has('emergency-access')
+    || (has('clear-access') && accessLocationsFixed.length >= 2)
+    || (has('clear-access') && accessLocationsFixed.length === 0);
   const responseWindowRemaining = Math.max(0, currentScenario.treatmentBudgetMinutes - minutesUsed);
   const approvalRequired = treatmentCommitted && highestResidual > currentScenario.acceptanceThreshold;
   const outputTargetMet = availableOutput >= 90;
