@@ -326,7 +326,7 @@ export const scenario = {
       name: 'Monitor & Review',
       prompt: 'After immediate field treatment, the flange residual risk is L2 × I5 = 10; the other residual scores fall to 5, 5, 4, 4, and 3 across the remaining pathways. What should happen next?',
       options: [
-        'Record residual risks, assign owners, obtain approval for the residual score of 10, and monitor gas readings, flange condition, vibration, electrical condition, and drain protection.',
+        'Record residual risks, assign owners, obtain approval for the residual score of 10, and monitor gas readings, flange condition, vibration, electrical condition, drain protection, access routes, and temporary hose retention.',
         'Close every risk permanently because controls have been selected.',
         'Lower the flange impact rating until its residual score falls below the threshold.',
       ],
