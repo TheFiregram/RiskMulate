@@ -280,7 +280,10 @@ function renderState(state) {
 
   const output = `${state.availableOutput}%`;
   const windowText = `${state.responseWindowRemaining}:00`;
-  const residualText = state.mode === 'BASELINE' ? '—' : String(state.highestResidual || '—');
+  // Residual is meaningful once any pathway is treated in the field or Treat stage is open.
+  const residualText = state.mode === 'BASELINE' && (state.accessLocationsFixed || 0) === 0
+    ? '—'
+    : String(state.highestResidual ?? '—');
 
   for (const panel of [fieldPanel, tabletPanel]) {
     setPanelValue(panel, 'mode', state.mode);
