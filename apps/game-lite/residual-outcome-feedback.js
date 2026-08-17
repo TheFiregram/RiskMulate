@@ -119,6 +119,9 @@ function showResidual(actionId, progress, findingId) {
     } else if (rearSide && !plantSide) {
       note =
         'Rear egress is clear, but the plant-side service route is still blocked. Residual emergency-access risk is only partially treated.';
+    } else {
+      note =
+        'Selecting clear-access records treatment intent. Residual emergency-access risk only falls after both field locations — plant-side and rear egress — are controlled.';
     }
   } else if (actionId === 'secure-temp-hose') {
     note =
