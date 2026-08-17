@@ -343,6 +343,7 @@ export const scenario = {
       'The stormwater drain changes the consequence pathway of a spill and should be treated as part of the connected control strategy.',
       'The housekeeping obstruction matters because it can delay access to controls during an incident.',
       'Multiple locations can feed one residual pathway — clearing plant-side access does not close residual risk if rear egress remains blocked.',
+      'Temporary hose connections are real initiating pathways — securing or removing them changes residual hose-disconnect likelihood before pressure is introduced.',
       'The cosmetic tank discoloration demonstrates why observations and defects should not automatically become risk-register entries.',
     ],
     counterfactual:
