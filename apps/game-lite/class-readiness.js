@@ -52,6 +52,16 @@ const CHECKS = [
     label: 'Mobile FIX control',
     test: () => Boolean(document.querySelector('#mobileFix')),
   },
+  {
+    id: 'session-reset',
+    label: 'Classroom session reset',
+    test: () => Boolean(window.RiskMulateSessionReset?.installed || document.querySelector('#sessionResetBtn')),
+  },
+  {
+    id: 'focus-guidance',
+    label: 'Focus guidance captions',
+    test: () => Boolean(window.RiskMulateFocusGuidance?.installed || document.querySelector('#focusGuidance')),
+  },
 ];
 
 function showReadyBadge(summary) {
