@@ -190,6 +190,7 @@ startButton?.addEventListener('click', () => {
 });
 
 window.addEventListener('riskmulate:progress', () => updateHud());
+window.addEventListener('riskmulate:field-repair', () => updateHud());
 window.addEventListener('storage', (event) => {
   if (event.key === saveKey) updateHud();
 });
