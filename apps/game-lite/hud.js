@@ -155,6 +155,8 @@ function updateHud() {
   if (riskCountEl) riskCountEl.textContent = `${discovered}/${riskTotal}`;
   if (evidenceCountEl) evidenceCountEl.textContent = `${evidence}/${evidenceTotal}`;
   if (scoreEl) scoreEl.textContent = String(progress.score || 0);
+  const sinkScore = document.querySelector('#score');
+  if (sinkScore) sinkScore.textContent = String(progress.score || 0);
   updateCycle(activeStage, progress);
 }
 
