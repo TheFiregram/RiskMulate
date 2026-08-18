@@ -176,32 +176,74 @@ function createTempHose(THREE, scene, materials) {
 function createRearEgress(THREE, scene, materials) {
   // Blocked rear egress near gate house — same emergency-access pathway as plant-side obstruction.
   // Teaching: clearing one route does not close residual risk if another egress is still blocked.
+  // Visual goal: unmissable silhouette when the player turns toward +Z from spawn.
   const root = makeFindingRoot(THREE, scene, 'rear-egress', 'Inspect blocked rear egress route', [-8.2, 0, 17.2]);
 
-  const pallet = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 1.2), materials.darkSteel);
-  pallet.position.set(0, 0.12, 0);
-  root.add(pallet);
+  const yellowMat = materials.warning || materials.freshWear || materials.steel;
+  const dark = materials.darkSteel || materials.steel;
+  const wood = materials.pallet || materials.steel;
 
-  for (const [x, z] of [[-0.45, -0.25], [0.45, -0.25], [-0.45, 0.3], [0.45, 0.3]]) {
-    const stack = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.45), materials.steel);
-    stack.position.set(x, 0.55, z);
+  // Base pallets — wide footprint across the egress lane
+  for (const [x, z, w] of [
+    [0, 0, 1.9],
+    [-0.15, 0.85, 1.6],
+  ]) {
+    const pallet = new THREE.Mesh(new THREE.BoxGeometry(w, 0.2, 1.15), dark);
+    pallet.position.set(x, 0.12, z);
+    root.add(pallet);
+  }
+
+  // Stacked crates — tall enough to read as a blocked walkway
+  const stacks = [
+    [-0.55, 0.7, -0.15],
+    [0.55, 0.7, -0.15],
+    [-0.55, 0.7, 0.55],
+    [0.55, 0.7, 0.55],
+    [0, 1.15, 0.2],
+  ];
+  for (const [x, h, z] of stacks) {
+    const stack = new THREE.Mesh(new THREE.BoxGeometry(0.7, h, 0.55), wood);
+    stack.position.set(x, h / 2 + 0.22, z);
     root.add(stack);
   }
 
-  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.4, 8), materials.darkSteel);
-  post.position.set(0.85, 0.7, 0.15);
-  root.add(post);
+  // Temporary barrier posts + crossbar (high-vis)
+  for (const x of [-1.05, 1.05]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 1.55, 8), dark);
+    post.position.set(x, 0.8, 0.95);
+    root.add(post);
+  }
+  const cross = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.12, 0.12), yellowMat);
+  cross.position.set(0, 1.35, 0.95);
+  root.add(cross);
+  const cross2 = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.12, 0.12), yellowMat);
+  cross2.position.set(0, 0.75, 0.95);
+  root.add(cross2);
 
-  const barrier = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.08), materials.rust);
-  barrier.position.set(0.15, 1.15, 0.15);
-  root.add(barrier);
+  // Caution panel facing spawn
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.55, 0.06), yellowMat);
+  panel.position.set(0, 1.55, 0.55);
+  root.add(panel);
 
-  const sign = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.32, 0.04), materials.freshWear);
-  sign.position.set(-0.55, 1.25, 0.4);
-  root.add(sign);
+  // Emissive marker so the finding reads in low light / fog
+  if (THREE.MeshStandardMaterial) {
+    const markerMat = new THREE.MeshStandardMaterial({
+      color: 0xc9a329,
+      emissive: 0xa07820,
+      emissiveIntensity: 0.45,
+      roughness: 0.5,
+      metalness: 0.1,
+    });
+    const marker = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), markerMat);
+    marker.position.set(0, 1.85, 0.2);
+    root.add(marker);
+  }
+
+  addHitVolume(THREE, root, [2.6, 2.0, 2.4], [0, 1.0, 0.2]);
 
   root.userData.interactable = true;
   root.userData.prompt = 'Inspect blocked rear egress';
+  root.userData.findingId = 'rear-egress';
   return root;
 }
 
