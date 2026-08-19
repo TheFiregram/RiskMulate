@@ -17,6 +17,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      # Prettier only — cargo fmt belongs in the rust job (needs rustfmt component)
       - run: npm run format:check
       - run: npm run lint --workspace @riskmulator/studio
       - run: npm run test --workspace @riskmulator/studio
