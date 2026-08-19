@@ -9,6 +9,7 @@
  */
 
 import { scenario } from './scenario.js';
+import { MONITOR_OPEN_PATHWAY_INTERVAL_S } from './gameplay-balance.js';
 import { isFindingFixed } from './field-repair.js';
 
 const saveKey = `riskmulate:${scenario.id}`;
@@ -346,7 +347,7 @@ export function installMonitorReviewLoop() {
       : [];
     const open = inspected.filter((id) => !isFindingFixed(id, progress));
 
-    if (open.length && elapsed > 45 + promptIndex * 90) {
+    if (open.length && elapsed > 45 + promptIndex * MONITOR_OPEN_PATHWAY_INTERVAL_S) {
       promptIndex += 1;
       const sample = open[0];
       showMonitorPrompt(
