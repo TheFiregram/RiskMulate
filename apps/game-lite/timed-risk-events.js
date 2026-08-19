@@ -1,6 +1,7 @@
 import { scenario } from './scenario.js';
 import { isFindingFixed, isFindingFixable } from './field-repair.js';
 import { setFlangeLeakIntensity } from './flange-escalation.js';
+import { TIMED_ESCALATION_SECONDS, TIMED_EVENT_PENALTY, BANNER_VISIBLE_MS } from './gameplay-balance.js';
 
 /**
  * Timed risk event seeds — continuous risk loop
@@ -18,7 +19,7 @@ const EVENT_SEEDS = Object.freeze([
   {
     id: 'flange-escalate',
     findingId: 'flange-leak',
-    afterSeconds: 38,
+    afterSeconds: TIMED_ESCALATION_SECONDS['flange-leak'],
     title: 'Leak pathway intensifying',
     body: 'The untreated flange release is progressing. Residual likelihood is rising while the initiating event remains free.',
     teaching:
@@ -28,7 +29,7 @@ const EVENT_SEEDS = Object.freeze([
   {
     id: 'support-fatigue-cue',
     findingId: 'support-vibration',
-    afterSeconds: 55,
+    afterSeconds: TIMED_ESCALATION_SECONDS['support-vibration'],
     title: 'Support vibration under load',
     body: 'Mechanical uncertainty on the damaged support continues. Fatigue risk remains on the process line until a hold or repair is committed.',
     teaching:
@@ -38,7 +39,7 @@ const EVENT_SEEDS = Object.freeze([
   {
     id: 'drain-exposure-cue',
     findingId: 'storm-drain',
-    afterSeconds: 70,
+    afterSeconds: TIMED_ESCALATION_SECONDS['storm-drain'],
     title: 'Stormwater route still open',
     body: 'If a spill reaches the unprotected drain, the environmental consequence pathway remains available.',
     teaching:
@@ -48,7 +49,7 @@ const EVENT_SEEDS = Object.freeze([
   {
     id: 'access-blocked-cue',
     findingId: 'access-obstruction',
-    afterSeconds: 85,
+    afterSeconds: TIMED_ESCALATION_SECONDS['access-obstruction'],
     title: 'Emergency route still obstructed',
     body: 'Response time against a developing event is still degraded while the service route is blocked.',
     teaching:
@@ -58,7 +59,7 @@ const EVENT_SEEDS = Object.freeze([
   {
     id: 'electrical-live-cue',
     findingId: 'electrical-panel',
-    afterSeconds: 100,
+    afterSeconds: TIMED_ESCALATION_SECONDS['electrical-panel'],
     title: 'Energized fault pathway open',
     body: 'Without lockout, the electrical initiating pathway remains available to personnel and equipment.',
     teaching:
@@ -68,7 +69,7 @@ const EVENT_SEEDS = Object.freeze([
   {
     id: 'escalate-temp-hose',
     findingId: 'temp-hose',
-    afterSeconds: 115,
+    afterSeconds: TIMED_ESCALATION_SECONDS['temp-hose'],
     title: 'Temporary connection still live',
     body: 'The unsecured transfer hose remains in service. Under vibration or pressure rise, disconnect becomes more likely.',
     teaching:
@@ -78,7 +79,7 @@ const EVENT_SEEDS = Object.freeze([
   {
     id: 'rear-egress-cue',
     findingId: 'rear-egress',
-    afterSeconds: 95,
+    afterSeconds: TIMED_ESCALATION_SECONDS['rear-egress'],
     title: 'Rear egress still blocked',
     body: 'Secondary emergency egress near the gate remains obstructed. Residual response-time risk stays elevated.',
     teaching:
@@ -117,7 +118,7 @@ function showBanner(seed) {
   showBanner._timer = setTimeout(() => {
     el.classList.remove('show');
     if (!el.classList.contains('show')) delete document.documentElement.dataset.timedRiskBanner;
-  }, 6200);
+  }, BANNER_VISIBLE_MS);
 }
 
 function injectBannerStyle() {
@@ -238,7 +239,7 @@ export function installTimedRiskEvents() {
 
       try {
         const next = { ...progress };
-        next.score = Math.max(0, (next.score || 0) - 8);
+        next.score = Math.max(0, (next.score || 0) - TIMED_EVENT_PENALTY);
         next.timedEventIds = Array.isArray(next.timedEventIds)
           ? [...new Set([...next.timedEventIds, seed.id])]
           : [seed.id];
