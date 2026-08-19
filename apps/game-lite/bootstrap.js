@@ -1,4 +1,11 @@
+/**
+ * Bootstrap (engine v2)
+ * ---------------------
+ * Thin entry: declare installers, hand control to core/Game orchestrator.
+ * Soft-fail policy preserved — optional layers cannot black-screen mobile.
+ */
 import * as THREE from 'three';
+import { game } from './core/Game.js';
 import { installLegacyBuildingWallUpgrade } from './buildingWalls.js';
 import { installContinuitySimulation } from './continuity-simulation.js';
 import { installFirstPersonGloveAssets } from './first-person-glove-assets.js';
@@ -34,127 +41,74 @@ import { installScenarioDebrief } from './scenario-debrief.js';
 import { installClassReadiness } from './class-readiness.js';
 import { installFlangeFindingId } from './flange-finding-id.js';
 import { installSessionReset } from './session-reset.js';
-import { scenario as riskmulateScenario } from './scenario.js';
 import { installUtilityStackDetail } from './utility-stack-detail.js';
 import { installWallSurfaceSwap } from './wallSurfaceSwap.js';
 
-/**
- * Bootstrap
- * ---------
- * Critical path must remain playable even if an optional layer fails.
- * Optional installers are wrapped so a broken module cannot black-screen mobile.
- */
+const mobileLite = Boolean(getMobilePerformanceProfile?.()?.lite);
 
-function showBootError(message) {
-  try {
-    let el = document.querySelector('#riskmulate-boot-error');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'riskmulate-boot-error';
-      el.setAttribute('role', 'alert');
-      el.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:12px 14px;border-radius:10px;background:rgba(40,10,10,0.92);color:#f2d6d6;font:12px/1.4 system-ui;border:1px solid rgba(220,120,120,0.45);';
-      document.body.appendChild(el);
+/** Layers that may run before native scene is ready. */
+const beforeScene = [
+  { label: 'walls', fn: () => installLegacyBuildingWallUpgrade(THREE) },
+  { label: 'wall-surface', fn: () => installWallSurfaceSwap(THREE) },
+  { label: 'nav-bridge', fn: () => installNavigationBridge() },
+  { label: 'continuity', fn: () => installContinuitySimulation() },
+  { label: 'plant-response', fn: () => installPlantResponseEffects() },
+  { label: 'field-repair', fn: () => installFieldRepair() },
+  { label: 'field-fix', fn: () => installFieldFixInteraction() },
+  { label: 'timed-events', fn: () => installTimedRiskEvents() },
+  { label: 'flange-escalation', fn: () => installFlangeEscalation() },
+  { label: 'finding-escalation', fn: () => installFindingEscalation() },
+  { label: 'residual-feedback', fn: () => installResidualOutcomeFeedback() },
+  { label: 'mobile-joystick', fn: () => installMobileJoystick() },
+  { label: 'production-runtime', fn: () => installProductionRuntime(THREE) },
+  { label: 'production-flange', fn: () => installProductionFlangePack(THREE) },
+  { label: 'perf-diagnostics', fn: () => installPerformanceDiagnostics(THREE) },
+  ...(mobileLite
+    ? [{ label: 'mobile-detail', fn: () => installMobileAuthoredDetailLite(THREE) }]
+    : [
+        { label: 'vessel-detail', fn: () => installForegroundVesselDetail(THREE) },
+        { label: 'overhead-bridge', fn: () => installOverheadProcessBridgeDetail(THREE) },
+        { label: 'pipe-rack', fn: () => installSidePipeRackDetail(THREE) },
+        { label: 'utility-stack', fn: () => installUtilityStackDetail(THREE) },
+      ]),
+  { label: 'fp-hands', fn: () => installFirstPersonHands(THREE) },
+  { label: 'high-vis-gloves', fn: () => installHighVisGloves() },
+  { label: 'glove-assets', fn: () => installFirstPersonGloveAssets(THREE) },
+  { label: 'industrial-audio', fn: () => installIndustrialAudio() },
+  { label: 'tablet-viewmodel', fn: () => installTabletHeldViewmodel() },
+];
+
+let playerPhysics = null;
+beforeScene.push({
+  label: 'rapier-player',
+  fn: () => {
+    playerPhysics = installRapierPlayerController(THREE);
+    return playerPhysics;
+  },
+});
+
+/** Layers that require RiskMulateScene (after gameReady). */
+const afterScene = [
+  { label: 'rear-gate', fn: () => installRearGateEnvironment() },
+  { label: 'billboard', fn: () => installRiskMulateBillboard() },
+  { label: 'stick-zone-reset', fn: () => installStickZoneReset() },
+  { label: 'focus-guidance', fn: () => installFocusGuidance() },
+  { label: 'monitor-review', fn: () => installMonitorReviewLoop() },
+  { label: 'scenario-debrief', fn: () => installScenarioDebrief() },
+  { label: 'class-readiness', fn: () => installClassReadiness() },
+  { label: 'flange-finding-id', fn: () => installFlangeFindingId() },
+  { label: 'session-reset', fn: () => installSessionReset() },
+  { label: 'input-polish', fn: () => installInputPolish() },
+];
+
+await game.start({
+  beforeScene,
+  afterScene,
+  afterAll: () => {
+    try {
+      playerPhysics?.finishCapture?.();
+    } catch (error) {
+      console.warn('[RiskMulate] physics capture finish failed', error);
     }
-    el.textContent = message;
-  } catch {
-    /* ignore */
-  }
-  console.error('[RiskMulate]', message);
-}
-
-function softInstall(label, fn) {
-  try {
-    return fn();
-  } catch (error) {
-    showBootError(`Optional layer failed: ${label}. Core play continues.`);
-    console.warn(`[RiskMulate] ${label} install failed`, error);
-    return null;
-  }
-}
-
-window.addEventListener('error', (event) => {
-  const msg = event?.error?.message || event?.message || 'Unknown runtime error';
-  if (String(msg).includes('Script error')) return;
-  showBootError(`Runtime: ${msg}`);
+  },
 });
-window.addEventListener('unhandledrejection', (event) => {
-  const reason = event?.reason;
-  const msg = reason?.message || String(reason || 'unhandled rejection');
-  showBootError(`Async: ${msg}`);
-});
-
-window.RiskMulateScenario = riskmulateScenario;
-
-const { mobileLite } = getMobilePerformanceProfile();
-
-function installInputOnboarding() {
-  const controls = document.querySelector('.start-controls');
-  const paused = document.getElementById('paused');
-  if (!controls) return;
-
-  if (mobileLite) {
-    controls.innerHTML = '<kbd>LEFT</kbd> MOVE <kbd>RIGHT</kbd> LOOK <kbd>INSPECT</kbd> EVIDENCE <kbd>FIX</kbd> FIELD CONTROL <kbd>TABLET</kbd> RISK WORK';
-    if (paused) paused.textContent = 'Touch the scene to resume look control.';
-    controls.setAttribute('aria-label', 'Touch controls: left half to move (stick follows finger), right to look, Inspect for evidence, Fix for field control at equipment, Tablet for risk work');
-    return;
-  }
-
-  controls.innerHTML = '<kbd>WASD</kbd> MOVE <kbd>E</kbd> INSPECT <kbd>F</kbd> FIELD FIX <kbd>TAB</kbd> TABLET <kbd>SHIFT</kbd> SPRINT';
-  controls.setAttribute('aria-label', 'Keyboard controls: WASD move, E inspect, F field fix at equipment, Tab tablet, Shift sprint');
-}
-
-installInputOnboarding();
-installNavigationBridge(THREE);
-installLegacyBuildingWallUpgrade(THREE);
-installWallSurfaceSwap(THREE);
-installContinuitySimulation();
-softInstall('plant-response', () => installPlantResponseEffects(THREE));
-softInstall('field-repair', () => installFieldRepair());
-softInstall('field-fix', () => installFieldFixInteraction());
-softInstall('timed-events', () => installTimedRiskEvents());
-softInstall('flange-escalation', () => installFlangeEscalation());
-softInstall('finding-escalation', () => installFindingEscalation());
-softInstall('residual-feedback', () => installResidualOutcomeFeedback());
-softInstall('mobile-joystick', () => installMobileJoystick());
-softInstall('production-runtime', () => installProductionRuntime(THREE));
-softInstall('production-flange', () => installProductionFlangePack(THREE));
-softInstall('perf-diagnostics', () => installPerformanceDiagnostics(THREE));
-
-if (mobileLite) {
-  softInstall('mobile-detail', () => installMobileAuthoredDetailLite(THREE));
-} else {
-  softInstall('vessel-detail', () => installForegroundVesselDetail(THREE));
-  softInstall('overhead-bridge', () => installOverheadProcessBridgeDetail(THREE));
-  softInstall('pipe-rack', () => installSidePipeRackDetail(THREE));
-  softInstall('utility-stack', () => installUtilityStackDetail(THREE));
-}
-
-softInstall('fp-hands', () => installFirstPersonHands(THREE));
-softInstall('high-vis-gloves', () => installHighVisGloves());
-softInstall('glove-assets', () => installFirstPersonGloveAssets(THREE));
-softInstall('industrial-audio', () => installIndustrialAudio());
-softInstall('tablet-viewmodel', () => installTabletHeldViewmodel());
-const playerPhysics = installRapierPlayerController(THREE);
-try {
-  const gameModule = await import('./game.js');
-  if (gameModule?.gameReady) await gameModule.gameReady;
-} catch (error) {
-  showBootError('Core game failed to load. Hard-refresh, or clear site data for this origin.');
-  console.error('[RiskMulate] game.js import failed', error);
-  throw error;
-}
-softInstall('rear-gate', () => installRearGateEnvironment());
-softInstall('billboard', () => installRiskMulateBillboard());
-softInstall('stick-zone-reset', () => installStickZoneReset());
-softInstall('focus-guidance', () => installFocusGuidance());
-softInstall('monitor-review', () => installMonitorReviewLoop());
-softInstall('scenario-debrief', () => installScenarioDebrief());
-softInstall('class-readiness', () => installClassReadiness());
-softInstall('flange-finding-id', () => installFlangeFindingId());
-softInstall('session-reset', () => installSessionReset());
-softInstall('input-polish', () => installInputPolish());
-try {
-  playerPhysics.finishCapture();
-} catch (error) {
-  console.warn('[RiskMulate] physics capture finish failed', error);
-}
