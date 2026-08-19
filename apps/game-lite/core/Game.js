@@ -5,28 +5,28 @@
  * Bridges legacy window CustomEvents ↔ EventBus so existing modules keep working.
  */
 
-import { eventBus } from './EventBus.js';
-import { Events } from './Events.js';
-import { gameState } from './GameState.js';
-import { gameReady } from '../game.js';
-import { scenario as riskmulateScenario } from '../scenario.js';
+import { eventBus } from "./EventBus.js";
+import { Events } from "./Events.js";
+import { gameState } from "./GameState.js";
+import { gameReady } from "../game.js";
+import { scenario as riskmulateScenario } from "../scenario.js";
 
 function showBootError(message) {
   try {
-    let el = document.querySelector('#riskmulate-boot-error');
+    let el = document.querySelector("#riskmulate-boot-error");
     if (!el) {
-      el = document.createElement('div');
-      el.id = 'riskmulate-boot-error';
-      el.setAttribute('role', 'alert');
+      el = document.createElement("div");
+      el.id = "riskmulate-boot-error";
+      el.setAttribute("role", "alert");
       el.style.cssText =
-        'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:12px 14px;border-radius:10px;background:rgba(40,10,10,0.92);color:#f2d6d6;font:12px/1.4 system-ui;border:1px solid rgba(220,120,120,0.45);';
+        "position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:12px 14px;border-radius:10px;background:rgba(40,10,10,0.92);color:#f2d6d6;font:12px/1.4 system-ui;border:1px solid rgba(220,120,120,0.45);";
       document.body.appendChild(el);
     }
     el.textContent = message;
   } catch {
     /* ignore */
   }
-  console.error('[RiskMulate]', message);
+  console.error("[RiskMulate]", message);
 }
 
 function softInstall(label, fn) {
@@ -55,14 +55,14 @@ function bridgeLegacyEvents() {
   }
 
   eventBus.on(Events.GAME_READY, (data) => {
-    window.dispatchEvent(new CustomEvent('riskmulate:engine-ready', { detail: data }));
+    window.dispatchEvent(new CustomEvent("riskmulate:engine-ready", { detail: data }));
   });
 }
 
 function runInstallers(list = []) {
   const results = {};
   for (const item of list) {
-    if (!item || typeof item.fn !== 'function') continue;
+    if (!item || typeof item.fn !== "function") continue;
     results[item.label] = softInstall(item.label, item.fn);
   }
   return results;
@@ -92,14 +92,14 @@ export class Game {
     bridgeLegacyEvents();
     eventBus.emit(Events.GAME_BOOT, { engine: 2 });
 
-    window.addEventListener('error', (event) => {
-      const msg = event?.error?.message || event?.message || 'Unknown runtime error';
-      if (String(msg).includes('Script error')) return;
+    window.addEventListener("error", (event) => {
+      const msg = event?.error?.message || event?.message || "Unknown runtime error";
+      if (String(msg).includes("Script error")) return;
       showBootError(`Runtime: ${msg}`);
     });
-    window.addEventListener('unhandledrejection', (event) => {
+    window.addEventListener("unhandledrejection", (event) => {
       const reason = event?.reason;
-      const msg = reason?.message || String(reason || 'Unhandled rejection');
+      const msg = reason?.message || String(reason || "Unhandled rejection");
       showBootError(`Async: ${msg}`);
     });
 
@@ -117,24 +117,24 @@ export class Game {
         engine: 2,
       });
     } catch (error) {
-      showBootError('Core scene failed to load. Hard-refresh or report a boot failure.');
-      console.error('[RiskMulate] gameReady failed', error);
+      showBootError("Core scene failed to load. Hard-refresh or report a boot failure.");
+      console.error("[RiskMulate] gameReady failed", error);
       return this;
     }
 
     runInstallers(after);
 
-    if (typeof installers.afterAll === 'function') {
+    if (typeof installers.afterAll === "function") {
       try {
         installers.afterAll();
       } catch (error) {
-        console.warn('[RiskMulate] afterAll failed', error);
+        console.warn("[RiskMulate] afterAll failed", error);
       }
     }
 
-    const startButton = document.querySelector('#startButton');
+    const startButton = document.querySelector("#startButton");
     startButton?.addEventListener(
-      'click',
+      "click",
       () => {
         gameState.session.started = true;
         eventBus.emit(Events.GAME_START, { at: performance.now() });
