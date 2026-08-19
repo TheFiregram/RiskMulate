@@ -1,3 +1,5 @@
+import { FOCUS_GUIDANCE_MS } from './gameplay-balance.js';
+
 /**
  * Focus guidance (captions + optional voice)
  * ----------------------------------------
@@ -12,34 +14,34 @@
 const GUIDANCE = Object.freeze([
   {
     id: 'spawn-orient',
-    afterMs: 2200,
+    afterMs: FOCUS_GUIDANCE_MS['spawn-orient'],
     caption: 'Site identity is behind you. Turn around, read the RiskMulate board, then enter the plant.',
     voice: 'Site identity is behind you. Turn around, read the RiskMulate board, then enter the plant.',
   },
   {
     id: 'enter-plant',
-    afterMs: 12000,
+    afterMs: FOCUS_GUIDANCE_MS['enter-plant'],
     caption: 'Walk toward the orange process piping. Look for wet staining at flange joints — that is material evidence, not noise.',
     voice: 'Walk toward the orange process piping. Look for wet staining at flange joints.',
     unlessInspected: ['flange-leak'],
   },
   {
     id: 'inspect-flange',
-    afterMs: 26000,
+    afterMs: FOCUS_GUIDANCE_MS['inspect-flange'],
     caption: 'Inspect the leaking flange. Record evidence, return to the equipment, then FIX in the field — not on the tablet alone.',
     voice: 'Inspect the leaking flange. Record evidence, then apply the field fix at the equipment.',
     unlessInspected: ['flange-leak'],
   },
   {
     id: 'broaden-walkdown',
-    afterMs: 48000,
+    afterMs: FOCUS_GUIDANCE_MS['broaden-walkdown'],
     caption: 'Continue the walkdown: supports, electrical entry, drain route, access paths, rear egress, and temporary hose connections.',
     voice: 'Continue the walkdown. Check supports, electrical entry, the drain route, access path, and temporary connections.',
     requireInspected: ['flange-leak'],
   },
   {
     id: 'temp-hose-prompt',
-    afterMs: 70000,
+    afterMs: FOCUS_GUIDANCE_MS['temp-hose-prompt'],
     caption: 'Temporary transfer hoses introduce disconnect risk under pressure. Inspect and secure them before startup.',
     voice: 'Temporary transfer hoses introduce disconnect risk under pressure. Inspect and secure them before startup.',
     unlessInspected: ['temp-hose'],
@@ -47,7 +49,7 @@ const GUIDANCE = Object.freeze([
   },
   {
     id: 'rear-egress-prompt',
-    afterMs: 82000,
+    afterMs: FOCUS_GUIDANCE_MS['rear-egress-prompt'],
     caption: 'Turn toward the rear gate. A second egress obstruction can keep residual emergency-access risk open even after the plant-side route is cleared.',
     voice: 'Check the rear gate egress. One cleared path is not enough if a second route remains blocked.',
     unlessInspected: ['rear-egress'],
@@ -63,7 +65,7 @@ const GUIDANCE = Object.freeze([
   },
   {
     id: 'monitor-review',
-    afterMs: 95000,
+    afterMs: FOCUS_GUIDANCE_MS['monitor-review'],
     caption: 'Untreated findings escalate over time. Monitor and review is continuous — residual risk changes when you treat, not when you close a checklist.',
     voice: 'Untreated findings escalate over time. Monitor and review is continuous.',
   },
