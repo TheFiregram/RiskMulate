@@ -4,7 +4,7 @@
  * this object mirrors live values for systems that prefer synchronous reads.
  */
 
-import { TREATMENT_BUDGET_MINUTES, FIELD_FIX_SCORE } from '../gameplay-balance.js';
+import { TREATMENT_BUDGET_MINUTES, FIELD_FIX_SCORE } from "../gameplay-balance.js";
 
 function emptyProgress() {
   return {
@@ -26,7 +26,7 @@ class GameState {
       started: false,
       paused: false,
       ready: false,
-      engine: 'v2',
+      engine: "v2",
     };
     this.progress = emptyProgress();
     this.config = {
@@ -43,16 +43,16 @@ class GameState {
   }
 
   applyProgress(detail = {}) {
-    if (!detail || typeof detail !== 'object') return this.progress;
+    if (!detail || typeof detail !== "object") return this.progress;
     const next = { ...this.progress, ...detail };
     // Normalize arrays
     for (const key of [
-      'inspectedFindingIds',
-      'evidenceIds',
-      'fieldFixedIds',
-      'treatmentSelection',
-      'discoveredRiskIds',
-      'timedEventIds',
+      "inspectedFindingIds",
+      "evidenceIds",
+      "fieldFixedIds",
+      "treatmentSelection",
+      "discoveredRiskIds",
+      "timedEventIds",
     ]) {
       if (Array.isArray(detail[key])) next[key] = [...detail[key]];
     }
