@@ -1,4 +1,5 @@
 import { scenario } from './scenario.js';
+import { FIELD_FIX_SCORE } from './gameplay-balance.js';
 
 /**
  * Field repair layer
@@ -140,7 +141,7 @@ export function applyFieldRepair(findingId) {
   if (!progress.treatmentSelection.includes(repair.actionId)) {
     progress.treatmentSelection.push(repair.actionId);
   }
-  progress.score = Math.min(scenario.maxScore || 760, (progress.score || 0) + 35);
+  progress.score = Math.min(scenario.maxScore || 760, (progress.score || 0) + FIELD_FIX_SCORE);
   progress.found = (progress.discoveredRiskIds || []).length > 0;
 
   writeProgress(progress);
