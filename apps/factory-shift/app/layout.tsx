@@ -1,11 +1,26 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Factory Shift",
-  description: "A first-person factory decision simulation.",
+  title: "RiskMulate | Factory Shift",
+  description: "A playable first-person operational risk simulation built around evidence, trade-offs, treatment, and residual risk.",
+  applicationName: "RiskMulate",
+  keywords: ["risk management", "factory simulation", "ISO 31000", "training game"],
   icons: { icon: "/favicon.svg" },
-  other: { "codex-preview": "development" },
+  openGraph: {
+    title: "RiskMulate | Factory Shift",
+    description: "Inspect a failing process pump, reconcile conflicting evidence, and defend an operational response.",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#071011",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -12,12 +12,20 @@ import { createGeneratedAssetLibrary } from "./generated-assets";
 import { buildIndustrialPipeSystem, PIPE_VALVE_MOUNTS } from "./industrial-pipes";
 import { EVIDENCE_POINTS, type DecisionId, type EvidenceId, type ScenarioPhase } from "./scenario-data";
 
+export type TouchControls = {
+  forward: number;
+  side: number;
+  yawDelta: number;
+  pitchDelta: number;
+};
+
 type FactorySceneProps = {
   started: boolean;
   tabletOpen: boolean;
   scenarioPhase: ScenarioPhase;
   captured: EvidenceId[];
   decision: DecisionId | null;
+  touchControls: RefObject<TouchControls>;
   onNearChange: (near: boolean, distance: number) => void;
   onTargetChange: (target: EvidenceId | null, distance: number) => void;
 };
@@ -361,6 +369,7 @@ export default function FactoryScene({
   scenarioPhase,
   captured,
   decision,
+  touchControls,
   onNearChange,
   onTargetChange,
 }: FactorySceneProps) {
@@ -401,7 +410,8 @@ export default function FactoryScene({
     camera.position.set(0, 1.72, 15.5);
     camera.rotation.order = "YXZ";
 
-    const renderPixelRatio = Math.min(window.devicePixelRatio, 1.4);
+    const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+    const renderPixelRatio = Math.min(window.devicePixelRatio, coarsePointer ? 1.1 : 1.4);
     renderer.setPixelRatio(renderPixelRatio);
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.shadowMap.enabled = true;
@@ -414,7 +424,12 @@ export default function FactoryScene({
 
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.28, 0.55, 0.76);
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(mount.clientWidth, mount.clientHeight),
+      coarsePointer ? 0.16 : 0.28,
+      0.55,
+      0.76,
+    );
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
 
@@ -930,8 +945,23 @@ export default function FactoryScene({
       last = now;
       const elapsed = clock.getElapsedTime();
       if (startedRef.current && !tabletRef.current) {
-        const forwardAmount = Number(keys.has("KeyW")) - Number(keys.has("KeyS"));
-        const sideAmount = Number(keys.has("KeyD")) - Number(keys.has("KeyA"));
+        const touch = touchControls.current;
+        if (touch) {
+          yaw += touch.yawDelta;
+          pitch = THREE.MathUtils.clamp(pitch + touch.pitchDelta, -1.08, 1.08);
+          touch.yawDelta = 0;
+          touch.pitchDelta = 0;
+        }
+        const forwardAmount = THREE.MathUtils.clamp(
+          Number(keys.has("KeyW")) - Number(keys.has("KeyS")) + (touch?.forward ?? 0),
+          -1,
+          1,
+        );
+        const sideAmount = THREE.MathUtils.clamp(
+          Number(keys.has("KeyD")) - Number(keys.has("KeyA")) + (touch?.side ?? 0),
+          -1,
+          1,
+        );
         const moving = forwardAmount !== 0 || sideAmount !== 0;
         const speed = keys.has("ShiftLeft") ? 6.7 : 3.9;
         const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
@@ -1097,7 +1127,7 @@ export default function FactoryScene({
       });
       assetLibrary.dispose();
     };
-  }, [onNearChange, onTargetChange]);
+  }, [onNearChange, onTargetChange, touchControls]);
 
   return <div className="factory-canvas" ref={mountRef} />;
 }

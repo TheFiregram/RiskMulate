@@ -15,6 +15,8 @@
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--ink); }
 body { color: var(--text); font-family: Arial, Helvetica, sans-serif; }
 button { color: inherit; font: inherit; }
+button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+.touch-key, .touch-control-note, .touch-controls { display: none; }
 
 .experience-shell { position: relative; width: 100vw; height: 100svh; overflow: hidden; background: #071012; isolation: isolate; }
 .asset-credit { position: absolute; z-index: 8; right: 18px; bottom: 16px; display: flex; gap: 5px; color: rgba(216,229,225,.42); font-size: 7px; letter-spacing: .07em; text-transform: uppercase; }
@@ -406,4 +408,80 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
   .outcome-sequence { bottom: 32px; }
   .outcome-sequence > div { grid-template-columns: 1fr; }
   .outcome-sequence > div span { min-height: 38px; }
+}
+
+@media (pointer: coarse) and (max-width: 900px) {
+  .asset-credit, .control-grid, .desktop-key, .tablet-toggle, .floor-tip { display: none; }
+  .touch-key { display: inline-flex; }
+  .touch-control-note { display: block; width: min(330px,100%); margin-top: 17px; color: #82918e; font-size: 10px; letter-spacing: .05em; }
+  .touch-controls { position: absolute; z-index: 8; inset: 0; display: block; pointer-events: none; }
+  .touch-look-zone { position: absolute; z-index: 1; top: 70px; right: 0; bottom: 0; width: 58%; pointer-events: auto; touch-action: none; }
+  .touch-look-zone > span { position: absolute; right: 24px; top: 50%; color: rgba(221,234,230,.34); font: 700 7px "Courier New",monospace; letter-spacing: .13em; transform: rotate(-90deg); transform-origin: right center; }
+  .touch-joystick { position: absolute; z-index: 2; left: max(22px,calc(env(safe-area-inset-left) + 14px)); bottom: max(26px,calc(env(safe-area-inset-bottom) + 18px)); width: 108px; height: 108px; border: 1px solid rgba(226,238,234,.22); border-radius: 50%; background: radial-gradient(circle,rgba(12,28,27,.34),rgba(5,13,14,.63)); box-shadow: inset 0 0 0 17px rgba(230,239,236,.025),0 12px 34px rgba(0,0,0,.24); pointer-events: auto; touch-action: none; }
+  .touch-joystick > i { position: absolute; inset: 14px; border: 1px dashed rgba(228,239,235,.12); border-radius: 50%; }
+  .touch-joystick > span { position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; margin: -21px; border: 1px solid rgba(241,162,42,.62); border-radius: 50%; background: rgba(15,26,25,.92); box-shadow: 0 8px 18px rgba(0,0,0,.4),inset 0 0 12px rgba(241,162,42,.12); will-change: transform; }
+  .touch-actions { position: absolute; z-index: 3; right: max(17px,calc(env(safe-area-inset-right) + 12px)); bottom: max(24px,calc(env(safe-area-inset-bottom) + 16px)); display: flex; gap: 9px; pointer-events: auto; }
+  .touch-actions button { width: 76px; min-height: 58px; padding: 8px 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(223,237,232,.18); background: rgba(5,14,14,.82); backdrop-filter: blur(8px); touch-action: manipulation; }
+  .touch-actions button:first-child { border-color: rgba(241,162,42,.42); }
+  .touch-actions button:disabled { opacity: .48; }
+  .touch-actions b { color: #e5efec; font-size: 8px; letter-spacing: .09em; }
+  .touch-actions small { margin-top: 4px; color: #80928d; font-size: 6px; letter-spacing: .08em; }
+  .world-prompt { bottom: 116px; max-width: calc(100vw - 34px); }
+}
+
+@media (max-width: 600px) {
+  .start-screen { width: 100%; padding: max(24px,env(safe-area-inset-top)) 22px max(22px,env(safe-area-inset-bottom)); justify-content: center; background: linear-gradient(90deg,rgba(4,10,11,.96),rgba(4,10,11,.88)); }
+  .start-meta { margin-bottom: 17px; gap: 10px; font-size: 7px; }
+  .start-meta span { padding-right: 10px; }
+  .start-kicker { font-size: 8px; letter-spacing: .14em; }
+  .start-screen h1 { margin: 17px 0 16px; font-size: clamp(50px,18vw,68px); }
+  .start-screen > p { margin-bottom: 21px; font-size: 12px; line-height: 1.52; }
+  .primary-action { min-height: 52px; }
+  .location-stamp { margin-top: 20px; font-size: 6px; }
+  .hud-top { top: max(18px,env(safe-area-inset-top)); left: 15px; right: 15px; }
+  .site-id small, .weather-readout { display: none; }
+  .site-id b { font-size: 9px; }
+  .shift-clock b { font-size: 19px; }
+  .shift-clock small { font-size: 6px; }
+  .objective-panel { left: 15px; top: 76px; width: min(230px,calc(100vw - 30px)); padding: 12px 14px; }
+  .objective-panel strong { font-size: 11px; }
+  .objective-panel > span { font-size: 8px; }
+  .tablet-rig { width: 100vw; height: calc(100svh - 2px); bottom: -15px; }
+  .tablet-case { inset: 0 4px 31px; padding: 5px; border-width: 6px; border-radius: 18px; }
+  .tablet-case::before, .tablet-case::after, .forearm, .glove { display: none; }
+  .tablet-screen { border-radius: 10px; }
+  .tablet-status { height: 42px; padding: 0 11px; }
+  .brand-mark { font-size: 7px; letter-spacing: .11em; }
+  .brand-mark > span { width: 20px; height: 20px; margin-right: 6px; font-size: 11px; }
+  .tablet-status > div:last-child { gap: 8px; font-size: 7px; }
+  .tablet-status > div:last-child span:nth-child(2) { display: none; }
+  .tablet-body { height: calc(100% - 42px); grid-template-columns: 54px 1fr; }
+  .app-rail { gap: 2px; padding: 9px 4px; }
+  .app-rail button { min-height: 51px; padding: 5px 2px; }
+  .app-rail button span { display: none; }
+  .app-rail i { width: 27px; height: 27px; font-size: 8px; }
+  .app-rail b { right: 4px; top: 1px; }
+  .app-window { padding: 14px 12px 28px; }
+  .window-heading { align-items: flex-start; gap: 8px; padding-bottom: 13px; }
+  .window-heading h2 { font-size: 20px; }
+  .priority-tag, .neutral-tag, .capture-count { padding: 6px; font-size: 7px; white-space: nowrap; }
+  .briefing-grid { margin-top: 12px; }
+  .brief-card { padding: 14px; }
+  .lead-card > p { font-size: 11px; }
+  .evidence-list article { grid-template-columns: 38px 1fr 18px; padding: 10px; }
+  .decision-context { grid-template-columns: auto 1fr; padding: 8px; }
+  .decision-card header { height: 52px; }
+  .decision-submit { align-items: stretch; flex-direction: column; }
+  .decision-submit button { width: 100%; }
+  .debrief-verdict h3 { font-size: 12px; }
+  .causal-chain article { padding: 10px; }
+  .tablet-close { right: 10px; bottom: 3px; min-height: 30px; padding: 7px 12px; }
+  .outcome-sequence { width: calc(100vw - 28px); bottom: 18px; padding: 14px; }
+}
+
+@media (max-height: 560px) and (max-width: 900px) {
+  .start-meta, .location-stamp { display: none; }
+  .start-screen h1 { margin: 12px 0; font-size: 50px; }
+  .start-screen > p { margin-bottom: 14px; }
+  .touch-control-note { margin-top: 10px; }
 }

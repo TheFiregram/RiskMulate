@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import FactoryScene from "./factory-scene";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import FactoryScene, { type TouchControls } from "./factory-scene";
 import {
   DECISIONS,
   EVIDENCE_POINTS,
@@ -49,6 +56,12 @@ export default function FactoryExperience() {
   const phaseRef = useRef(phase);
   const focusedRef = useRef(focusedTarget);
   const capturedRef = useRef(captured);
+  const touchControlsRef = useRef<TouchControls>({ forward: 0, side: 0, yawDelta: 0, pitchDelta: 0 });
+  const movePointerRef = useRef<number | null>(null);
+  const moveOriginRef = useRef({ x: 0, y: 0 });
+  const lookPointerRef = useRef<number | null>(null);
+  const lookPositionRef = useRef({ x: 0, y: 0 });
+  const joystickKnobRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => { startedRef.current = started; }, [started]);
   useEffect(() => { tabletRef.current = tabletOpen; }, [tabletOpen]);
@@ -82,6 +95,70 @@ export default function FactoryExperience() {
     setCaptured(next);
     setLastCapture(target);
   }, []);
+
+  const resetTouchMovement = useCallback(() => {
+    movePointerRef.current = null;
+    touchControlsRef.current.forward = 0;
+    touchControlsRef.current.side = 0;
+    if (joystickKnobRef.current) joystickKnobRef.current.style.transform = "translate(0px, 0px)";
+  }, []);
+
+  const handleMoveStart = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    movePointerRef.current = event.pointerId;
+    moveOriginRef.current = { x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const handleMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (movePointerRef.current !== event.pointerId) return;
+    event.preventDefault();
+    const maxDistance = 38;
+    const rawX = event.clientX - moveOriginRef.current.x;
+    const rawY = event.clientY - moveOriginRef.current.y;
+    const length = Math.hypot(rawX, rawY) || 1;
+    const scale = Math.min(1, maxDistance / length);
+    const x = rawX * scale;
+    const y = rawY * scale;
+    touchControlsRef.current.side = x / maxDistance;
+    touchControlsRef.current.forward = -y / maxDistance;
+    if (joystickKnobRef.current) joystickKnobRef.current.style.transform = `translate(${x}px, ${y}px)`;
+  }, []);
+
+  const handleMoveEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (movePointerRef.current !== event.pointerId) return;
+    resetTouchMovement();
+  }, [resetTouchMovement]);
+
+  const handleLookStart = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    lookPointerRef.current = event.pointerId;
+    lookPositionRef.current = { x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const handleLook = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (lookPointerRef.current !== event.pointerId) return;
+    event.preventDefault();
+    const deltaX = event.clientX - lookPositionRef.current.x;
+    const deltaY = event.clientY - lookPositionRef.current.y;
+    lookPositionRef.current = { x: event.clientX, y: event.clientY };
+    touchControlsRef.current.yawDelta -= deltaX * 0.0042;
+    touchControlsRef.current.pitchDelta -= deltaY * 0.0036;
+  }, []);
+
+  const handleLookEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (lookPointerRef.current !== event.pointerId) return;
+    lookPointerRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!tabletOpen && phase === "inspection") return;
+    resetTouchMovement();
+    lookPointerRef.current = null;
+    touchControlsRef.current.yawDelta = 0;
+    touchControlsRef.current.pitchDelta = 0;
+  }, [phase, resetTouchMovement, tabletOpen]);
 
   useEffect(() => {
     if (!lastCapture) return;
@@ -205,6 +282,7 @@ export default function FactoryExperience() {
         scenarioPhase={phase}
         captured={captured}
         decision={confirmedChoice}
+        touchControls={touchControlsRef}
         onNearChange={onNearChange}
         onTargetChange={onTargetChange}
       />
@@ -224,7 +302,7 @@ export default function FactoryExperience() {
       {!started && (
         <section className="start-screen">
           <div className="start-meta"><span>06:42</span><span>18°C</span><span>DAWN SHIFT</span></div>
-          <div className="start-kicker"><span /> TRAINING SIMULATION · PLAYABLE BUILD 03</div>
+          <div className="start-kicker"><span /> RISKMULATE · SCENARIO 01</div>
           <h1>FACTORY<br /><em>SHIFT</em></h1>
           <p>East filtration is twelve minutes from restart. Pump P-204 is running hot. Read the floor, weigh conflicting evidence, and make the call.</p>
           <button className="primary-action" onClick={beginShift}><span>Begin shift</span><b>ENTER</b></button>
@@ -232,6 +310,7 @@ export default function FactoryExperience() {
             <span><kbd>WASD</kbd> Move</span><span><kbd>MOUSE</kbd> Look</span>
             <span><kbd>T</kbd> Tablet</span><span><kbd>E</kbd> Inspect</span>
           </div>
+          <div className="touch-control-note">Touch controls activate after the work order.</div>
           <div className="location-stamp"><i /> Kestrel Valley · East Process Yard</div>
         </section>
       )}
@@ -264,7 +343,7 @@ export default function FactoryExperience() {
 
           {phase === "inspection" && !tabletOpen && focusedEvidence && (
             <button className="world-prompt" onClick={() => captureInspection(focusedEvidence.id)}>
-              <kbd>E</kbd><span><b>{focusedEvidence.prompt.toUpperCase()}</b><small>{focusedEvidence.title} · {targetDistance.toFixed(1)} m</small></span>
+              <kbd className="desktop-key">E</kbd><kbd className="touch-key">TAP</kbd><span><b>{focusedEvidence.prompt.toUpperCase()}</b><small>{focusedEvidence.title} · {targetDistance.toFixed(1)} m</small></span>
             </button>
           )}
 
@@ -284,7 +363,35 @@ export default function FactoryExperience() {
             </section>
           )}
 
-          {!tabletOpen && phase !== "consequence" && <button className="tablet-toggle" onClick={toggleTablet}><kbd>T</kbd> OPEN TABLET</button>}
+          {!tabletOpen && phase !== "consequence" && <button className="tablet-toggle" onClick={toggleTablet}><kbd className="desktop-key">T</kbd> OPEN TABLET</button>}
+
+          {!tabletOpen && phase === "inspection" && (
+            <div className="touch-controls" aria-label="Touch controls">
+              <div
+                className="touch-look-zone"
+                aria-label="Drag to look around"
+                onPointerDown={handleLookStart}
+                onPointerMove={handleLook}
+                onPointerUp={handleLookEnd}
+                onPointerCancel={handleLookEnd}
+              ><span>DRAG TO LOOK</span></div>
+              <div
+                className="touch-joystick"
+                aria-label="Movement joystick"
+                onPointerDown={handleMoveStart}
+                onPointerMove={handleMove}
+                onPointerUp={handleMoveEnd}
+                onPointerCancel={handleMoveEnd}
+              ><i /><span ref={joystickKnobRef} /></div>
+              <div className="touch-actions">
+                <button disabled={!focusedEvidence} onClick={() => captureInspection()}>
+                  <b>{focusedEvidence ? "INSPECT" : "AIM"}</b>
+                  <small>{focusedEvidence?.worldLabel ?? "AT A TAG"}</small>
+                </button>
+                <button onClick={toggleTablet}><b>TABLET</b><small>EVIDENCE</small></button>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -296,7 +403,7 @@ export default function FactoryExperience() {
           <span className="bumper bumper-tl" /><span className="bumper bumper-tr" /><span className="bumper bumper-bl" /><span className="bumper bumper-br" />
           <div className="tablet-camera" />
           <div className="tablet-screen">
-            <header className="tablet-status"><div className="brand-mark"><span>F</span> OPERATIONS OS</div><div><span>06:42</span><span>ZONE NET · 82%</span><i className="battery"><b /></i></div></header>
+            <header className="tablet-status"><div className="brand-mark"><span>R</span> RISKMULATE OPS</div><div><span>06:42</span><span>ZONE NET · 82%</span><i className="battery"><b /></i></div></header>
             <div className="tablet-body">
               <nav className="app-rail" aria-label="Tablet applications">
                 {apps.map((app) => {
@@ -387,7 +494,7 @@ export default function FactoryExperience() {
             </div>
           </div>
         </div>
-        {phase !== "consequence" && <button className="tablet-close" onClick={() => setTabletOpen(false)}><kbd>T</kbd> LOWER TABLET</button>}
+        {phase !== "consequence" && <button className="tablet-close" onClick={() => setTabletOpen(false)}><kbd className="desktop-key">T</kbd> LOWER TABLET</button>}
       </div>
     </main>
   );
