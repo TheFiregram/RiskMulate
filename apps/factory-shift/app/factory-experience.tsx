@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import FactoryScene, { type TouchControls } from "./factory-scene";
@@ -40,6 +41,18 @@ const apps: { id: TabletApp; label: string; glyph: string }[] = [
 
 const PRESENTATION_STEPS = ["Brief", "Observe", "Decide", "Act", "Review"] as const;
 const FILTER_PRESENTATION_STEPS = ["Locate", "Inspect", "Decide", "Operate", "Review"] as const;
+const GUIDED_DEMO_STEPS = [
+  "Pump brief",
+  "Pump walkdown",
+  "Pump decision",
+  "Pump response",
+  "Pump review",
+  "Connected system",
+  "Filter walkdown",
+  "Filter decision",
+  "Physical control",
+  "Shift score",
+] as const;
 
 const FILTER_STAGE_STEP: Record<FilterFieldStage, number> = {
   idle: 0,
@@ -114,6 +127,7 @@ export default function FactoryExperience() {
   const [secondsRemaining, setSecondsRemaining] = useState(11 * 60 + 42);
   const [runId, setRunId] = useState(0);
   const [presenterOpen, setPresenterOpen] = useState(false);
+  const [guidedMode, setGuidedMode] = useState(false);
   const [operationsActive, setOperationsActive] = useState(false);
   const [filterStage, setFilterStage] = useState<FilterFieldStage>("idle");
   const [filterCaptured, setFilterCaptured] = useState<FilterEvidenceId[]>([]);
@@ -449,6 +463,18 @@ export default function FactoryExperience() {
     setTabletOpen(false);
   }, []);
 
+  const armRecommendedFilterResponse = useCallback(() => {
+    filterChoiceRef.current = "backwash";
+    filterStageRef.current = "actuation";
+    tabletRef.current = false;
+    setFilterChoice("backwash");
+    setConfirmedFilterChoice(null);
+    setFilterReactionStage(0);
+    setFocusedFilterTarget(null);
+    setFilterStage("actuation");
+    setTabletOpen(false);
+  }, []);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.code === "KeyP" && !event.repeat && startedRef.current) setPresenterOpen((open) => !open);
@@ -483,13 +509,18 @@ export default function FactoryExperience() {
   const beginShift = () => {
     startedRef.current = true;
     tabletRef.current = true;
+    setGuidedMode(false);
     setStarted(true);
     setTabletOpen(true);
   };
 
   const beginGuidedDemo = () => {
+    startedRef.current = true;
+    tabletRef.current = true;
+    setGuidedMode(true);
     setPresenterOpen(true);
-    beginShift();
+    setStarted(true);
+    setTabletOpen(true);
   };
 
   const acceptWorkOrder = () => {
@@ -572,6 +603,7 @@ export default function FactoryExperience() {
     setOutcomeStage(0);
     setSecondsRemaining(11 * 60 + 42);
     setPresenterOpen(false);
+    setGuidedMode(false);
     setRunId((value) => value + 1);
   };
 
@@ -604,6 +636,19 @@ export default function FactoryExperience() {
   const presentationStep = operationsActive ? FILTER_STAGE_STEP[filterStage] : PHASE_STEP[phase];
   const presentationSteps = operationsActive ? FILTER_PRESENTATION_STEPS : PRESENTATION_STEPS;
   const presenterGuide = operationsActive ? FILTER_PRESENTER_GUIDE[filterStage] : PRESENTER_GUIDE[phase];
+  const guidedDemoStep = !operationsActive
+    ? PHASE_STEP[phase]
+    : filterStage === "idle" || filterStage === "briefing"
+      ? 5
+      : filterStage === "inspection"
+        ? 6
+        : filterStage === "decision"
+          ? 7
+          : filterStage === "actuation" || filterStage === "reaction"
+            ? 8
+            : 9;
+  const guideMeterSteps = guidedMode ? GUIDED_DEMO_STEPS : presentationSteps;
+  const guideMeterStep = guidedMode ? guidedDemoStep : presentationStep;
   const filterFieldActive = filterStage === "inspection" || filterStage === "actuation";
   const filterControlLabel = filterChoice === "push"
     ? "OPEN F-201 FEED VALVE"
@@ -631,6 +676,12 @@ export default function FactoryExperience() {
       ? { label: "QUALITY WATCH", tone: "warning" }
       : { label: "BATCH HOLD", tone: "danger" };
   const plantRiskLabel = plantMetrics.openRisks <= 1 ? "CONTROLLED" : plantMetrics.openRisks <= 3 ? "WATCH" : "HIGH EXPOSURE";
+  const combinedScore = filterOutcome ? Math.round(((outcome?.score ?? 0) + filterOutcome.score) / 2) : 0;
+  const shiftRating = combinedScore >= 90
+    ? { label: "CONTROL READY", detail: "You protected people, product, and production across two connected equipment risks." }
+    : combinedScore >= 75
+      ? { label: "SOUND RESPONSE", detail: "The plant recovered, with a meaningful exposure left for the next shift to manage." }
+      : { label: "HIGH EXPOSURE", detail: "The chosen controls moved risk into another part of the production system." };
 
   return (
     <main className={`experience-shell phase-${phase} ${tabletOpen ? "tablet-active" : ""}`}>
@@ -666,12 +717,21 @@ export default function FactoryExperience() {
       {!started && (
         <section className="start-screen">
           <div className="start-meta"><span>06:42</span><span>18°C</span><span>DAWN SHIFT</span></div>
-          <div className="start-kicker"><span /> RISKMULATE · SCENARIO 01</div>
+          <div className="start-kicker"><span /> RISKMULATE · PLAYABLE OPERATIONS PROTOTYPE</div>
           <h1>FACTORY<br /><em>SHIFT</em></h1>
-          <p>East filtration is twelve minutes from restart. Pump P-204 is running hot. Read the floor, weigh conflicting evidence, and make the call.</p>
+          <p className="start-lead">Walk the floor. Read real equipment. Make a risk decision, operate the control, and watch the whole factory answer.</p>
+          <div className="start-loop" aria-label="Experience loop">
+            <span><i>01</i><b>INSPECT</b><small>Find the evidence</small></span>
+            <span><i>02</i><b>DECIDE</b><small>Defend the trade-off</small></span>
+            <span><i>03</i><b>OPERATE</b><small>Touch the control</small></span>
+            <span><i>04</i><b>LEARN</b><small>See system impact</small></span>
+          </div>
           <div className="start-actions">
-            <button className="primary-action" onClick={beginShift}><span>Begin shift</span><b>ENTER</b></button>
-            <button className="guided-action" onClick={beginGuidedDemo}><span>Guided presentation</span><b>3 MIN</b></button>
+            <button className="primary-action" onClick={beginShift}><span>Play the full shift</span><b>ENTER</b></button>
+            <button className="guided-action" onClick={beginGuidedDemo}><span><strong>Run guided demo</strong><small>Curated proof points · presenter controls</small></span><b>3 MIN</b></button>
+          </div>
+          <div className="start-scenario-chain">
+            <span><i>P‑204</i><b>Degrading pump</b></span><em>→</em><span><i>F‑201</i><b>Restricted filter</b></span><em>→</em><span><i>LINE 2</i><b>Factory outcome</b></span>
           </div>
           <div className="control-grid">
             <span><kbd>WASD</kbd> Move</span><span><kbd>MOUSE</kbd> Look</span>
@@ -696,6 +756,7 @@ export default function FactoryExperience() {
               </span>
             ))}
           </section>
+          {guidedMode && <div className="guided-mode-chip"><i /> GUIDED DEMO <b>{String(guidedDemoStep + 1).padStart(2, "0")}/{GUIDED_DEMO_STEPS.length}</b></div>}
           <section className="objective-panel">
             <small>CURRENT OBJECTIVE</small>
             <strong>{objective.title}</strong>
@@ -924,7 +985,19 @@ export default function FactoryExperience() {
 
                     {operationsActive && filterStage === "result" && filterOutcome && (
                       <section className={`filter-result tone-${filterOutcome.tone}`}>
-                        <header><div><small>FACTORY RESPONSE · F-201</small><h3>{filterOutcome.label}</h3><p>{filterOutcome.verdict}</p></div><span>CONTROL QUALITY <b>{filterOutcome.score}</b></span></header>
+                        <div className="shift-complete-banner">
+                          <div className="shift-score-ring" style={{ "--shift-score": `${combinedScore * 3.6}deg` } as CSSProperties}><span><strong>{combinedScore}</strong><small>/100</small></span></div>
+                          <div><small>SHIFT COMPLETE · TWO CONNECTED INCIDENTS</small><h2>{shiftRating.label}</h2><p>{shiftRating.detail}</p></div>
+                          <span className="submission-ready"><i /> SIMULATION COMPLETE</span>
+                        </div>
+                        <div className="shift-score-grid" aria-label="Combined shift scorecard">
+                          <article><small>P‑204 DECISION</small><strong>{outcome?.score ?? 0}</strong><span>{outcome?.label ?? "Pump response"}</span></article>
+                          <article><small>F‑201 DECISION</small><strong>{filterOutcome.score}</strong><span>{filterOutcome.label}</span></article>
+                          <article><small>EVIDENCE USED</small><strong>{captured.length + filterCaptured.length}/8</strong><span>Across two field tasks</span></article>
+                          <article><small>RESIDUAL RISKS</small><strong>{plantMetrics.openRisks}</strong><span>{plantRiskLabel}</span></article>
+                        </div>
+                        <div className="shift-capabilities"><span>✓ Read physical evidence</span><span>✓ Balanced competing objectives</span><span>✓ Operated a field control</span><span>✓ Traced factory impact</span></div>
+                        <header className="filter-outcome-heading"><div><small>FINAL FACTORY RESPONSE · F-201</small><h3>{filterOutcome.label}</h3><p>{filterOutcome.verdict}</p></div><span>CONTROL QUALITY <b>{filterOutcome.score}</b></span></header>
                         <div className="factory-cascade">
                           <article><small>01 · CONSTRAINT</small><strong>Loaded F-201 media</strong><p>Differential pressure restricts the rate the plant can sustain.</p></article>
                           <article><small>02 · RESPONSE</small><strong>{FILTER_DECISIONS.find((item) => item.id === filterOutcome.id)?.title}</strong><p>{filterOutcome.event}</p></article>
@@ -932,7 +1005,7 @@ export default function FactoryExperience() {
                           <article><small>04 · RESIDUAL RISK</small><strong>{filterOutcome.residual.split(":")[0]}</strong><p>{filterOutcome.residual}</p></article>
                         </div>
                         <div className="factory-treatment"><div><small>TREATMENT</small><p>{filterOutcome.treatment}</p></div><div><small>OPERATIONS LESSON</small><p>{filterOutcome.lesson}</p></div></div>
-                        <button className="plant-retry" onClick={reassessFilter}>Reassess F-201 <span>↻</span></button>
+                        <div className="shift-finish-actions"><button className="tablet-primary" onClick={restartScenario}><span>Return to title</span><b>↺</b></button><button className="plant-retry" onClick={reassessFilter}>Compare another F-201 response <span>↻</span></button></div>
                       </section>
                     )}
                   </>
@@ -1029,11 +1102,11 @@ export default function FactoryExperience() {
       {started && presenterOpen && (
         <aside className="presenter-panel" aria-label="Presenter guide">
           <header>
-            <div><small>LIVE DEMO GUIDE</small><strong>Step {presentationStep + 1} of 5 · {presentationSteps[presentationStep]}</strong></div>
+            <div><small>{guidedMode ? "GUIDED DEMO DIRECTOR" : "LIVE DEMO GUIDE"}</small><strong>Step {guideMeterStep + 1} of {guideMeterSteps.length} · {guideMeterSteps[guideMeterStep]}</strong></div>
             <button onClick={() => setPresenterOpen(false)} aria-label="Close presenter guide">×</button>
           </header>
-          <div className="presenter-meter" aria-hidden="true">
-            {presentationSteps.map((step, index) => <i key={step} className={index <= presentationStep ? "active" : ""} />)}
+          <div className={`presenter-meter ${guidedMode ? "full-route" : ""}`} aria-hidden="true">
+            {guideMeterSteps.map((step, index) => <i key={step} className={index <= guideMeterStep ? "active" : ""} />)}
           </div>
           <h2>{presenterGuide.title}</h2>
           <p>{presenterGuide.note}</p>
@@ -1045,11 +1118,13 @@ export default function FactoryExperience() {
             {!operationsActive && phase === "debrief" && <button onClick={continueToOperations}>Open factory operations <span>→</span></button>}
             {operationsActive && filterStage === "briefing" && <button onClick={beginFilterInspection}>Enter the F-201 yard task <span>→</span></button>}
             {operationsActive && filterStage === "inspection" && <button onClick={loadFilterWalkdown}>Load the four filter readings <span>→</span></button>}
-            {operationsActive && (filterStage === "decision" || filterStage === "actuation") && <button onClick={runRecommendedFilterResponse}>Run controlled backwash <span>→</span></button>}
+            {operationsActive && filterStage === "decision" && <button onClick={armRecommendedFilterResponse}>Arm controlled backwash <span>→</span></button>}
+            {operationsActive && filterStage === "actuation" && <button onClick={runRecommendedFilterResponse}>Operate the backwash control <span>→</span></button>}
+            {operationsActive && filterStage === "reaction" && <button disabled>Plant response in progress <span>···</span></button>}
             {operationsActive && filterStage === "result" && <button onClick={reassessFilter}>Compare another response <span>↻</span></button>}
             <button className="presenter-exit" onClick={restartScenario}>Exit to title</button>
           </div>
-          <footer><kbd>P</kbd> show / hide · Presentation controls are separate from player input</footer>
+          <footer>{guidedMode ? "Use the amber button to reveal the next proof point." : <><kbd>P</kbd> show / hide · Presentation controls are separate from player input</>}</footer>
         </aside>
       )}
     </main>

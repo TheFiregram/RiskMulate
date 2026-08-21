@@ -20,6 +20,7 @@ The player must:
 8. Inspect its pressure panel, turbidity analyzer, wash controller, and clearwell indicator.
 9. Select a response on the tablet, then operate the matching valve or backwash control in the yard.
 10. Watch the equipment react and trace the result through the full production system.
+11. Review one combined shift score covering both decisions, all eight observations, and the remaining factory risk.
 
 The second decision asks the player to push through the loaded filter, open a bypass, or perform a controlled backwash. Each path has a separate physical control and visible equipment reaction. The choice then changes the factory KPIs and exposes a constraint-to-consequence chain.
 
@@ -34,7 +35,7 @@ The second decision asks the player to push through the loaded filter, open a by
 | Presenter guide | `P` | On-screen guide button |
 | Presenter shortcut | `F9` | Not shown |
 
-Choose **Guided presentation** on the title screen for a staged walkthrough with presenter notes and safe navigation controls. Press `F9` once after starting to open the completed pump evidence screen. Press it again to open the recommended P-205 transfer debrief. After entering factory operations, `F9` can load the four F-201 readings and run the controlled-backwash demonstration.
+Choose **Run guided demo** on the title screen for a ten-beat presentation route. One amber presenter control reveals each proof point in order: pump brief, field evidence, decision, plant response, connected system, F-201 inspection, physical backwash control, and combined shift score. Press `F9` once after starting to open the completed pump evidence screen. Press it again to open the recommended P-205 transfer debrief. After entering factory operations, `F9` can load the four F-201 readings and run the controlled-backwash demonstration.
 
 ## Risk learning model
 

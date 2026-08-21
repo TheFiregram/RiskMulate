@@ -29,9 +29,10 @@ test("renders the production simulation shell", async () => {
   );
   const html = await response.text();
   assert.match(html, /<title>RiskMulate \| Factory Shift<\/title>/i);
-  assert.match(html, /RISKMULATE · SCENARIO 01/i);
+  assert.match(html, /PLAYABLE OPERATIONS PROTOTYPE/i);
   assert.match(html, /Restart East Filtration/i);
-  assert.match(html, /Guided presentation/i);
+  assert.match(html, /Run guided demo/i);
+  assert.match(html, /Walk the floor/i);
   assert.match(html, /Plant network/i);
   assert.doesNotMatch(html, /codex-preview/i);
 });
@@ -47,6 +48,8 @@ test("includes the physical F-201 field interaction", async () => {
   assert.match(scene, /F-201 route beacon/i);
   assert.match(experience, /Begin F-201 field inspection/i);
   assert.match(experience, /FILTER-CONTROL/i);
+  assert.match(experience, /SHIFT COMPLETE · TWO CONNECTED INCIDENTS/i);
+  assert.match(experience, /Arm controlled backwash/i);
   assert.match(scenario, /Inlet and outlet gauge panel/i);
   assert.match(scenario, /Clean-bed pressure proves at 1\.1 bar/i);
 });
