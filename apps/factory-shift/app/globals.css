@@ -589,6 +589,34 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 .operations-lock p { margin: 0; color: #6f817d; font-size: 8px; }
 .operations-lock > b { padding: 6px 8px; border: 1px solid rgba(206,225,219,.1); color: #657672; font: 700 7px "Courier New",monospace; }
 
+.filter-field-brief,.filter-field-progress,.filter-actuation-card { margin-top: 9px; padding: 14px; border: 1px solid rgba(241,162,42,.25); border-top: 2px solid var(--amber); background: linear-gradient(120deg,rgba(42,29,12,.18),rgba(6,15,16,.38)); }
+.filter-field-brief > header,.filter-field-progress > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.filter-field-brief > header small,.filter-field-progress > header small { color: var(--amber); font-size: 6px; font-weight: 800; letter-spacing: .13em; }
+.filter-field-brief > header h3,.filter-field-progress > header h3 { margin: 5px 0; color: #e0ebe8; font-size: 14px; }
+.filter-field-brief > header p,.filter-field-progress > header p { max-width: 650px; margin: 0; color: #81928e; font-size: 8px; line-height: 1.45; }
+.filter-field-brief > header > span,.filter-field-progress > header > span { padding: 7px 8px; border: 1px solid rgba(241,162,42,.3); color: var(--amber); font: 700 7px "Courier New",monospace; white-space: nowrap; }
+.filter-field-progress > header > span { min-width: 48px; color: var(--green); border-color: rgba(87,185,156,.34); font-size: 12px; text-align: center; }
+.field-route-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin-top: 13px; }
+.field-route-summary > div { min-height: 62px; padding: 9px; display: grid; grid-template-columns: 26px 1fr; gap: 8px; border: 1px solid rgba(211,228,223,.09); background: rgba(255,255,255,.018); }
+.field-route-summary i { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid rgba(241,162,42,.28); color: var(--amber); font: normal 800 6px "Courier New",monospace; }
+.field-route-summary span { color: #788a86; font-size: 7px; line-height: 1.4; }.field-route-summary b { display: block; margin-bottom: 4px; color: #c7d5d1; font-size: 6px; letter-spacing: .1em; }
+.filter-deploy { margin-top: 10px; }
+.field-evidence-progress article.pending { opacity: .45; filter: saturate(.35); }
+.filter-evidence article.captured { border-color: rgba(87,185,156,.22); background: rgba(87,185,156,.025); }
+.filter-evidence article.captured > i { border-color: rgba(87,185,156,.35); color: var(--green); }
+.filter-actuation-card { border-color: rgba(87,185,156,.3); border-top-color: var(--green); background: rgba(40,96,78,.08); }
+.filter-actuation-card > span { color: var(--green); font-size: 6px; font-weight: 900; letter-spacing: .14em; }
+.filter-actuation-card h3 { margin: 7px 0 5px; color: #e1ece9; font: 800 15px "Courier New",monospace; }
+.filter-actuation-card p { margin: 0; color: #82948f; font-size: 8px; line-height: 1.5; }
+.filter-actuation-card .tablet-primary { margin-top: 11px; }
+.filter-walkdown { border-color: rgba(241,162,42,.22); background: rgba(18,13,7,.74); }
+.filter-world-prompt { border-color: rgba(241,162,42,.34); }
+.filter-control-prompt { border-color: rgba(87,185,156,.52); box-shadow: 0 0 26px rgba(87,185,156,.1); }
+.filter-control-prompt kbd { color: var(--green); border-color: rgba(87,185,156,.42); }
+.filter-floor-tip { border-color: rgba(241,162,42,.23); }
+.filter-capture-toast { border-left-color: var(--green); }
+.filter-response-sequence { border-top-color: var(--green); }
+
 .filter-incident { margin-top: 9px; padding: 14px; border: 1px solid rgba(241,162,42,.25); border-top: 2px solid var(--amber); background: rgba(32,23,12,.13); }
 .filter-incident > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .filter-incident > header small { color: var(--amber); font-size: 6px; font-weight: 800; letter-spacing: .13em; }
@@ -644,6 +672,7 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 
 @media (max-width: 900px) {
   .plant-kpis { grid-template-columns: 1fr 1fr; }
+  .field-route-summary { grid-template-columns: 1fr; }
   .filter-evidence { grid-template-columns: 1fr 1fr; }
   .filter-decision-grid { grid-template-columns: 1fr; }
   .filter-decision-grid > button > p { min-height: auto; }
@@ -652,7 +681,7 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 
 @media (max-width: 600px) {
   .plant-kpis article { min-height: 70px; }
-  .filter-incident > header,.filter-result > header,.filter-authorize { flex-direction: column; align-items: stretch; }
+  .filter-field-brief > header,.filter-field-progress > header,.filter-incident > header,.filter-result > header,.filter-authorize { flex-direction: column; align-items: stretch; }
   .filter-authorize button { width: 100%; }
   .filter-evidence,.factory-cascade,.factory-treatment { grid-template-columns: 1fr; }
   .debrief-actions { grid-template-columns: 1fr; }

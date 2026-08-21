@@ -1,6 +1,9 @@
 export type EvidenceId = "EV-01" | "EV-02" | "EV-03" | "EV-04";
 export type DecisionId = "monitor" | "transfer" | "repair";
 export type ScenarioPhase = "briefing" | "inspection" | "decision" | "consequence" | "debrief";
+export type FilterEvidenceId = "F1" | "F2" | "F3" | "F4";
+export type FilterFieldStage = "idle" | "briefing" | "inspection" | "decision" | "actuation" | "reaction" | "result";
+export type FilterWorldTarget = FilterEvidenceId | "FILTER-CONTROL";
 
 export type EvidencePoint = {
   id: EvidenceId;
@@ -118,12 +121,74 @@ export type FilterDecisionOption = {
   control: string;
 };
 
-export const FILTER_EVIDENCE = [
-  { code: "F1", label: "Differential pressure", value: "2.6 bar", meaning: "Above the 2.2 bar backwash trigger." },
-  { code: "F2", label: "Finished-water turbidity", value: "0.21 NTU", meaning: "Quality is compliant before intervention." },
-  { code: "F3", label: "Backwash status", value: "+9 h overdue", meaning: "Media loading is the credible restriction." },
-  { code: "F4", label: "Clearwell buffer", value: "68%", meaning: "Enough stored water exists for one controlled wash." },
-] as const;
+export type FilterEvidencePoint = {
+  id: FilterEvidenceId;
+  code: FilterEvidenceId;
+  label: string;
+  worldLabel: string;
+  title: string;
+  prompt: string;
+  value: string;
+  meaning: string;
+  detail: string;
+  position: readonly [number, number, number];
+  range: number;
+};
+
+export const FILTER_EVIDENCE: FilterEvidencePoint[] = [
+  {
+    id: "F1",
+    code: "F1",
+    label: "Differential pressure",
+    worldLabel: "DIFF PRESSURE",
+    title: "Inlet and outlet gauge panel",
+    prompt: "Compare filter pressures",
+    value: "2.6 bar",
+    meaning: "Above the 2.2 bar backwash trigger.",
+    detail: "The inlet and outlet gauges confirm that F-201 is restricting flow across the media bed.",
+    position: [-1.45, 3.05, -22.62],
+    range: 4.8,
+  },
+  {
+    id: "F2",
+    code: "F2",
+    label: "Finished-water turbidity",
+    worldLabel: "TURBIDITY",
+    title: "Outlet turbidity analyzer",
+    prompt: "Read outlet quality",
+    value: "0.21 NTU",
+    meaning: "Quality is compliant before intervention.",
+    detail: "The outlet sample is clear and inside the release criterion, leaving little room for a risky bypass.",
+    position: [1.5, 1.72, -22.58],
+    range: 4.6,
+  },
+  {
+    id: "F3",
+    code: "F3",
+    label: "Backwash status",
+    worldLabel: "WASH CONTROL",
+    title: "Local backwash controller",
+    prompt: "Check wash history",
+    value: "+9 h overdue",
+    meaning: "Media loading is the credible restriction.",
+    detail: "The controller shows a missed wash cycle and no active equipment fault on the backwash circuit.",
+    position: [-0.2, 1.48, -22.52],
+    range: 4.5,
+  },
+  {
+    id: "F4",
+    code: "F4",
+    label: "Clearwell buffer",
+    worldLabel: "CLEARWELL LINE",
+    title: "T-110 transfer indicator",
+    prompt: "Verify wash reserve",
+    value: "68%",
+    meaning: "Enough stored water exists for one controlled wash.",
+    detail: "The clearwell transfer line is available and can support a complete six-minute backwash cycle.",
+    position: [2.65, 2.65, -23.18],
+    range: 5.0,
+  },
+];
 
 export const FILTER_DECISIONS: FilterDecisionOption[] = [
   {
@@ -161,6 +226,7 @@ export type FilterOutcome = {
   verdict: string;
   score: number;
   tone: "poor" | "balanced" | "critical";
+  stages: readonly [string, string, string];
   event: string;
   consequence: string;
   treatment: string;
@@ -181,6 +247,7 @@ export const FILTER_OUTCOMES: Record<FilterDecisionId, FilterOutcome> = {
     verdict: "Short-term flow protected; filter integrity deteriorated",
     score: 43,
     tone: "poor",
+    stages: ["Feed valve opened beyond the stable band", "Differential pressure climbs to 3.0 bar", "Turbidity alarm places Line 2 on hold"],
     event: "Feed pressure drives the loaded media beyond its stable operating band.",
     consequence: "Differential pressure reaches 3.0 bar and turbidity begins to rise as the bed channels.",
     treatment: "The line is stopped for an unplanned wash after control limits are crossed.",
@@ -194,6 +261,7 @@ export const FILTER_OUTCOMES: Record<FilterDecisionId, FilterOutcome> = {
     verdict: "Output maximized by crossing the quality boundary",
     score: 31,
     tone: "critical",
+    stages: ["Bypass valve opens around F-201", "Unfiltered flow reaches the product header", "Release interlock quarantines the batch"],
     event: "Unfiltered flow enters the finished-water header faster than blending can control it.",
     consequence: "Throughput rises, but turbidity exceeds the release criterion and the batch is quarantined.",
     treatment: "The bypass is shut and the affected volume is diverted for reprocessing.",
@@ -207,6 +275,7 @@ export const FILTER_OUTCOMES: Record<FilterDecisionId, FilterOutcome> = {
     verdict: "Temporary drawdown restored stable production capacity",
     score: 91,
     tone: "balanced",
+    stages: ["F-201 isolated from normal feed", "Clearwell water lifts debris from the media", "Clean-bed pressure proves at 1.1 bar"],
     event: "The clearwell supports the line while F-201 completes a controlled backwash.",
     consequence: "Buffer falls for six minutes, then filtration returns at a proven 1.1 bar differential.",
     treatment: "F-201 returns to duty and the overdue wash becomes a monitored recurring control.",
@@ -278,4 +347,8 @@ export const OUTCOMES: Record<DecisionId, DecisionOutcome> = {
 
 export function evidenceById(id: EvidenceId | null) {
   return EVIDENCE_POINTS.find((point) => point.id === id) ?? null;
+}
+
+export function filterEvidenceById(id: FilterEvidenceId | null) {
+  return FILTER_EVIDENCE.find((point) => point.id === id) ?? null;
 }

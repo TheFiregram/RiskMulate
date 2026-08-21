@@ -17,9 +17,13 @@ import {
   FILTER_OUTCOMES,
   OUTCOMES,
   evidenceById,
+  filterEvidenceById,
   type DecisionId,
   type EvidenceId,
   type FilterDecisionId,
+  type FilterEvidenceId,
+  type FilterFieldStage,
+  type FilterWorldTarget,
   type ScenarioPhase,
 } from "./scenario-data";
 
@@ -35,6 +39,17 @@ const apps: { id: TabletApp; label: string; glyph: string }[] = [
 ];
 
 const PRESENTATION_STEPS = ["Brief", "Observe", "Decide", "Act", "Review"] as const;
+const FILTER_PRESENTATION_STEPS = ["Locate", "Inspect", "Decide", "Operate", "Review"] as const;
+
+const FILTER_STAGE_STEP: Record<FilterFieldStage, number> = {
+  idle: 0,
+  briefing: 0,
+  inspection: 1,
+  decision: 2,
+  actuation: 3,
+  reaction: 3,
+  result: 4,
+};
 
 const PHASE_STEP: Record<ScenarioPhase, number> = {
   briefing: 0,
@@ -67,6 +82,16 @@ const PRESENTER_GUIDE: Record<ScenarioPhase, { title: string; note: string }> = 
   },
 };
 
+const FILTER_PRESENTER_GUIDE: Record<FilterFieldStage, { title: string; note: string }> = {
+  idle: { title: "Open factory operations", note: "The pump result becomes the starting condition for the next connected risk." },
+  briefing: { title: "Move the incident into the yard", note: "F-201 now exists as physical equipment. The player must locate it before seeing the decision options." },
+  inspection: { title: "Collect four filter readings", note: "Pressure, quality, maintenance status, and available buffer build the second fault picture." },
+  decision: { title: "Choose across three objectives", note: "Every response changes output, product quality, and the operating buffer in a different way." },
+  actuation: { title: "Make the choice physical", note: "The tablet sends the command, but the player must return to F-201 and operate the correct control." },
+  reaction: { title: "Watch the process answer", note: "Gauges, valves, status lights, water flow, and plant metrics react to the selected control." },
+  result: { title: "Review the system effect", note: "The final screen links the local action to the factory-wide consequence and residual risk." },
+};
+
 function formatCountdown(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
@@ -90,14 +115,25 @@ export default function FactoryExperience() {
   const [runId, setRunId] = useState(0);
   const [presenterOpen, setPresenterOpen] = useState(false);
   const [operationsActive, setOperationsActive] = useState(false);
+  const [filterStage, setFilterStage] = useState<FilterFieldStage>("idle");
+  const [filterCaptured, setFilterCaptured] = useState<FilterEvidenceId[]>([]);
+  const [focusedFilterTarget, setFocusedFilterTarget] = useState<FilterWorldTarget | null>(null);
+  const [filterTargetDistance, setFilterTargetDistance] = useState(0);
+  const [lastFilterCapture, setLastFilterCapture] = useState<FilterEvidenceId | null>(null);
   const [filterChoice, setFilterChoice] = useState<FilterDecisionId | null>(null);
   const [confirmedFilterChoice, setConfirmedFilterChoice] = useState<FilterDecisionId | null>(null);
+  const [filterReactionStage, setFilterReactionStage] = useState(0);
 
   const startedRef = useRef(started);
   const tabletRef = useRef(tabletOpen);
   const phaseRef = useRef(phase);
   const focusedRef = useRef(focusedTarget);
   const capturedRef = useRef(captured);
+  const operationsActiveRef = useRef(operationsActive);
+  const filterStageRef = useRef(filterStage);
+  const focusedFilterRef = useRef(focusedFilterTarget);
+  const filterCapturedRef = useRef(filterCaptured);
+  const filterChoiceRef = useRef(filterChoice);
   const touchControlsRef = useRef<TouchControls>({ forward: 0, side: 0, yawDelta: 0, pitchDelta: 0 });
   const movePointerRef = useRef<number | null>(null);
   const moveOriginRef = useRef({ x: 0, y: 0 });
@@ -110,8 +146,17 @@ export default function FactoryExperience() {
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { focusedRef.current = focusedTarget; }, [focusedTarget]);
   useEffect(() => { capturedRef.current = captured; }, [captured]);
+  useEffect(() => { operationsActiveRef.current = operationsActive; }, [operationsActive]);
+  useEffect(() => { filterStageRef.current = filterStage; }, [filterStage]);
+  useEffect(() => { focusedFilterRef.current = focusedFilterTarget; }, [focusedFilterTarget]);
+  useEffect(() => { filterCapturedRef.current = filterCaptured; }, [filterCaptured]);
+  useEffect(() => { filterChoiceRef.current = filterChoice; }, [filterChoice]);
 
   const focusedEvidence = useMemo(() => evidenceById(focusedTarget), [focusedTarget]);
+  const focusedFilterEvidence = useMemo(
+    () => filterEvidenceById(focusedFilterTarget === "FILTER-CONTROL" ? null : focusedFilterTarget),
+    [focusedFilterTarget],
+  );
   const outcome = confirmedChoice ? OUTCOMES[confirmedChoice] : null;
   const filterOutcome = confirmedFilterChoice ? FILTER_OUTCOMES[confirmedFilterChoice] : null;
   const plantMetrics = filterOutcome?.metrics ?? (
@@ -125,7 +170,7 @@ export default function FactoryExperience() {
   );
 
   const toggleTablet = useCallback(() => {
-    if (!startedRef.current || phaseRef.current === "consequence") return;
+    if (!startedRef.current || phaseRef.current === "consequence" || filterStageRef.current === "reaction") return;
     setTabletOpen((open) => !open);
   }, []);
 
@@ -138,6 +183,11 @@ export default function FactoryExperience() {
     if (target) setTargetDistance(nextDistance);
   }, []);
 
+  const onFilterTargetChange = useCallback((target: FilterWorldTarget | null, nextDistance: number) => {
+    setFocusedFilterTarget((current) => (current === target ? current : target));
+    if (target) setFilterTargetDistance(nextDistance);
+  }, []);
+
   const captureInspection = useCallback((requested?: EvidenceId) => {
     const target = requested ?? focusedRef.current;
     if (!target || phaseRef.current !== "inspection" || tabletRef.current) return;
@@ -146,6 +196,27 @@ export default function FactoryExperience() {
     capturedRef.current = next;
     setCaptured(next);
     setLastCapture(target);
+  }, []);
+
+  const captureFilterInspection = useCallback((requested?: FilterEvidenceId) => {
+    const currentTarget = focusedFilterRef.current;
+    const target = requested ?? (currentTarget === "FILTER-CONTROL" ? null : currentTarget);
+    if (!target || filterStageRef.current !== "inspection" || tabletRef.current) return;
+    if (filterCapturedRef.current.includes(target)) return;
+    const next = [...filterCapturedRef.current, target];
+    filterCapturedRef.current = next;
+    setFilterCaptured(next);
+    setLastFilterCapture(target);
+  }, []);
+
+  const executeFilterControl = useCallback(() => {
+    const selected = filterChoiceRef.current;
+    if (!selected || focusedFilterRef.current !== "FILTER-CONTROL" || filterStageRef.current !== "actuation" || tabletRef.current) return;
+    filterStageRef.current = "reaction";
+    setConfirmedFilterChoice(selected);
+    setFilterReactionStage(0);
+    setFocusedFilterTarget(null);
+    setFilterStage("reaction");
   }, []);
 
   const resetTouchMovement = useCallback(() => {
@@ -205,18 +276,25 @@ export default function FactoryExperience() {
   }, []);
 
   useEffect(() => {
-    if (!tabletOpen && phase === "inspection") return;
+    const filterFieldActive = filterStage === "inspection" || filterStage === "actuation";
+    if (!tabletOpen && (phase === "inspection" || filterFieldActive)) return;
     resetTouchMovement();
     lookPointerRef.current = null;
     touchControlsRef.current.yawDelta = 0;
     touchControlsRef.current.pitchDelta = 0;
-  }, [phase, resetTouchMovement, tabletOpen]);
+  }, [filterStage, phase, resetTouchMovement, tabletOpen]);
 
   useEffect(() => {
     if (!lastCapture) return;
     const timer = window.setTimeout(() => setLastCapture((current) => current === lastCapture ? null : current), 2800);
     return () => window.clearTimeout(timer);
   }, [lastCapture]);
+
+  useEffect(() => {
+    if (!lastFilterCapture) return;
+    const timer = window.setTimeout(() => setLastFilterCapture((current) => current === lastFilterCapture ? null : current), 2800);
+    return () => window.clearTimeout(timer);
+  }, [lastFilterCapture]);
 
   useEffect(() => {
     if (captured.length !== EVIDENCE_POINTS.length || phase !== "inspection") return;
@@ -229,10 +307,26 @@ export default function FactoryExperience() {
   }, [captured.length, phase]);
 
   useEffect(() => {
-    if (!started || phase === "briefing" || phase === "debrief") return;
+    if (filterCaptured.length !== FILTER_EVIDENCE.length || filterStage !== "inspection") return;
+    const timer = window.setTimeout(() => {
+      filterStageRef.current = "decision";
+      tabletRef.current = true;
+      setFilterStage("decision");
+      setActiveApp("plant");
+      setTabletOpen(true);
+      setFocusedFilterTarget(null);
+    }, 850);
+    return () => window.clearTimeout(timer);
+  }, [filterCaptured.length, filterStage]);
+
+  useEffect(() => {
+    const clockActive = operationsActive
+      ? filterStage !== "idle" && filterStage !== "result"
+      : phase !== "briefing" && phase !== "debrief";
+    if (!started || !clockActive) return;
     const timer = window.setInterval(() => setSecondsRemaining((value) => Math.max(0, value - 1)), 1000);
     return () => window.clearInterval(timer);
-  }, [phase, started]);
+  }, [filterStage, operationsActive, phase, started]);
 
   useEffect(() => {
     if (phase !== "consequence" || !confirmedChoice) return;
@@ -248,6 +342,38 @@ export default function FactoryExperience() {
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [confirmedChoice, phase]);
 
+  useEffect(() => {
+    if (filterStage !== "reaction" || !confirmedFilterChoice) return;
+    const timers = [
+      window.setTimeout(() => setFilterReactionStage(1), 1400),
+      window.setTimeout(() => setFilterReactionStage(2), 3200),
+      window.setTimeout(() => {
+        filterStageRef.current = "result";
+        tabletRef.current = true;
+        setFilterStage("result");
+        setActiveApp("plant");
+        setTabletOpen(true);
+      }, 5400),
+    ];
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [confirmedFilterChoice, filterStage]);
+
+  const resetFilterField = useCallback(() => {
+    operationsActiveRef.current = false;
+    filterStageRef.current = "idle";
+    filterCapturedRef.current = [];
+    filterChoiceRef.current = null;
+    focusedFilterRef.current = null;
+    setOperationsActive(false);
+    setFilterStage("idle");
+    setFilterCaptured([]);
+    setFocusedFilterTarget(null);
+    setLastFilterCapture(null);
+    setFilterChoice(null);
+    setConfirmedFilterChoice(null);
+    setFilterReactionStage(0);
+  }, []);
+
   const loadCompletedWalkdown = useCallback(() => {
     const completeEvidence = EVIDENCE_POINTS.map((point) => point.id);
     startedRef.current = true;
@@ -259,14 +385,12 @@ export default function FactoryExperience() {
     setLastCapture(null);
     setChoice(null);
     setConfirmedChoice(null);
-    setOperationsActive(false);
-    setFilterChoice(null);
-    setConfirmedFilterChoice(null);
+    resetFilterField();
     setOutcomeStage(0);
     setPhase("decision");
     setActiveApp("decision");
     setTabletOpen(true);
-  }, []);
+  }, [resetFilterField]);
 
   const runRecommendedResponse = useCallback(() => {
     startedRef.current = true;
@@ -292,24 +416,56 @@ export default function FactoryExperience() {
     setLastCapture(null);
     setChoice("transfer");
     setConfirmedChoice("transfer");
-    setOperationsActive(false);
-    setFilterChoice(null);
-    setConfirmedFilterChoice(null);
+    resetFilterField();
     setOutcomeStage(2);
     setPhase("debrief");
     setActiveApp("decision");
     setTabletOpen(true);
+  }, [resetFilterField]);
+
+  const loadFilterWalkdown = useCallback(() => {
+    const completeEvidence = FILTER_EVIDENCE.map((point) => point.id);
+    filterCapturedRef.current = completeEvidence;
+    filterStageRef.current = "decision";
+    tabletRef.current = true;
+    setFilterCaptured(completeEvidence);
+    setLastFilterCapture(null);
+    setFocusedFilterTarget(null);
+    setFilterStage("decision");
+    setActiveApp("plant");
+    setTabletOpen(true);
+  }, []);
+
+  const runRecommendedFilterResponse = useCallback(() => {
+    const selected = filterChoiceRef.current ?? "backwash";
+    filterChoiceRef.current = selected;
+    filterStageRef.current = "reaction";
+    tabletRef.current = false;
+    setFilterChoice(selected);
+    setConfirmedFilterChoice(selected);
+    setFilterReactionStage(0);
+    setFocusedFilterTarget(null);
+    setFilterStage("reaction");
+    setTabletOpen(false);
   }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.code === "KeyP" && !event.repeat && startedRef.current) setPresenterOpen((open) => !open);
       if (event.code === "KeyT" && !event.repeat) toggleTablet();
-      if (event.code === "KeyE" && !event.repeat) captureInspection();
+      if (event.code === "KeyE" && !event.repeat) {
+        if (filterStageRef.current === "inspection") captureFilterInspection();
+        else if (filterStageRef.current === "actuation") executeFilterControl();
+        else captureInspection();
+      }
       if (event.code === "Escape" && tabletRef.current && phaseRef.current !== "consequence") setTabletOpen(false);
       if (event.code === "F9" && !event.repeat && startedRef.current) {
         event.preventDefault();
-        if (phaseRef.current === "decision") {
+        if (operationsActiveRef.current && (filterStageRef.current === "briefing" || filterStageRef.current === "inspection")) {
+          loadFilterWalkdown();
+        } else if (operationsActiveRef.current && (filterStageRef.current === "decision" || filterStageRef.current === "actuation")) {
+          runRecommendedFilterResponse();
+        } else if (phaseRef.current === "decision") {
           openRecommendedDebrief();
         } else if (phaseRef.current !== "debrief") {
           loadCompletedWalkdown();
@@ -322,7 +478,7 @@ export default function FactoryExperience() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [captureInspection, loadCompletedWalkdown, openRecommendedDebrief, toggleTablet]);
+  }, [captureFilterInspection, captureInspection, executeFilterControl, loadCompletedWalkdown, loadFilterWalkdown, openRecommendedDebrief, runRecommendedFilterResponse, toggleTablet]);
 
   const beginShift = () => {
     startedRef.current = true;
@@ -353,17 +509,48 @@ export default function FactoryExperience() {
   };
 
   const continueToOperations = () => {
+    operationsActiveRef.current = true;
+    filterStageRef.current = "briefing";
+    filterCapturedRef.current = [];
+    filterChoiceRef.current = null;
     setOperationsActive(true);
+    setFilterStage("briefing");
+    setFilterCaptured([]);
+    setFocusedFilterTarget(null);
+    setLastFilterCapture(null);
     setFilterChoice(null);
     setConfirmedFilterChoice(null);
+    setFilterReactionStage(0);
     setActiveApp("plant");
     setTabletOpen(true);
     setPresenterOpen(false);
   };
 
+  const beginFilterInspection = () => {
+    filterStageRef.current = "inspection";
+    tabletRef.current = false;
+    setFilterStage("inspection");
+    setFocusedFilterTarget(null);
+    setTabletOpen(false);
+  };
+
   const authorizeFilterResponse = () => {
     if (!filterChoice) return;
-    setConfirmedFilterChoice(filterChoice);
+    filterStageRef.current = "actuation";
+    filterChoiceRef.current = filterChoice;
+    tabletRef.current = false;
+    setFilterStage("actuation");
+    setFocusedFilterTarget(null);
+    setTabletOpen(false);
+  };
+
+  const reassessFilter = () => {
+    filterStageRef.current = "decision";
+    filterChoiceRef.current = null;
+    setFilterStage("decision");
+    setFilterChoice(null);
+    setConfirmedFilterChoice(null);
+    setFilterReactionStage(0);
   };
 
   const restartScenario = () => {
@@ -381,16 +568,14 @@ export default function FactoryExperience() {
     setLastCapture(null);
     setChoice(null);
     setConfirmedChoice(null);
-    setOperationsActive(false);
-    setFilterChoice(null);
-    setConfirmedFilterChoice(null);
+    resetFilterField();
     setOutcomeStage(0);
     setSecondsRemaining(11 * 60 + 42);
     setPresenterOpen(false);
     setRunId((value) => value + 1);
   };
 
-  const objective = phase === "briefing"
+  const pumpObjective = phase === "briefing"
     ? { title: "Review the work order", detail: "Priority: operational risk", progress: 14 }
     : phase === "inspection"
       ? { title: "Build the P-204 fault picture", detail: `${captured.length} of 4 observations · ${distance.toFixed(1)} m to P-204`, progress: 30 + captured.length * 10 }
@@ -400,9 +585,31 @@ export default function FactoryExperience() {
           ? { title: "Observe the plant response", detail: outcome?.stages[outcomeStage] ?? "Command in progress", progress: 92 }
           : { title: "Review the causal chain", detail: "Scenario complete", progress: 100 };
 
+  const filterObjective = filterStage === "briefing"
+    ? { title: "Locate F-201 in the yard", detail: "Follow the amber field marker beyond the pump bay", progress: 14 }
+    : filterStage === "inspection"
+      ? { title: "Inspect the F-201 restriction", detail: `${filterCaptured.length} of 4 field readings logged`, progress: 28 + filterCaptured.length * 12 }
+      : filterStage === "decision"
+        ? { title: "Choose a filter response", detail: "Protect output, buffer, and product quality", progress: 76 }
+        : filterStage === "actuation"
+          ? { title: "Operate the selected control", detail: "Lower the tablet and use the green equipment tag", progress: 86 }
+          : filterStage === "reaction"
+            ? { title: "Observe the factory response", detail: filterOutcome?.stages[filterReactionStage] ?? "Control in progress", progress: 94 }
+            : { title: "Review the system result", detail: "F-201 field task complete", progress: 100 };
+
+  const objective = operationsActive ? filterObjective : pumpObjective;
+
   const newlyCaptured = evidenceById(lastCapture);
-  const presentationStep = PHASE_STEP[phase];
-  const presenterGuide = PRESENTER_GUIDE[phase];
+  const newlyFilterCaptured = filterEvidenceById(lastFilterCapture);
+  const presentationStep = operationsActive ? FILTER_STAGE_STEP[filterStage] : PHASE_STEP[phase];
+  const presentationSteps = operationsActive ? FILTER_PRESENTATION_STEPS : PRESENTATION_STEPS;
+  const presenterGuide = operationsActive ? FILTER_PRESENTER_GUIDE[filterStage] : PRESENTER_GUIDE[phase];
+  const filterFieldActive = filterStage === "inspection" || filterStage === "actuation";
+  const filterControlLabel = filterChoice === "push"
+    ? "OPEN F-201 FEED VALVE"
+    : filterChoice === "bypass"
+      ? "OPEN FILTER BYPASS"
+      : "START CONTROLLED BACKWASH";
   const residualLevel = outcome?.tone === "balanced" ? "LOW" : outcome?.tone === "safe" ? "MEDIUM" : "HIGH";
   const pumpNode = !confirmedChoice
     ? { label: "P-204 DEGRADED", tone: "warning" }
@@ -434,9 +641,14 @@ export default function FactoryExperience() {
         scenarioPhase={phase}
         captured={captured}
         decision={confirmedChoice}
+        filterStage={filterStage}
+        filterCaptured={filterCaptured}
+        filterChoice={filterChoice}
+        filterDecision={confirmedFilterChoice}
         touchControls={touchControlsRef}
         onNearChange={onNearChange}
         onTargetChange={onTargetChange}
+        onFilterTargetChange={onFilterTargetChange}
       />
       <div className="sun-wash" aria-hidden="true" />
       <div className="lens-flare" aria-hidden="true"><i /><i /><i /></div>
@@ -478,7 +690,7 @@ export default function FactoryExperience() {
             <div className="shift-clock"><small>RESTART WINDOW</small><b>{formatCountdown(secondsRemaining)}</b></div>
           </header>
           <section className="scenario-loop" aria-label="Scenario progress">
-            {PRESENTATION_STEPS.map((step, index) => (
+            {presentationSteps.map((step, index) => (
               <span key={step} className={index < presentationStep ? "complete" : index === presentationStep ? "active" : ""}>
                 <i>{index < presentationStep ? "✓" : index + 1}</i>{step}
               </span>
@@ -490,7 +702,7 @@ export default function FactoryExperience() {
             <div className="objective-track"><i style={{ width: `${objective.progress}%` }} /></div>
             <span>{objective.detail}</span>
           </section>
-          {!tabletOpen && phase === "inspection" && <div className={`reticle ${focusedTarget ? "has-target" : ""}`}><i /><i /><span /></div>}
+          {!tabletOpen && (phase === "inspection" || filterFieldActive) && <div className={`reticle ${focusedTarget || focusedFilterTarget ? "has-target" : ""}`}><i /><i /><span /></div>}
 
           {phase === "inspection" && !tabletOpen && (
             <aside className="evidence-hud" aria-label="Inspection progress">
@@ -503,9 +715,32 @@ export default function FactoryExperience() {
             </aside>
           )}
 
+          {filterStage === "inspection" && !tabletOpen && (
+            <aside className="evidence-hud filter-walkdown" aria-label="F-201 inspection progress">
+              <small>F-201 FIELD INSPECTION</small>
+              {FILTER_EVIDENCE.map((point) => (
+                <div key={point.id} className={`${filterCaptured.includes(point.id) ? "done" : ""} ${focusedFilterTarget === point.id ? "focused" : ""}`}>
+                  <i>{filterCaptured.includes(point.id) ? "✓" : point.code}</i><span>{point.worldLabel}</span>
+                </div>
+              ))}
+            </aside>
+          )}
+
           {phase === "inspection" && !tabletOpen && focusedEvidence && (
             <button className="world-prompt" onClick={() => captureInspection(focusedEvidence.id)}>
               <kbd className="desktop-key">E</kbd><kbd className="touch-key">TAP</kbd><span><b>{focusedEvidence.prompt.toUpperCase()}</b><small>{focusedEvidence.title} · {targetDistance.toFixed(1)} m</small></span>
+            </button>
+          )}
+
+          {filterStage === "inspection" && !tabletOpen && focusedFilterEvidence && (
+            <button className="world-prompt filter-world-prompt" onClick={() => captureFilterInspection(focusedFilterEvidence.id)}>
+              <kbd className="desktop-key">E</kbd><kbd className="touch-key">TAP</kbd><span><b>{focusedFilterEvidence.prompt.toUpperCase()}</b><small>{focusedFilterEvidence.title} · {filterTargetDistance.toFixed(1)} m</small></span>
+            </button>
+          )}
+
+          {filterStage === "actuation" && !tabletOpen && focusedFilterTarget === "FILTER-CONTROL" && (
+            <button className="world-prompt filter-control-prompt" onClick={executeFilterControl}>
+              <kbd className="desktop-key">E</kbd><kbd className="touch-key">TAP</kbd><span><b>{filterControlLabel}</b><small>Physical control · {filterTargetDistance.toFixed(1)} m</small></span>
             </button>
           )}
 
@@ -513,8 +748,20 @@ export default function FactoryExperience() {
             <div className="floor-tip"><b>FLOOR WALKDOWN</b><span>Follow the amber equipment tags. Aim at a component and press E.</span></div>
           )}
 
+          {filterStage === "inspection" && !tabletOpen && !focusedFilterEvidence && filterCaptured.length === 0 && (
+            <div className="floor-tip filter-floor-tip"><b>FIELD TASK 02</b><span>Follow the F-201 marker beyond the pump bay and inspect the four amber tags.</span></div>
+          )}
+
+          {filterStage === "actuation" && !tabletOpen && focusedFilterTarget !== "FILTER-CONTROL" && (
+            <div className="floor-tip filter-floor-tip"><b>CONTROL SELECTED</b><span>Find the green {filterChoice === "backwash" ? "backwash lever" : filterChoice === "bypass" ? "bypass valve" : "feed valve"} tag on F-201.</span></div>
+          )}
+
           {newlyCaptured && !tabletOpen && (
             <aside className="capture-toast"><span>+ EVIDENCE {newlyCaptured.code}</span><strong>{newlyCaptured.reading}</strong><p>{newlyCaptured.detail}</p></aside>
+          )}
+
+          {newlyFilterCaptured && !tabletOpen && (
+            <aside className="capture-toast filter-capture-toast"><span>+ F-201 EVIDENCE {newlyFilterCaptured.code}</span><strong>{newlyFilterCaptured.value}</strong><p>{newlyFilterCaptured.detail}</p></aside>
           )}
 
           {phase === "consequence" && outcome && (
@@ -525,9 +772,17 @@ export default function FactoryExperience() {
             </section>
           )}
 
-          {!tabletOpen && phase !== "consequence" && <button className="tablet-toggle" onClick={toggleTablet}><kbd className="desktop-key">T</kbd> OPEN TABLET</button>}
+          {filterStage === "reaction" && filterOutcome && (
+            <section className={`outcome-sequence filter-response-sequence tone-${filterOutcome.tone}`}>
+              <small>FIELD CONTROL · {filterOutcome.label.toUpperCase()}</small>
+              <h2>{filterOutcome.stages[filterReactionStage]}</h2>
+              <div>{filterOutcome.stages.map((stage, index) => <span key={stage} className={index < filterReactionStage ? "complete" : index === filterReactionStage ? "active" : ""}><i>{index + 1}</i>{stage}</span>)}</div>
+            </section>
+          )}
 
-          {!tabletOpen && phase === "inspection" && (
+          {!tabletOpen && phase !== "consequence" && filterStage !== "reaction" && <button className="tablet-toggle" onClick={toggleTablet}><kbd className="desktop-key">T</kbd> OPEN TABLET</button>}
+
+          {!tabletOpen && (phase === "inspection" || filterFieldActive) && (
             <div className="touch-controls" aria-label="Touch controls">
               <div
                 className="touch-look-zone"
@@ -546,9 +801,13 @@ export default function FactoryExperience() {
                 onPointerCancel={handleMoveEnd}
               ><i /><span ref={joystickKnobRef} /></div>
               <div className="touch-actions">
-                <button disabled={!focusedEvidence} onClick={() => captureInspection()}>
-                  <b>{focusedEvidence ? "INSPECT" : "AIM"}</b>
-                  <small>{focusedEvidence?.worldLabel ?? "AT A TAG"}</small>
+                <button disabled={filterFieldActive ? !focusedFilterTarget : !focusedEvidence} onClick={() => {
+                  if (filterStage === "inspection") captureFilterInspection();
+                  else if (filterStage === "actuation") executeFilterControl();
+                  else captureInspection();
+                }}>
+                  <b>{filterStage === "actuation" && focusedFilterTarget ? "OPERATE" : (focusedEvidence || focusedFilterEvidence) ? "INSPECT" : "AIM"}</b>
+                  <small>{filterStage === "actuation" ? "AT CONTROL" : focusedFilterEvidence?.worldLabel ?? focusedEvidence?.worldLabel ?? "AT A TAG"}</small>
                 </button>
                 <button onClick={toggleTablet}><b>TABLET</b><small>EVIDENCE</small></button>
               </div>
@@ -613,26 +872,57 @@ export default function FactoryExperience() {
                       </section>
                     )}
 
-                    {operationsActive && !filterOutcome && (
+                    {operationsActive && filterStage === "briefing" && (
+                      <section className="filter-field-brief">
+                        <header><div><small>ACTIVE INCIDENT · FIELD TASK 02</small><h3>F-201 is restricting the production train</h3><p>The pump handover restored stable feed pressure. A new bottleneck is now visible at the filter bank. Inspect the equipment before selecting a response.</p></div><span>PHYSICAL TASK</span></header>
+                        <div className="field-route-summary">
+                          <div><i>01</i><span><b>LOCATE</b>Follow the amber F-201 beacon beyond the pump bay.</span></div>
+                          <div><i>02</i><span><b>INSPECT</b>Log pressure, turbidity, wash status, and buffer.</span></div>
+                          <div><i>03</i><span><b>OPERATE</b>Return to the selected physical control.</span></div>
+                        </div>
+                        <button className="tablet-primary filter-deploy" onClick={beginFilterInspection}><span>Begin F-201 field inspection</span><b>→</b></button>
+                      </section>
+                    )}
+
+                    {operationsActive && filterStage === "inspection" && (
+                      <section className="filter-field-progress">
+                        <header><div><small>FIELD INSPECTION · F-201</small><h3>{filterCaptured.length}/4 readings logged</h3><p>Lower the tablet and inspect each amber equipment tag on the physical filter skid.</p></div><span>{Math.round(filterCaptured.length / FILTER_EVIDENCE.length * 100)}%</span></header>
+                        <div className="filter-evidence field-evidence-progress">
+                          {FILTER_EVIDENCE.map((item) => {
+                            const logged = filterCaptured.includes(item.id);
+                            return <article key={item.id} className={logged ? "captured" : "pending"}><i>{logged ? "✓" : item.code}</i><div><small>{item.label}</small><strong>{logged ? item.value : "FIELD READING"}</strong><p>{logged ? item.meaning : "Inspect this component in the yard."}</p></div></article>;
+                          })}
+                        </div>
+                        <button className="tablet-primary compact" onClick={() => setTabletOpen(false)}><span>Return to F-201</span><b>↓</b></button>
+                      </section>
+                    )}
+
+                    {operationsActive && filterStage === "decision" && (
                       <section className="filter-incident">
-                        <header><div><small>ACTIVE INCIDENT · F-201</small><h3>Filtration restriction is reducing sustainable output</h3><p>The pump decision stabilized feed pressure. The constraint has moved downstream. Choose a response that protects both production and product quality.</p></div><span>DECISION 02</span></header>
+                        <header><div><small>FIELD EVIDENCE COMPLETE · F-201</small><h3>Filtration restriction is reducing sustainable output</h3><p>The four readings confirm loaded media, compliant outlet quality, and enough stored water for one wash cycle. Choose the response you can defend.</p></div><span>DECISION 02</span></header>
                         <div className="filter-evidence">
-                          {FILTER_EVIDENCE.map((item) => <article key={item.code}><i>{item.code}</i><div><small>{item.label}</small><strong>{item.value}</strong><p>{item.meaning}</p></div></article>)}
+                          {FILTER_EVIDENCE.map((item) => <article key={item.code} className="captured"><i>✓</i><div><small>{item.label}</small><strong>{item.value}</strong><p>{item.meaning}</p></div></article>)}
                         </div>
                         <div className="filter-decision-grid">
                           {FILTER_DECISIONS.map((option) => (
-                            <button key={option.id} className={filterChoice === option.id ? "selected" : ""} onClick={() => setFilterChoice(option.id)}>
+                            <button key={option.id} className={filterChoice === option.id ? "selected" : ""} onClick={() => { filterChoiceRef.current = option.id; setFilterChoice(option.id); }}>
                               <header><span>{option.number}</span><div><small>OPERATING RESPONSE</small><strong>{option.title}</strong></div><i>{filterChoice === option.id ? "●" : "○"}</i></header>
                               <p>{option.command}</p>
                               <dl><div><dt>PROTECTS</dt><dd>{option.protects}</dd></div><div><dt>EXPOSES</dt><dd>{option.exposes}</dd></div><div><dt>CONTROL</dt><dd>{option.control}</dd></div></dl>
                             </button>
                           ))}
                         </div>
-                        <div className="filter-authorize"><p>{filterChoice ? "Response ready. The plant metrics will update from this choice." : "Choose the response you can defend across flow, buffer, and quality."}</p><button disabled={!filterChoice} onClick={authorizeFilterResponse}>AUTHORIZE PLANT RESPONSE <span>→</span></button></div>
+                        <div className="filter-authorize"><p>{filterChoice ? "Response selected. You must operate its physical control on F-201." : "Choose the response you can defend across flow, buffer, and quality."}</p><button disabled={!filterChoice} onClick={authorizeFilterResponse}>SEND CONTROL TO FIELD <span>→</span></button></div>
                       </section>
                     )}
 
-                    {operationsActive && filterOutcome && (
+                    {operationsActive && filterStage === "actuation" && (
+                      <section className="filter-actuation-card">
+                        <span>FIELD CONTROL ARMED</span><h3>{filterControlLabel}</h3><p>Lower the tablet, find the green equipment tag on F-201, and operate the selected control. The plant will react in the yard.</p><button className="tablet-primary compact" onClick={() => setTabletOpen(false)}><span>Return to physical control</span><b>↓</b></button>
+                      </section>
+                    )}
+
+                    {operationsActive && filterStage === "result" && filterOutcome && (
                       <section className={`filter-result tone-${filterOutcome.tone}`}>
                         <header><div><small>FACTORY RESPONSE · F-201</small><h3>{filterOutcome.label}</h3><p>{filterOutcome.verdict}</p></div><span>CONTROL QUALITY <b>{filterOutcome.score}</b></span></header>
                         <div className="factory-cascade">
@@ -642,7 +932,7 @@ export default function FactoryExperience() {
                           <article><small>04 · RESIDUAL RISK</small><strong>{filterOutcome.residual.split(":")[0]}</strong><p>{filterOutcome.residual}</p></article>
                         </div>
                         <div className="factory-treatment"><div><small>TREATMENT</small><p>{filterOutcome.treatment}</p></div><div><small>OPERATIONS LESSON</small><p>{filterOutcome.lesson}</p></div></div>
-                        <button className="plant-retry" onClick={() => { setFilterChoice(null); setConfirmedFilterChoice(null); }}>Reassess F-201 <span>↻</span></button>
+                        <button className="plant-retry" onClick={reassessFilter}>Reassess F-201 <span>↻</span></button>
                       </section>
                     )}
                   </>
@@ -739,20 +1029,24 @@ export default function FactoryExperience() {
       {started && presenterOpen && (
         <aside className="presenter-panel" aria-label="Presenter guide">
           <header>
-            <div><small>LIVE DEMO GUIDE</small><strong>Step {presentationStep + 1} of 5 · {PRESENTATION_STEPS[presentationStep]}</strong></div>
+            <div><small>LIVE DEMO GUIDE</small><strong>Step {presentationStep + 1} of 5 · {presentationSteps[presentationStep]}</strong></div>
             <button onClick={() => setPresenterOpen(false)} aria-label="Close presenter guide">×</button>
           </header>
           <div className="presenter-meter" aria-hidden="true">
-            {PRESENTATION_STEPS.map((step, index) => <i key={step} className={index <= presentationStep ? "active" : ""} />)}
+            {presentationSteps.map((step, index) => <i key={step} className={index <= presentationStep ? "active" : ""} />)}
           </div>
           <h2>{presenterGuide.title}</h2>
           <p>{presenterGuide.note}</p>
           <div className="presenter-actions">
-            {phase === "briefing" && <button onClick={acceptWorkOrder}>Start the walkdown <span>→</span></button>}
-            {phase === "inspection" && <button onClick={loadCompletedWalkdown}>Load the four observations <span>→</span></button>}
-            {phase === "decision" && <button onClick={runRecommendedResponse}>Run the recommended response <span>→</span></button>}
-            {phase === "consequence" && <button onClick={openRecommendedDebrief}>Open the debrief now <span>→</span></button>}
-            {phase === "debrief" && <button onClick={continueToOperations}>Open factory operations <span>→</span></button>}
+            {!operationsActive && phase === "briefing" && <button onClick={acceptWorkOrder}>Start the walkdown <span>→</span></button>}
+            {!operationsActive && phase === "inspection" && <button onClick={loadCompletedWalkdown}>Load the four observations <span>→</span></button>}
+            {!operationsActive && phase === "decision" && <button onClick={runRecommendedResponse}>Run the recommended response <span>→</span></button>}
+            {!operationsActive && phase === "consequence" && <button onClick={openRecommendedDebrief}>Open the debrief now <span>→</span></button>}
+            {!operationsActive && phase === "debrief" && <button onClick={continueToOperations}>Open factory operations <span>→</span></button>}
+            {operationsActive && filterStage === "briefing" && <button onClick={beginFilterInspection}>Enter the F-201 yard task <span>→</span></button>}
+            {operationsActive && filterStage === "inspection" && <button onClick={loadFilterWalkdown}>Load the four filter readings <span>→</span></button>}
+            {operationsActive && (filterStage === "decision" || filterStage === "actuation") && <button onClick={runRecommendedFilterResponse}>Run controlled backwash <span>→</span></button>}
+            {operationsActive && filterStage === "result" && <button onClick={reassessFilter}>Compare another response <span>↻</span></button>}
             <button className="presenter-exit" onClick={restartScenario}>Exit to title</button>
           </div>
           <footer><kbd>P</kbd> show / hide · Presentation controls are separate from player input</footer>

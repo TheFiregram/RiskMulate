@@ -10,7 +10,18 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { createGeneratedAssetLibrary } from "./generated-assets";
 import { buildIndustrialPipeSystem, PIPE_VALVE_MOUNTS } from "./industrial-pipes";
-import { EVIDENCE_POINTS, type DecisionId, type EvidenceId, type ScenarioPhase } from "./scenario-data";
+import {
+  EVIDENCE_POINTS,
+  FILTER_EVIDENCE,
+  type DecisionId,
+  type EvidenceId,
+  type FilterDecisionId,
+  type FilterEvidenceId,
+  type FilterEvidencePoint,
+  type FilterFieldStage,
+  type FilterWorldTarget,
+  type ScenarioPhase,
+} from "./scenario-data";
 
 const VERCEL_ASSET_CDN = "https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@6488af39d2837b2ba49b6de9c94b41d954e592e6/apps/factory-shift/public";
 
@@ -31,13 +42,18 @@ type FactorySceneProps = {
   scenarioPhase: ScenarioPhase;
   captured: EvidenceId[];
   decision: DecisionId | null;
+  filterStage: FilterFieldStage;
+  filterCaptured: FilterEvidenceId[];
+  filterChoice: FilterDecisionId | null;
+  filterDecision: FilterDecisionId | null;
   touchControls: RefObject<TouchControls>;
   onNearChange: (near: boolean, distance: number) => void;
   onTargetChange: (target: EvidenceId | null, distance: number) => void;
+  onFilterTargetChange: (target: FilterWorldTarget | null, distance: number) => void;
 };
 
 type InspectionMarker = {
-  id: EvidenceId;
+  id: string;
   range: number;
   group: THREE.Group;
   hitbox: THREE.Mesh;
@@ -190,7 +206,13 @@ function createSign(text: string, accent = "#f0a128", width = 700) {
 }
 
 function createInspectionMarker(
-  point: (typeof EVIDENCE_POINTS)[number],
+  point: (typeof EVIDENCE_POINTS)[number] | FilterEvidencePoint | {
+    id: FilterDecisionId;
+    code: string;
+    worldLabel: string;
+    position: readonly [number, number, number];
+    range: number;
+  },
   amber: THREE.ColorRepresentation,
 ): InspectionMarker {
   const group = new THREE.Group();
@@ -232,7 +254,8 @@ function createInspectionMarker(
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false }));
-  const labelX = point.id === "EV-02" ? -1.3 : 1.3;
+  const labelOnLeft = point.id === "EV-02" || point.id === "F2" || point.id === "F4" || point.id === "bypass";
+  const labelX = labelOnLeft ? -1.3 : 1.3;
   const labelY = point.id === "EV-01" ? 0.86 : point.id === "EV-02" ? 0.22 : 0.5;
   label.position.set(labelX, labelY, 0);
   label.scale.set(2.65, 0.58, 1);
@@ -243,7 +266,7 @@ function createInspectionMarker(
     new THREE.SphereGeometry(0.58, 12, 8),
     new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
   );
-  hitbox.userData.evidenceId = point.id;
+  hitbox.userData.targetId = point.id;
   group.add(hitbox);
 
   return { id: point.id, range: point.range, group, hitbox, ring, core, label, texture };
@@ -328,6 +351,186 @@ function buildHeroPump(parent: THREE.Object3D, materials: Materials, x: number, 
   return { group, motor, pumpBody, needle, statusBulb };
 }
 
+function createValveWheel(material: THREE.Material, radius = 0.48) {
+  const wheel = new THREE.Group();
+  wheel.add(makeMesh(new THREE.TorusGeometry(radius, 0.055, 8, 30), material, [0, 0, 0]));
+  for (let i = 0; i < 4; i += 1) {
+    wheel.add(makeMesh(new THREE.BoxGeometry(radius * 1.7, 0.055, 0.05), material, [0, 0, 0], [0, 0, i * Math.PI / 4]));
+  }
+  wheel.add(makeMesh(new THREE.CylinderGeometry(0.09, 0.09, 0.18, 12), material, [0, 0, 0], [Math.PI / 2, 0, 0]));
+  return wheel;
+}
+
+function buildFilterSkid(
+  parent: THREE.Object3D,
+  materials: Materials,
+  pipeTeal: THREE.MeshStandardMaterial,
+  pipeOrange: THREE.MeshStandardMaterial,
+) {
+  const group = new THREE.Group();
+  group.name = "F-201 physical filter skid";
+  group.position.set(0, 0, -25.3);
+
+  const filterShell = materials.steel.clone();
+  filterShell.color.set(0x506b67);
+  filterShell.roughness = 0.48;
+  const frameMaterial = materials.darkSteel.clone();
+  frameMaterial.color.set(0x17211f);
+  const panelMaterial = new THREE.MeshStandardMaterial({ color: 0x293633, roughness: 0.58, metalness: 0.58 });
+  const screenMaterial = new THREE.MeshStandardMaterial({ color: 0x16201f, emissive: 0xf09a25, emissiveIntensity: 1.35, roughness: 0.22, metalness: 0.34 });
+  const sightMaterial = new THREE.MeshPhysicalMaterial({
+    color: 0x79cfbf,
+    emissive: 0x174d42,
+    emissiveIntensity: 0.35,
+    roughness: 0.08,
+    transmission: 0.22,
+    transparent: true,
+    opacity: 0.84,
+  });
+  const bypassMaterial = pipeOrange.clone();
+  const washMaterial = new THREE.MeshPhysicalMaterial({
+    color: 0x76c9d0,
+    emissive: 0x17454d,
+    emissiveIntensity: 0.18,
+    roughness: 0.13,
+    transparent: true,
+    opacity: 0.72,
+  });
+
+  group.add(makeMesh(new THREE.BoxGeometry(7.2, 0.28, 5.3), frameMaterial, [0, 0.18, 0]));
+  group.add(makeMesh(new THREE.BoxGeometry(6.65, 0.16, 4.75), materials.concrete, [0, 0.42, 0]));
+  for (const x of [-2.7, 2.7]) {
+    for (const z of [-1.8, 1.8]) {
+      group.add(makeMesh(new THREE.BoxGeometry(0.28, 0.62, 0.28), frameMaterial, [x, 0.73, z]));
+      group.add(makeMesh(new THREE.CylinderGeometry(0.09, 0.09, 0.22, 10), materials.brass, [x, 0.55, z]));
+    }
+  }
+
+  const vessel = new THREE.Group();
+  vessel.name = "F-201 media vessel";
+  vessel.add(makeMesh(new THREE.CylinderGeometry(1.52, 1.52, 4.35, 38), filterShell, [0, 3.05, -0.2]));
+  const topDome = makeMesh(new THREE.SphereGeometry(1.53, 38, 18), filterShell, [0, 5.2, -0.2]);
+  topDome.scale.y = 0.42;
+  vessel.add(topDome);
+  const lowerDome = makeMesh(new THREE.SphereGeometry(1.53, 38, 18), filterShell, [0, 0.9, -0.2]);
+  lowerDome.scale.y = 0.42;
+  vessel.add(lowerDome);
+  for (const y of [1.05, 2.25, 3.45, 4.65]) {
+    vessel.add(makeMesh(new THREE.TorusGeometry(1.55, 0.065, 8, 42), materials.paintedTeal, [0, y, -0.2], [Math.PI / 2, 0, 0]));
+  }
+  const hatch = makeMesh(new THREE.CylinderGeometry(0.55, 0.55, 0.16, 24), materials.darkSteel, [0, 3.25, 1.34], [Math.PI / 2, 0, 0]);
+  vessel.add(hatch);
+  for (let i = 0; i < 12; i += 1) {
+    const angle = i / 12 * Math.PI * 2;
+    vessel.add(makeMesh(new THREE.CylinderGeometry(0.035, 0.035, 0.12, 7), materials.brass, [Math.cos(angle) * 0.44, 3.25 + Math.sin(angle) * 0.44, 1.46], [Math.PI / 2, 0, 0]));
+  }
+  group.add(vessel);
+
+  for (const x of [-1.08, 1.08]) {
+    group.add(makeMesh(new THREE.BoxGeometry(0.38, 1.15, 0.5), frameMaterial, [x, 0.98, -0.2]));
+  }
+
+  pipeBetween(group, new THREE.Vector3(-3.5, 1.45, 0.55), new THREE.Vector3(-1.55, 1.45, 0.55), 0.31, pipeTeal, 22);
+  pipeBetween(group, new THREE.Vector3(1.55, 1.25, 0.5), new THREE.Vector3(3.5, 1.25, 0.5), 0.31, pipeTeal, 22);
+  pipeBetween(group, new THREE.Vector3(-3.15, 1.45, 0.55), new THREE.Vector3(-3.15, 3.05, -0.65), 0.22, bypassMaterial, 18);
+  pipeBetween(group, new THREE.Vector3(-3.15, 3.05, -0.65), new THREE.Vector3(3.15, 3.05, -0.65), 0.22, bypassMaterial, 18);
+  pipeBetween(group, new THREE.Vector3(3.15, 3.05, -0.65), new THREE.Vector3(3.15, 1.25, 0.5), 0.22, bypassMaterial, 18);
+  pipeBetween(group, new THREE.Vector3(0, 0.8, -0.2), new THREE.Vector3(0, 0.75, 2.65), 0.24, materials.steel, 18);
+
+  const gaugePanel = makeMesh(new THREE.BoxGeometry(2.2, 1.18, 0.22), panelMaterial, [-1.42, 3.16, 2.14]);
+  group.add(gaugePanel);
+  const inletGauge = createGauge(materials);
+  inletGauge.gauge.position.set(-1.88, 3.2, 2.31);
+  inletGauge.gauge.scale.setScalar(0.62);
+  group.add(inletGauge.gauge);
+  const outletGauge = createGauge(materials);
+  outletGauge.gauge.position.set(-0.96, 3.2, 2.31);
+  outletGauge.gauge.scale.setScalar(0.62);
+  group.add(outletGauge.gauge);
+  const gaugeCaption = createSign("ΔP · 2.6 BAR", "#f0a128", 620);
+  gaugeCaption.position.set(-1.42, 3.84, 2.24);
+  gaugeCaption.scale.set(2.05, 0.53, 1);
+  group.add(gaugeCaption);
+
+  const analyzer = new THREE.Group();
+  analyzer.position.set(1.48, 1.65, 2.2);
+  analyzer.add(makeMesh(new THREE.BoxGeometry(0.92, 1.35, 0.42), panelMaterial, [0, 0, 0]));
+  analyzer.add(makeMesh(new THREE.BoxGeometry(0.64, 0.3, 0.035), screenMaterial, [0, 0.34, 0.23], [0, 0, 0], false));
+  analyzer.add(makeMesh(new THREE.CylinderGeometry(0.19, 0.19, 0.58, 18), sightMaterial, [0, -0.3, 0.24]));
+  analyzer.add(makeMesh(new THREE.TorusGeometry(0.22, 0.035, 7, 22), materials.brass, [0, 0, 0.24], [Math.PI / 2, 0, 0]));
+  group.add(analyzer);
+
+  const controller = new THREE.Group();
+  controller.position.set(-0.18, 1.45, 2.38);
+  controller.add(makeMesh(new THREE.BoxGeometry(1.05, 1.42, 0.4), panelMaterial, [0, 0, 0]));
+  controller.add(makeMesh(new THREE.BoxGeometry(0.74, 0.34, 0.035), screenMaterial, [0, 0.36, 0.22], [0, 0, 0], false));
+  for (const x of [-0.25, 0, 0.25]) controller.add(makeMesh(new THREE.SphereGeometry(0.07, 12, 8), x === 0 ? materials.warningRed : materials.glass, [x, -0.26, 0.24]));
+  group.add(controller);
+
+  const feedWheel = createValveWheel(materials.paintedOrange, 0.46);
+  feedWheel.position.set(-2.78, 1.72, 1.62);
+  group.add(feedWheel);
+  pipeBetween(group, new THREE.Vector3(-2.78, 1.45, 0.55), new THREE.Vector3(-2.78, 1.45, 1.52), 0.085, materials.brass, 10);
+
+  const bypassWheel = createValveWheel(materials.warningRed, 0.48);
+  bypassWheel.position.set(2.62, 2.46, 1.45);
+  group.add(bypassWheel);
+  pipeBetween(group, new THREE.Vector3(2.62, 3.05, -0.65), new THREE.Vector3(2.62, 2.46, 1.33), 0.085, materials.brass, 10);
+
+  const backwashHandle = new THREE.Group();
+  backwashHandle.position.set(-0.18, 0.95, 2.64);
+  backwashHandle.add(makeMesh(new THREE.CylinderGeometry(0.07, 0.07, 0.75, 10), materials.paintedOrange, [0, 0.3, 0], [0, 0, -0.72]));
+  backwashHandle.add(makeMesh(new THREE.SphereGeometry(0.13, 14, 9), materials.paintedOrange, [0.25, 0.58, 0]));
+  group.add(backwashHandle);
+
+  const clearwellIndicator = new THREE.Group();
+  clearwellIndicator.position.set(2.62, 2.7, 2.0);
+  clearwellIndicator.add(makeMesh(new THREE.BoxGeometry(0.76, 0.82, 0.34), panelMaterial, [0, 0, 0]));
+  clearwellIndicator.add(makeMesh(new THREE.BoxGeometry(0.52, 0.22, 0.035), screenMaterial, [0, 0.16, 0.19], [0, 0, 0], false));
+  clearwellIndicator.add(makeMesh(new THREE.CylinderGeometry(0.055, 0.055, 0.38, 10), materials.glass, [0, -0.2, 0.2]));
+  group.add(clearwellIndicator);
+
+  const beaconMaterial = new THREE.MeshStandardMaterial({ color: 0xf0992b, emissive: 0xc44c08, emissiveIntensity: 2.7, roughness: 0.2 });
+  const beacon = makeMesh(new THREE.SphereGeometry(0.17, 18, 12), beaconMaterial, [0, 6.08, -0.1]);
+  group.add(beacon);
+  const signalLight = new THREE.PointLight(0xff8735, 8, 8, 2.1);
+  signalLight.position.set(0, 5.9, 0.1);
+  group.add(signalLight);
+
+  const sign = createSign("F-201 · FILTER BANK", "#f0a128", 820);
+  sign.position.set(0, 6.58, 0.05);
+  sign.scale.set(4.55, 1, 1);
+  group.add(sign);
+
+  const backwashDrops: THREE.Mesh[] = [];
+  for (let i = 0; i < 18; i += 1) {
+    const drop = makeMesh(new THREE.SphereGeometry(0.055 + i % 3 * 0.012, 8, 6), washMaterial, [0, 0.55, 2.8], [0, 0, 0], false);
+    drop.visible = false;
+    drop.userData.phase = i / 18;
+    drop.userData.seed = i * 1.73;
+    group.add(drop);
+    backwashDrops.push(drop);
+  }
+
+  parent.add(group);
+  return {
+    group,
+    vessel,
+    inletNeedle: inletGauge.needle,
+    outletNeedle: outletGauge.needle,
+    feedWheel,
+    bypassWheel,
+    backwashHandle,
+    beacon,
+    beaconMaterial,
+    signalLight,
+    sightMaterial,
+    bypassMaterial,
+    screenMaterial,
+    backwashDrops,
+  };
+}
+
 function addTank(parent: THREE.Object3D, materials: Materials, x: number, z: number, title: string) {
   const tank = new THREE.Group();
   tank.position.set(x, 0, z);
@@ -375,9 +578,14 @@ export default function FactoryScene({
   scenarioPhase,
   captured,
   decision,
+  filterStage,
+  filterCaptured,
+  filterChoice,
+  filterDecision,
   touchControls,
   onNearChange,
   onTargetChange,
+  onFilterTargetChange,
 }: FactorySceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(started);
@@ -385,11 +593,19 @@ export default function FactoryScene({
   const phaseRef = useRef(scenarioPhase);
   const capturedRef = useRef(captured);
   const decisionRef = useRef(decision);
+  const filterStageRef = useRef(filterStage);
+  const filterCapturedRef = useRef(filterCaptured);
+  const filterChoiceRef = useRef(filterChoice);
+  const filterDecisionRef = useRef(filterDecision);
 
   useEffect(() => { startedRef.current = started; }, [started]);
   useEffect(() => { phaseRef.current = scenarioPhase; }, [scenarioPhase]);
   useEffect(() => { capturedRef.current = captured; }, [captured]);
   useEffect(() => { decisionRef.current = decision; }, [decision]);
+  useEffect(() => { filterStageRef.current = filterStage; }, [filterStage]);
+  useEffect(() => { filterCapturedRef.current = filterCaptured; }, [filterCaptured]);
+  useEffect(() => { filterChoiceRef.current = filterChoice; }, [filterChoice]);
+  useEffect(() => { filterDecisionRef.current = filterDecision; }, [filterDecision]);
   useEffect(() => {
     tabletRef.current = tabletOpen;
     if (tabletOpen && document.pointerLockElement) document.exitPointerLock();
@@ -685,6 +901,7 @@ export default function FactoryScene({
       brass: materials.brass,
       warningRed: materials.warningRed,
     });
+    const filterSkid = buildFilterSkid(facility, materials, pipeTeal, pipeOrange);
 
     const proceduralValves: THREE.Object3D[] = [];
     for (const mount of PIPE_VALVE_MOUNTS) {
@@ -732,6 +949,43 @@ export default function FactoryScene({
     const inspectionMarkers = EVIDENCE_POINTS.map((point) => createInspectionMarker(point, 0xf1a22a));
     inspectionMarkers.forEach((marker) => markerRoot.add(marker.group));
     scene.add(markerRoot);
+
+    const filterMarkerRoot = new THREE.Group();
+    filterMarkerRoot.name = "F-201 inspection markers";
+    const filterInspectionMarkers = FILTER_EVIDENCE.map((point) => createInspectionMarker(point, 0xf1a22a));
+    filterInspectionMarkers.forEach((marker) => filterMarkerRoot.add(marker.group));
+    scene.add(filterMarkerRoot);
+
+    const filterControlPoints = {
+      push: { id: "push", code: "ACT", worldLabel: "FEED VALVE", position: [-2.78, 1.72, -23.58], range: 4.7 },
+      bypass: { id: "bypass", code: "ACT", worldLabel: "BYPASS VALVE", position: [2.62, 2.46, -23.75], range: 4.9 },
+      backwash: { id: "backwash", code: "ACT", worldLabel: "BACKWASH LEVER", position: [-0.18, 1.23, -22.62], range: 4.5 },
+    } satisfies Record<FilterDecisionId, {
+      id: FilterDecisionId;
+      code: string;
+      worldLabel: string;
+      position: readonly [number, number, number];
+      range: number;
+    }>;
+    const filterControlMarkers = {
+      push: createInspectionMarker(filterControlPoints.push, 0x5cdbb2),
+      bypass: createInspectionMarker(filterControlPoints.bypass, 0x5cdbb2),
+      backwash: createInspectionMarker(filterControlPoints.backwash, 0x5cdbb2),
+    };
+    Object.values(filterControlMarkers).forEach((marker) => filterMarkerRoot.add(marker.group));
+
+    const filterRoute = new THREE.Group();
+    filterRoute.name = "F-201 route beacon";
+    filterRoute.position.set(0, 0.06, -25.3);
+    const routeMaterial = new THREE.MeshBasicMaterial({ color: 0xf1a22a, transparent: true, opacity: 0.28, depthWrite: false });
+    const routeRing = makeMesh(new THREE.TorusGeometry(3.9, 0.045, 8, 54), routeMaterial, [0, 0, 0], [Math.PI / 2, 0, 0], false);
+    const routeBeam = makeMesh(new THREE.CylinderGeometry(0.022, 0.16, 6.4, 12), routeMaterial.clone(), [0, 3.2, 0], [0, 0, 0], false);
+    const routeArrow = makeMesh(new THREE.ConeGeometry(0.3, 0.72, 12), routeMaterial.clone(), [0, 6.05, 0], [0, 0, Math.PI], false);
+    const routeLabel = createSign("F-201 · FIELD INSPECTION", "#f0a128", 940);
+    routeLabel.position.set(0, 7.05, 0);
+    routeLabel.scale.set(5.2, 1, 1);
+    filterRoute.add(routeRing, routeBeam, routeArrow, routeLabel);
+    scene.add(filterRoute);
 
     const p204BeaconMaterial = new THREE.MeshStandardMaterial({ color: 0xff8738, emissive: 0xdd3c0d, emissiveIntensity: 2.5, roughness: 0.2 });
     const p205BeaconMaterial = new THREE.MeshStandardMaterial({ color: 0x33554c, emissive: 0x173b32, emissiveIntensity: 0.4, roughness: 0.25 });
@@ -888,6 +1142,7 @@ export default function FactoryScene({
     const blockedRectangles = [
       { minX: -3.45, maxX: 3.65, minZ: -12.15, maxZ: -7.7 },
       { minX: 6.3, maxX: 11.75, minZ: -12.3, maxZ: -8.55 },
+      { minX: -3.65, maxX: 3.65, minZ: -28.05, maxZ: -23.15 },
       { minX: -11.7, maxX: -9.25, minZ: 1.25, maxZ: 4.25 },
       { minX: 13.7, maxX: 17.7, minZ: 6.15, maxZ: 9.65 },
     ];
@@ -914,8 +1169,12 @@ export default function FactoryScene({
     let lastDistanceReport = 0;
     let lastTargetReport = 0;
     let reportedTarget: EvidenceId | null = null;
+    let lastFilterTargetReport = 0;
+    let reportedFilterTarget: FilterWorldTarget | null = null;
     let activeDecision: DecisionId | null = null;
     let decisionElapsed = 0;
+    let activeFilterDecision: FilterDecisionId | null = null;
+    let filterDecisionElapsed = 0;
     const onKeyDown = (event: KeyboardEvent) => keys.add(event.code);
     const onKeyUp = (event: KeyboardEvent) => keys.delete(event.code);
     const onMouseMove = (event: MouseEvent) => {
@@ -988,7 +1247,7 @@ export default function FactoryScene({
       const capturedIds = capturedRef.current;
       inspectionMarkers.forEach((marker, index) => {
         const markerDistance = camera.position.distanceTo(marker.group.position);
-        const available = inspectionActive && !capturedIds.includes(marker.id) && markerDistance < 18;
+        const available = inspectionActive && !capturedIds.includes(marker.id as EvidenceId) && markerDistance < 18;
         marker.group.visible = available;
         if (!available) return;
         marker.ring.quaternion.copy(camera.quaternion);
@@ -1010,7 +1269,7 @@ export default function FactoryScene({
         raycaster.setFromCamera(screenCenter, camera);
         const hits = raycaster.intersectObjects(candidates.map((marker) => marker.hitbox), false);
         for (const hit of hits) {
-          const id = hit.object.userData.evidenceId as EvidenceId;
+          const id = hit.object.userData.targetId as EvidenceId;
           const marker = candidates.find((candidate) => candidate.id === id);
           if (marker && hit.distance <= marker.range) {
             currentTarget = id;
@@ -1023,6 +1282,79 @@ export default function FactoryScene({
         reportedTarget = currentTarget;
         onTargetChange(currentTarget, currentTargetDistance);
         lastTargetReport = now;
+      }
+
+      const currentFilterStage = filterStageRef.current;
+      const filterInspectionActive = startedRef.current && !tabletRef.current && currentFilterStage === "inspection";
+      const filterActuationActive = startedRef.current && !tabletRef.current && currentFilterStage === "actuation" && Boolean(filterChoiceRef.current);
+      const capturedFilterIds = filterCapturedRef.current;
+      filterRoute.visible = currentFilterStage === "briefing" || currentFilterStage === "inspection";
+      if (filterRoute.visible) {
+        routeRing.rotation.z += dt * 0.28;
+        routeRing.scale.setScalar(1 + Math.sin(elapsed * 2.4) * 0.06);
+        routeArrow.position.y = 6.05 + Math.sin(elapsed * 2.8) * 0.22;
+        (routeBeam.material as THREE.MeshBasicMaterial).opacity = 0.18 + Math.sin(elapsed * 2.2) * 0.07;
+        routeLabel.quaternion.copy(camera.quaternion);
+      }
+
+      filterInspectionMarkers.forEach((marker, index) => {
+        const markerDistance = camera.position.distanceTo(marker.group.position);
+        const available = filterInspectionActive && !capturedFilterIds.includes(marker.id as FilterEvidenceId) && markerDistance < 24;
+        marker.group.visible = available;
+        if (!available) return;
+        marker.ring.quaternion.copy(camera.quaternion);
+        marker.core.rotation.y += dt * 1.8;
+        marker.core.rotation.x += dt * 0.8;
+        const pulse = 1 + Math.sin(elapsed * 3.2 + index) * 0.11;
+        marker.ring.scale.setScalar(pulse);
+        marker.core.scale.setScalar(pulse);
+        const fade = THREE.MathUtils.clamp(1 - Math.max(0, markerDistance - 14) / 10, 0.22, 1);
+        (marker.ring.material as THREE.MeshBasicMaterial).opacity = 0.9 * fade;
+        (marker.core.material as THREE.MeshBasicMaterial).opacity = 0.95 * fade;
+        (marker.label.material as THREE.SpriteMaterial).opacity = 0.92 * fade;
+      });
+
+      Object.entries(filterControlMarkers).forEach(([decisionId, marker], index) => {
+        const markerDistance = camera.position.distanceTo(marker.group.position);
+        const available = filterActuationActive && filterChoiceRef.current === decisionId && markerDistance < 18;
+        marker.group.visible = available;
+        if (!available) return;
+        marker.ring.quaternion.copy(camera.quaternion);
+        marker.core.rotation.y += dt * 2.4;
+        marker.core.rotation.x += dt;
+        const pulse = 1 + Math.sin(elapsed * 4 + index) * 0.13;
+        marker.ring.scale.setScalar(pulse);
+        marker.core.scale.setScalar(pulse);
+      });
+
+      let currentFilterTarget: FilterWorldTarget | null = null;
+      let currentFilterTargetDistance = 0;
+      if (filterInspectionActive) {
+        const candidates = filterInspectionMarkers.filter((marker) => marker.group.visible);
+        raycaster.setFromCamera(screenCenter, camera);
+        const hits = raycaster.intersectObjects(candidates.map((marker) => marker.hitbox), false);
+        for (const hit of hits) {
+          const id = hit.object.userData.targetId as FilterEvidenceId;
+          const marker = candidates.find((candidate) => candidate.id === id);
+          if (marker && hit.distance <= marker.range) {
+            currentFilterTarget = id;
+            currentFilterTargetDistance = hit.distance;
+            break;
+          }
+        }
+      } else if (filterActuationActive && filterChoiceRef.current) {
+        const marker = filterControlMarkers[filterChoiceRef.current];
+        raycaster.setFromCamera(screenCenter, camera);
+        const hit = raycaster.intersectObject(marker.hitbox, false)[0];
+        if (hit && hit.distance <= marker.range) {
+          currentFilterTarget = "FILTER-CONTROL";
+          currentFilterTargetDistance = hit.distance;
+        }
+      }
+      if (currentFilterTarget !== reportedFilterTarget || now - lastFilterTargetReport > 220) {
+        reportedFilterTarget = currentFilterTarget;
+        onFilterTargetChange(currentFilterTarget, currentFilterTargetDistance);
+        lastFilterTargetReport = now;
       }
 
       const pumpDistance = Math.hypot(camera.position.x, camera.position.z + 10);
@@ -1080,6 +1412,87 @@ export default function FactoryScene({
         p204BeaconMaterial.emissiveIntensity = 2.1 * (1 - responseRamp) + 0.25;
       }
 
+      if (filterDecisionRef.current !== activeFilterDecision) {
+        activeFilterDecision = filterDecisionRef.current;
+        filterDecisionElapsed = 0;
+      } else if (activeFilterDecision) {
+        filterDecisionElapsed += dt;
+      }
+      const filterRamp = THREE.MathUtils.smoothstep(Math.min(filterDecisionElapsed / 4.6, 1), 0, 1);
+      const filterTaskActive = currentFilterStage !== "idle";
+      filterSkid.vessel.position.x = 0;
+      filterSkid.vessel.rotation.z = 0;
+      filterSkid.feedWheel.rotation.z = 0;
+      filterSkid.bypassWheel.rotation.z = 0;
+      filterSkid.backwashHandle.rotation.z = 0;
+      filterSkid.inletNeedle.rotation.z = -1.02;
+      filterSkid.outletNeedle.rotation.z = -0.24;
+      filterSkid.bypassMaterial.emissive.set(0x000000);
+      filterSkid.bypassMaterial.emissiveIntensity = 0;
+      filterSkid.sightMaterial.color.set(0x79cfbf);
+      filterSkid.sightMaterial.emissive.set(0x174d42);
+      filterSkid.screenMaterial.emissive.set(0xf09a25);
+      filterSkid.screenMaterial.emissiveIntensity = filterTaskActive ? 1.35 : 0.35;
+      filterSkid.beaconMaterial.color.set(filterTaskActive ? 0xf0992b : 0x31564d);
+      filterSkid.beaconMaterial.emissive.set(filterTaskActive ? 0xc44c08 : 0x153c32);
+      filterSkid.beaconMaterial.emissiveIntensity = filterTaskActive ? 2.4 : 0.38;
+      filterSkid.signalLight.color.set(filterTaskActive ? 0xff8735 : 0x5acdad);
+      filterSkid.signalLight.intensity = filterTaskActive ? 6.4 + Math.sin(elapsed * 4.1) * 1.4 : 0.6;
+      filterSkid.backwashDrops.forEach((drop) => { drop.visible = false; });
+
+      if (activeFilterDecision === "push") {
+        filterSkid.feedWheel.rotation.z = -filterRamp * 1.8;
+        filterSkid.vessel.position.x = Math.sin(elapsed * 35) * 0.018 * filterRamp;
+        filterSkid.vessel.rotation.z = Math.sin(elapsed * 29) * 0.0035 * filterRamp;
+        filterSkid.inletNeedle.rotation.z = -1.02 - filterRamp * 0.32;
+        filterSkid.outletNeedle.rotation.z = -0.24 + filterRamp * 0.17;
+        filterSkid.sightMaterial.color.lerp(new THREE.Color(0xb8753d), filterRamp);
+        filterSkid.sightMaterial.emissive.set(0x5d1d0d);
+        filterSkid.beaconMaterial.color.set(0xe54635);
+        filterSkid.beaconMaterial.emissive.set(0xb3170c);
+        filterSkid.beaconMaterial.emissiveIntensity = 3.2 + filterRamp * 3.4;
+        filterSkid.signalLight.color.set(0xff3827);
+        filterSkid.signalLight.intensity = 9 + filterRamp * 10 + Math.sin(elapsed * 10) * 2;
+        pipeOrange.emissive.set(0x741006);
+        pipeOrange.emissiveIntensity = Math.max(pipeOrange.emissiveIntensity, filterRamp * 0.72);
+      } else if (activeFilterDecision === "bypass") {
+        filterSkid.bypassWheel.rotation.z = -filterRamp * 2.2;
+        filterSkid.bypassMaterial.emissive.set(0xb64508);
+        filterSkid.bypassMaterial.emissiveIntensity = filterRamp * 1.1;
+        filterSkid.sightMaterial.color.lerp(new THREE.Color(0x8b653e), filterRamp);
+        filterSkid.sightMaterial.emissive.set(0x4d2108);
+        filterSkid.beaconMaterial.color.set(0xe54835);
+        filterSkid.beaconMaterial.emissive.set(0xb3170c);
+        filterSkid.beaconMaterial.emissiveIntensity = 3 + filterRamp * 3.2;
+        filterSkid.signalLight.color.set(0xff3927);
+        filterSkid.signalLight.intensity = 8 + filterRamp * 9;
+      } else if (activeFilterDecision === "backwash") {
+        filterSkid.backwashHandle.rotation.z = -filterRamp * 1.05;
+        filterSkid.inletNeedle.rotation.z = -1.02 + filterRamp * 0.52;
+        filterSkid.outletNeedle.rotation.z = -0.24 - filterRamp * 0.18;
+        filterSkid.sightMaterial.color.lerp(new THREE.Color(0x62d8ca), filterRamp);
+        filterSkid.sightMaterial.emissive.set(0x116e5a);
+        filterSkid.screenMaterial.emissive.set(filterRamp > 0.72 ? 0x1ed39a : 0xe99b28);
+        filterSkid.beaconMaterial.color.set(filterRamp > 0.72 ? 0x41c99d : 0xf0a12c);
+        filterSkid.beaconMaterial.emissive.set(filterRamp > 0.72 ? 0x087b58 : 0xc44c08);
+        filterSkid.beaconMaterial.emissiveIntensity = 2.8 + filterRamp * 1.8;
+        filterSkid.signalLight.color.set(filterRamp > 0.72 ? 0x4ce2b1 : 0xffa33b);
+        filterSkid.signalLight.intensity = 8 + Math.sin(elapsed * 5.5) * 1.4;
+        pipeTeal.emissive.set(0x0a725b);
+        pipeTeal.emissiveIntensity = Math.max(pipeTeal.emissiveIntensity, filterRamp * 0.68);
+        filterSkid.backwashDrops.forEach((drop) => {
+          const t = (elapsed * 0.74 + drop.userData.phase) % 1;
+          drop.visible = filterRamp > 0.08;
+          drop.position.set(
+            Math.sin(drop.userData.seed + t * 7) * (0.18 + t * 0.42),
+            0.7 - t * 0.5,
+            2.75 + t * 2.4,
+          );
+          drop.scale.setScalar((0.5 + Math.sin(Math.PI * t) * 0.8) * filterRamp);
+        });
+      }
+      filterSkid.beacon.scale.setScalar(0.9 + Math.sin(elapsed * (activeFilterDecision === "push" ? 10 : 4.4)) * 0.14);
+
       const vibration = Math.sin(elapsed * 46) * vibrationAmplitude;
       hero.motor.position.y = 1.65 + vibration;
       hero.pumpBody.position.y = 1.55 - vibration * 0.7;
@@ -1126,6 +1539,8 @@ export default function FactoryScene({
       sunTexture.dispose();
       steamTexture.dispose();
       inspectionMarkers.forEach((marker) => marker.texture.dispose());
+      filterInspectionMarkers.forEach((marker) => marker.texture.dispose());
+      Object.values(filterControlMarkers).forEach((marker) => marker.texture.dispose());
       scene.traverse((object) => {
         const candidate = object as THREE.Mesh & { material?: THREE.Material | THREE.Material[]; geometry?: THREE.BufferGeometry };
         candidate.geometry?.dispose();
@@ -1133,7 +1548,7 @@ export default function FactoryScene({
       });
       assetLibrary.dispose();
     };
-  }, [onNearChange, onTargetChange, touchControls]);
+  }, [onFilterTargetChange, onNearChange, onTargetChange, touchControls]);
 
   return <div className="factory-canvas" ref={mountRef} />;
 }
