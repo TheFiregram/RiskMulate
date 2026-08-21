@@ -512,6 +512,12 @@ function buildFilterSkid(
     backwashDrops.push(drop);
   }
 
+  group.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.castShadow = false;
+    object.receiveShadow = true;
+  });
+
   parent.add(group);
   return {
     group,
@@ -625,6 +631,12 @@ export default function FactoryScene({
       return addFallback(mount);
     }
 
+    const rendererInfo = context.getExtension("WEBGL_debug_renderer_info");
+    const rendererName = rendererInfo
+      ? String(context.getParameter(rendererInfo.UNMASKED_RENDERER_WEBGL))
+      : "";
+    const softwareRenderer = /swiftshader|llvmpipe|software/i.test(rendererName);
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xb88f78);
     scene.fog = new THREE.Fog(0x98aaa0, 34, 142);
@@ -633,10 +645,10 @@ export default function FactoryScene({
     camera.rotation.order = "YXZ";
 
     const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
-    const renderPixelRatio = Math.min(window.devicePixelRatio, coarsePointer ? 1.1 : 1.4);
+    const renderPixelRatio = Math.min(window.devicePixelRatio, softwareRenderer ? 0.78 : coarsePointer ? 1.1 : 1.4);
     renderer.setPixelRatio(renderPixelRatio);
     renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = !softwareRenderer;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -648,7 +660,7 @@ export default function FactoryScene({
     composer.addPass(new RenderPass(scene, camera));
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(mount.clientWidth, mount.clientHeight),
-      coarsePointer ? 0.16 : 0.28,
+      softwareRenderer ? 0.08 : coarsePointer ? 0.16 : 0.28,
       0.55,
       0.76,
     );
@@ -679,7 +691,7 @@ export default function FactoryScene({
     scene.add(new THREE.HemisphereLight(0xb9d2cc, 0x3f342a, 2.4));
     const sunlight = new THREE.DirectionalLight(0xffd0a1, 4.3);
     sunlight.position.set(-32, 30, -24);
-    sunlight.castShadow = true;
+    sunlight.castShadow = !softwareRenderer;
     sunlight.shadow.mapSize.set(2048, 2048);
     sunlight.shadow.camera.left = -38;
     sunlight.shadow.camera.right = 38;
@@ -1517,7 +1529,8 @@ export default function FactoryScene({
         tree.rotation.z = Math.sin(elapsed * 0.43 + tree.userData.swayPhase + index * 0.11) * 0.0055;
         tree.rotation.x = Math.cos(elapsed * 0.31 + tree.userData.swayPhase) * 0.0025;
       });
-      composer.render();
+      if (softwareRenderer) renderer.render(scene, camera);
+      else composer.render();
     };
     render(performance.now());
 
