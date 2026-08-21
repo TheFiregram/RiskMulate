@@ -117,6 +117,7 @@ export type DecisionOutcome = {
   consequence: string;
   treatment: string;
   residual: string;
+  lesson: string;
   metrics: readonly [number, number, number];
 };
 
@@ -132,6 +133,7 @@ export const OUTCOMES: Record<DecisionId, DecisionOutcome> = {
     consequence: "Automatic protection trips P-204. Header pressure collapses during an unplanned transfer.",
     treatment: "The trip prevents a larger equipment failure, yet the response arrives after control is lost.",
     residual: "High: P-204 is damaged and Line 2 misses the stable restart window.",
+    lesson: "Monitoring is not treatment when the failure pathway is already active and worsening.",
     metrics: [42, 55, 31],
   },
   transfer: {
@@ -145,6 +147,7 @@ export const OUTCOMES: Record<DecisionId, DecisionOutcome> = {
     consequence: "Header pressure dips for 42 seconds. Filtration remains inside its quality limit.",
     treatment: "P-204 is removed from duty and released for bearing and seal work.",
     residual: "Low: P-205 carries the line with inspection due after the first operating hour.",
+    lesson: "A proportionate response can protect continuity while removing the degrading asset from service.",
     metrics: [91, 88, 94],
   },
   repair: {
@@ -158,6 +161,7 @@ export const OUTCOMES: Record<DecisionId, DecisionOutcome> = {
     consequence: "No spill or equipment damage occurs. The storage header falls below its restart minimum.",
     treatment: "Maintenance receives a stable, isolated asset and a clear fault trail.",
     residual: "Medium: the batch is delayed and Line 2 needs a revised restart plan.",
+    lesson: "Eliminating equipment risk can create a new continuity exposure that still needs treatment.",
     metrics: [98, 34, 92],
   },
 };

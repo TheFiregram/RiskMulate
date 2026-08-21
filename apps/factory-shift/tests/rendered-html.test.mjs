@@ -30,5 +30,6 @@ test("renders the production simulation shell", async () => {
   assert.match(html, /<title>RiskMulate \| Factory Shift<\/title>/i);
   assert.match(html, /RISKMULATE · SCENARIO 01/i);
   assert.match(html, /Restart East Filtration/i);
+  assert.match(html, /Guided presentation/i);
   assert.doesNotMatch(html, /codex-preview/i);
 });

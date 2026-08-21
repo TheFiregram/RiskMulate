@@ -24,9 +24,10 @@ The player must:
 | Look | Mouse | Drag the right side of the scene |
 | Inspect | `E` | Inspect button |
 | Field tablet | `T` | Tablet button |
+| Presenter guide | `P` | On-screen guide button |
 | Presenter shortcut | `F9` | Not shown |
 
-Press `F9` once after starting to open the completed evidence decision screen. Press it again to open the recommended P-205 transfer debrief.
+Choose **Guided presentation** on the title screen for a staged three-minute walkthrough with presenter notes and safe navigation controls. Press `F9` once after starting to open the completed evidence decision screen. Press it again to open the recommended P-205 transfer debrief.
 
 ## Risk learning model
 

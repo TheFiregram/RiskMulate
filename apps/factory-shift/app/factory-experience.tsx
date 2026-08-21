@@ -29,6 +29,39 @@ const apps: { id: TabletApp; label: string; glyph: string }[] = [
   { id: "decision", label: "Decision", glyph: "DC" },
 ];
 
+const PRESENTATION_STEPS = ["Brief", "Observe", "Decide", "Act", "Review"] as const;
+
+const PHASE_STEP: Record<ScenarioPhase, number> = {
+  briefing: 0,
+  inspection: 1,
+  decision: 2,
+  consequence: 3,
+  debrief: 4,
+};
+
+const PRESENTER_GUIDE: Record<ScenarioPhase, { title: string; note: string }> = {
+  briefing: {
+    title: "Frame the operating tension",
+    note: "The plant needs flow in twelve minutes, yet P-204 is degrading. The player must protect more than one objective.",
+  },
+  inspection: {
+    title: "Turn observations into evidence",
+    note: "Four field readings establish condition, contradict an operator assumption, and reveal a viable standby control.",
+  },
+  decision: {
+    title: "Make the trade-off visible",
+    note: "Each response protects one objective and exposes another. The player must defend a proportionate treatment.",
+  },
+  consequence: {
+    title: "Let the factory answer",
+    note: "The selected control changes equipment state, process continuity, and the risk left after treatment.",
+  },
+  debrief: {
+    title: "Close the reasoning loop",
+    note: "Use the causal chain and counterfactual scores to show why the decision worked—and what remained at risk.",
+  },
+};
+
 function formatCountdown(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
@@ -50,6 +83,7 @@ export default function FactoryExperience() {
   const [outcomeStage, setOutcomeStage] = useState(0);
   const [secondsRemaining, setSecondsRemaining] = useState(11 * 60 + 42);
   const [runId, setRunId] = useState(0);
+  const [presenterOpen, setPresenterOpen] = useState(false);
 
   const startedRef = useRef(started);
   const tabletRef = useRef(tabletOpen);
@@ -196,25 +230,66 @@ export default function FactoryExperience() {
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [confirmedChoice, phase]);
 
+  const loadCompletedWalkdown = useCallback(() => {
+    const completeEvidence = EVIDENCE_POINTS.map((point) => point.id);
+    startedRef.current = true;
+    phaseRef.current = "decision";
+    tabletRef.current = true;
+    capturedRef.current = completeEvidence;
+    setStarted(true);
+    setCaptured(completeEvidence);
+    setLastCapture(null);
+    setChoice(null);
+    setConfirmedChoice(null);
+    setOutcomeStage(0);
+    setPhase("decision");
+    setActiveApp("decision");
+    setTabletOpen(true);
+  }, []);
+
+  const runRecommendedResponse = useCallback(() => {
+    startedRef.current = true;
+    phaseRef.current = "consequence";
+    tabletRef.current = false;
+    setStarted(true);
+    setChoice("transfer");
+    setConfirmedChoice("transfer");
+    setOutcomeStage(0);
+    setPhase("consequence");
+    setActiveApp("decision");
+    setTabletOpen(false);
+  }, []);
+
+  const openRecommendedDebrief = useCallback(() => {
+    const completeEvidence = EVIDENCE_POINTS.map((point) => point.id);
+    startedRef.current = true;
+    phaseRef.current = "debrief";
+    tabletRef.current = true;
+    capturedRef.current = completeEvidence;
+    setStarted(true);
+    setCaptured(completeEvidence);
+    setLastCapture(null);
+    setChoice("transfer");
+    setConfirmedChoice("transfer");
+    setOutcomeStage(2);
+    setPhase("debrief");
+    setActiveApp("decision");
+    setTabletOpen(true);
+  }, []);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.code === "KeyP" && !event.repeat && startedRef.current) setPresenterOpen((open) => !open);
       if (event.code === "KeyT" && !event.repeat) toggleTablet();
       if (event.code === "KeyE" && !event.repeat) captureInspection();
       if (event.code === "Escape" && tabletRef.current && phaseRef.current !== "consequence") setTabletOpen(false);
       if (event.code === "F9" && !event.repeat && startedRef.current) {
         event.preventDefault();
-        const completeEvidence = EVIDENCE_POINTS.map((point) => point.id);
-        capturedRef.current = completeEvidence;
-        setCaptured(completeEvidence);
         if (phaseRef.current === "decision") {
-          setChoice("transfer");
-          setConfirmedChoice("transfer");
-          setPhase("debrief");
-        } else {
-          setPhase("decision");
+          openRecommendedDebrief();
+        } else if (phaseRef.current !== "debrief") {
+          loadCompletedWalkdown();
         }
-        setActiveApp("decision");
-        setTabletOpen(true);
       }
       if (event.code === "Enter" && !startedRef.current) {
         setStarted(true);
@@ -223,14 +298,23 @@ export default function FactoryExperience() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [captureInspection, toggleTablet]);
+  }, [captureInspection, loadCompletedWalkdown, openRecommendedDebrief, toggleTablet]);
 
   const beginShift = () => {
+    startedRef.current = true;
+    tabletRef.current = true;
     setStarted(true);
     setTabletOpen(true);
   };
 
+  const beginGuidedDemo = () => {
+    setPresenterOpen(true);
+    beginShift();
+  };
+
   const acceptWorkOrder = () => {
+    phaseRef.current = "inspection";
+    tabletRef.current = false;
     setPhase("inspection");
     setActiveApp("inspection");
     setTabletOpen(false);
@@ -245,6 +329,9 @@ export default function FactoryExperience() {
   };
 
   const restartScenario = () => {
+    startedRef.current = false;
+    tabletRef.current = false;
+    phaseRef.current = "briefing";
     setStarted(false);
     setTabletOpen(false);
     setActiveApp("work");
@@ -258,6 +345,29 @@ export default function FactoryExperience() {
     setConfirmedChoice(null);
     setOutcomeStage(0);
     setSecondsRemaining(11 * 60 + 42);
+    setPresenterOpen(false);
+    setRunId((value) => value + 1);
+  };
+
+  const restartGuidedDemo = () => {
+    const completeReset: EvidenceId[] = [];
+    startedRef.current = true;
+    tabletRef.current = true;
+    phaseRef.current = "briefing";
+    capturedRef.current = completeReset;
+    setStarted(true);
+    setTabletOpen(true);
+    setActiveApp("work");
+    setPhase("briefing");
+    setDistance(25.5);
+    setCaptured(completeReset);
+    setFocusedTarget(null);
+    setLastCapture(null);
+    setChoice(null);
+    setConfirmedChoice(null);
+    setOutcomeStage(0);
+    setSecondsRemaining(11 * 60 + 42);
+    setPresenterOpen(true);
     setRunId((value) => value + 1);
   };
 
@@ -272,6 +382,9 @@ export default function FactoryExperience() {
           : { title: "Review the causal chain", detail: "Scenario complete", progress: 100 };
 
   const newlyCaptured = evidenceById(lastCapture);
+  const presentationStep = PHASE_STEP[phase];
+  const presenterGuide = PRESENTER_GUIDE[phase];
+  const residualLevel = outcome?.tone === "balanced" ? "LOW" : outcome?.tone === "safe" ? "MEDIUM" : "HIGH";
 
   return (
     <main className={`experience-shell phase-${phase} ${tabletOpen ? "tablet-active" : ""}`}>
@@ -305,7 +418,10 @@ export default function FactoryExperience() {
           <div className="start-kicker"><span /> RISKMULATE · SCENARIO 01</div>
           <h1>FACTORY<br /><em>SHIFT</em></h1>
           <p>East filtration is twelve minutes from restart. Pump P-204 is running hot. Read the floor, weigh conflicting evidence, and make the call.</p>
-          <button className="primary-action" onClick={beginShift}><span>Begin shift</span><b>ENTER</b></button>
+          <div className="start-actions">
+            <button className="primary-action" onClick={beginShift}><span>Begin shift</span><b>ENTER</b></button>
+            <button className="guided-action" onClick={beginGuidedDemo}><span>Guided presentation</span><b>3 MIN</b></button>
+          </div>
           <div className="control-grid">
             <span><kbd>WASD</kbd> Move</span><span><kbd>MOUSE</kbd> Look</span>
             <span><kbd>T</kbd> Tablet</span><span><kbd>E</kbd> Inspect</span>
@@ -322,6 +438,13 @@ export default function FactoryExperience() {
             <div className="weather-readout"><span>DAWN</span><b>18°</b><i>NE 08</i></div>
             <div className="shift-clock"><small>RESTART WINDOW</small><b>{formatCountdown(secondsRemaining)}</b></div>
           </header>
+          <section className="scenario-loop" aria-label="Scenario progress">
+            {PRESENTATION_STEPS.map((step, index) => (
+              <span key={step} className={index < presentationStep ? "complete" : index === presentationStep ? "active" : ""}>
+                <i>{index < presentationStep ? "✓" : index + 1}</i>{step}
+              </span>
+            ))}
+          </section>
           <section className="objective-panel">
             <small>CURRENT OBJECTIVE</small>
             <strong>{objective.title}</strong>
@@ -476,6 +599,12 @@ export default function FactoryExperience() {
                   <section className={`debrief tone-${outcome.tone}`}>
                     <div className="window-heading"><div><small>AFTER ACTION REVIEW · WO-4821</small><h2>{outcome.label}</h2></div><span className="outcome-score">CONTROL QUALITY <b>{outcome.score}</b></span></div>
                     <div className="debrief-verdict"><i /><div><small>ASSESSMENT</small><h3>{outcome.verdict}</h3></div></div>
+                    <div className="debrief-proof">
+                      <div><small>EVIDENCE LINKED</small><strong>4 / 4</strong><span>Field observations</span></div>
+                      <div><small>DECISION QUALITY</small><strong>{outcome.score} / 100</strong><span>Across three objectives</span></div>
+                      <div><small>RESIDUAL RISK</small><strong>{residualLevel}</strong><span>After treatment</span></div>
+                      <p><small>KEY LEARNING</small><b>{outcome.lesson}</b></p>
+                    </div>
                     <div className="causal-chain">
                       <article><small>01 · CAUSE</small><p>Outer-race wear, overdue lubrication, and seal degradation create a developing mechanical fault.</p></article>
                       <article><small>02 · EVENT</small><p>{outcome.event}</p></article>
@@ -496,6 +625,35 @@ export default function FactoryExperience() {
         </div>
         {phase !== "consequence" && <button className="tablet-close" onClick={() => setTabletOpen(false)}><kbd className="desktop-key">T</kbd> LOWER TABLET</button>}
       </div>
+
+      {started && (
+        <button className={`presenter-toggle ${presenterOpen ? "active" : ""}`} onClick={() => setPresenterOpen((open) => !open)}>
+          <span>P</span>{presenterOpen ? "HIDE GUIDE" : "PRESENTER GUIDE"}
+        </button>
+      )}
+
+      {started && presenterOpen && (
+        <aside className="presenter-panel" aria-label="Presenter guide">
+          <header>
+            <div><small>LIVE DEMO GUIDE</small><strong>Step {presentationStep + 1} of 5 · {PRESENTATION_STEPS[presentationStep]}</strong></div>
+            <button onClick={() => setPresenterOpen(false)} aria-label="Close presenter guide">×</button>
+          </header>
+          <div className="presenter-meter" aria-hidden="true">
+            {PRESENTATION_STEPS.map((step, index) => <i key={step} className={index <= presentationStep ? "active" : ""} />)}
+          </div>
+          <h2>{presenterGuide.title}</h2>
+          <p>{presenterGuide.note}</p>
+          <div className="presenter-actions">
+            {phase === "briefing" && <button onClick={acceptWorkOrder}>Start the walkdown <span>→</span></button>}
+            {phase === "inspection" && <button onClick={loadCompletedWalkdown}>Load the four observations <span>→</span></button>}
+            {phase === "decision" && <button onClick={runRecommendedResponse}>Run the recommended response <span>→</span></button>}
+            {phase === "consequence" && <button onClick={openRecommendedDebrief}>Open the debrief now <span>→</span></button>}
+            {phase === "debrief" && <button onClick={restartGuidedDemo}>Restart the guided run <span>↻</span></button>}
+            <button className="presenter-exit" onClick={restartScenario}>Exit to title</button>
+          </div>
+          <footer><kbd>P</kbd> show / hide · Presentation controls are separate from player input</footer>
+        </aside>
+      )}
     </main>
   );
 }
