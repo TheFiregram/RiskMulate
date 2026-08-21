@@ -58,12 +58,13 @@ Release checks:
 ```bash
 npm run lint
 npm run build:vercel
+npm run build:standalone
 npm test
 ```
 
 ## Deployment
 
-For the RiskMulate monorepo, set the Vercel Root Directory to `apps/factory-shift`. The project build command is defined in `vercel.json`.
+For the RiskMulate monorepo, set the Vercel Root Directory to `apps/factory-shift`. The project build command is defined in `vercel.json`. `npm run build:standalone` produces a static CDN release in `standalone/` for the public submission shell.
 
 ## Asset credits
 
