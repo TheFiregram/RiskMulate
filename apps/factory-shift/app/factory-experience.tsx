@@ -12,17 +12,22 @@ import FactoryScene, { type TouchControls } from "./factory-scene";
 import {
   DECISIONS,
   EVIDENCE_POINTS,
+  FILTER_DECISIONS,
+  FILTER_EVIDENCE,
+  FILTER_OUTCOMES,
   OUTCOMES,
   evidenceById,
   type DecisionId,
   type EvidenceId,
+  type FilterDecisionId,
   type ScenarioPhase,
 } from "./scenario-data";
 
-type TabletApp = "work" | "inspection" | "messages" | "risk" | "decision";
+type TabletApp = "work" | "plant" | "inspection" | "messages" | "risk" | "decision";
 
 const apps: { id: TabletApp; label: string; glyph: string }[] = [
   { id: "work", label: "Work order", glyph: "WO" },
+  { id: "plant", label: "Plant network", glyph: "PN" },
   { id: "inspection", label: "Evidence", glyph: "EV" },
   { id: "messages", label: "Messages", glyph: "MS" },
   { id: "risk", label: "Risk register", glyph: "RR" },
@@ -84,6 +89,9 @@ export default function FactoryExperience() {
   const [secondsRemaining, setSecondsRemaining] = useState(11 * 60 + 42);
   const [runId, setRunId] = useState(0);
   const [presenterOpen, setPresenterOpen] = useState(false);
+  const [operationsActive, setOperationsActive] = useState(false);
+  const [filterChoice, setFilterChoice] = useState<FilterDecisionId | null>(null);
+  const [confirmedFilterChoice, setConfirmedFilterChoice] = useState<FilterDecisionId | null>(null);
 
   const startedRef = useRef(started);
   const tabletRef = useRef(tabletOpen);
@@ -105,6 +113,16 @@ export default function FactoryExperience() {
 
   const focusedEvidence = useMemo(() => evidenceById(focusedTarget), [focusedTarget]);
   const outcome = confirmedChoice ? OUTCOMES[confirmedChoice] : null;
+  const filterOutcome = confirmedFilterChoice ? FILTER_OUTCOMES[confirmedFilterChoice] : null;
+  const plantMetrics = filterOutcome?.metrics ?? (
+    confirmedChoice === "monitor"
+      ? { throughput: 52, buffer: 41, quality: 93, openRisks: 4 }
+      : confirmedChoice === "transfer"
+        ? { throughput: 92, buffer: 68, quality: 99, openRisks: 2 }
+        : confirmedChoice === "repair"
+          ? { throughput: 37, buffer: 35, quality: 99, openRisks: 2 }
+          : { throughput: 71, buffer: 64, quality: 98, openRisks: 3 }
+  );
 
   const toggleTablet = useCallback(() => {
     if (!startedRef.current || phaseRef.current === "consequence") return;
@@ -241,6 +259,9 @@ export default function FactoryExperience() {
     setLastCapture(null);
     setChoice(null);
     setConfirmedChoice(null);
+    setOperationsActive(false);
+    setFilterChoice(null);
+    setConfirmedFilterChoice(null);
     setOutcomeStage(0);
     setPhase("decision");
     setActiveApp("decision");
@@ -271,6 +292,9 @@ export default function FactoryExperience() {
     setLastCapture(null);
     setChoice("transfer");
     setConfirmedChoice("transfer");
+    setOperationsActive(false);
+    setFilterChoice(null);
+    setConfirmedFilterChoice(null);
     setOutcomeStage(2);
     setPhase("debrief");
     setActiveApp("decision");
@@ -328,6 +352,20 @@ export default function FactoryExperience() {
     setTabletOpen(false);
   };
 
+  const continueToOperations = () => {
+    setOperationsActive(true);
+    setFilterChoice(null);
+    setConfirmedFilterChoice(null);
+    setActiveApp("plant");
+    setTabletOpen(true);
+    setPresenterOpen(false);
+  };
+
+  const authorizeFilterResponse = () => {
+    if (!filterChoice) return;
+    setConfirmedFilterChoice(filterChoice);
+  };
+
   const restartScenario = () => {
     startedRef.current = false;
     tabletRef.current = false;
@@ -343,31 +381,12 @@ export default function FactoryExperience() {
     setLastCapture(null);
     setChoice(null);
     setConfirmedChoice(null);
+    setOperationsActive(false);
+    setFilterChoice(null);
+    setConfirmedFilterChoice(null);
     setOutcomeStage(0);
     setSecondsRemaining(11 * 60 + 42);
     setPresenterOpen(false);
-    setRunId((value) => value + 1);
-  };
-
-  const restartGuidedDemo = () => {
-    const completeReset: EvidenceId[] = [];
-    startedRef.current = true;
-    tabletRef.current = true;
-    phaseRef.current = "briefing";
-    capturedRef.current = completeReset;
-    setStarted(true);
-    setTabletOpen(true);
-    setActiveApp("work");
-    setPhase("briefing");
-    setDistance(25.5);
-    setCaptured(completeReset);
-    setFocusedTarget(null);
-    setLastCapture(null);
-    setChoice(null);
-    setConfirmedChoice(null);
-    setOutcomeStage(0);
-    setSecondsRemaining(11 * 60 + 42);
-    setPresenterOpen(true);
     setRunId((value) => value + 1);
   };
 
@@ -385,6 +404,26 @@ export default function FactoryExperience() {
   const presentationStep = PHASE_STEP[phase];
   const presenterGuide = PRESENTER_GUIDE[phase];
   const residualLevel = outcome?.tone === "balanced" ? "LOW" : outcome?.tone === "safe" ? "MEDIUM" : "HIGH";
+  const pumpNode = !confirmedChoice
+    ? { label: "P-204 DEGRADED", tone: "warning" }
+    : confirmedChoice === "monitor"
+      ? { label: "P-204 TRIPPED", tone: "danger" }
+      : confirmedChoice === "transfer"
+        ? { label: "P-205 ONLINE", tone: "stable" }
+        : { label: "P-204 LOCKOUT", tone: "offline" };
+  const filterNode = !filterOutcome
+    ? { label: operationsActive ? "F-201 RESTRICTED" : "F-201 WATCH", tone: "warning" }
+    : filterOutcome.id === "backwash"
+      ? { label: "F-201 RESTORED", tone: "stable" }
+      : filterOutcome.id === "bypass"
+        ? { label: "BYPASS OPEN", tone: "danger" }
+        : { label: "F-201 UNSTABLE", tone: "danger" };
+  const outputNode = plantMetrics.quality >= 95
+    ? { label: "RELEASE READY", tone: "stable" }
+    : plantMetrics.quality >= 80
+      ? { label: "QUALITY WATCH", tone: "warning" }
+      : { label: "BATCH HOLD", tone: "danger" };
+  const plantRiskLabel = plantMetrics.openRisks <= 1 ? "CONTROLLED" : plantMetrics.openRisks <= 3 ? "WATCH" : "HIGH EXPOSURE";
 
   return (
     <main className={`experience-shell phase-${phase} ${tabletOpen ? "tablet-active" : ""}`}>
@@ -547,6 +586,68 @@ export default function FactoryExperience() {
                   </>
                 )}
 
+                {activeApp === "plant" && (
+                  <>
+                    <div className="window-heading"><div><small>FACTORY OPERATIONS · EAST TRAIN</small><h2>Connected production system</h2></div><span className={`plant-risk-tag risks-${plantMetrics.openRisks}`}>{plantRiskLabel}</span></div>
+                    <div className="plant-kpis" aria-label="Factory operating metrics">
+                      <article><small>THROUGHPUT</small><strong>{plantMetrics.throughput}%</strong><span>Target 90%</span><i><b style={{ width: `${plantMetrics.throughput}%` }} /></i></article>
+                      <article><small>CLEARWELL BUFFER</small><strong>{plantMetrics.buffer}%</strong><span>T-110 level</span><i><b style={{ width: `${plantMetrics.buffer}%` }} /></i></article>
+                      <article><small>PRODUCT QUALITY</small><strong>{plantMetrics.quality}%</strong><span>Release confidence</span><i><b style={{ width: `${plantMetrics.quality}%` }} /></i></article>
+                      <article><small>OPEN RISKS</small><strong>{plantMetrics.openRisks}</strong><span>Across the train</span><i><b style={{ width: `${Math.min(plantMetrics.openRisks * 20, 100)}%` }} /></i></article>
+                    </div>
+
+                    <section className="plant-network">
+                      <header><div><small>LIVE PROCESS MAP</small><strong>Water and risk move through the same system</strong></div><span><i /> LIVE</span></header>
+                      <div className="plant-flow">
+                        <article className="tone-stable"><span>I-101</span><strong>Raw intake</strong><small>Feed header · 4.9 bar</small><em>STABLE</em></article><i />
+                        <article className={`tone-${pumpNode.tone}`}><span>P-204 / P-205</span><strong>Duty pumping</strong><small>{confirmedChoice === "transfer" ? "Standby carrying load" : "East process pump"}</small><em>{pumpNode.label}</em></article><i />
+                        <article className={`tone-${filterNode.tone}`}><span>F-201</span><strong>Filter bank</strong><small>ΔP {filterOutcome?.id === "backwash" ? "1.1" : "2.6"} bar</small><em>{filterNode.label}</em></article><i />
+                        <article className={plantMetrics.buffer < 40 ? "tone-warning" : "tone-stable"}><span>T-110</span><strong>Clearwell</strong><small>{plantMetrics.buffer}% operating buffer</small><em>{plantMetrics.buffer < 40 ? "LOW BUFFER" : "AVAILABLE"}</em></article><i />
+                        <article className={`tone-${outputNode.tone}`}><span>LINE 2</span><strong>Finished output</strong><small>{plantMetrics.throughput}% planned rate</small><em>{outputNode.label}</em></article>
+                      </div>
+                    </section>
+
+                    {!operationsActive && (
+                      <section className="operations-lock">
+                        <span>02</span><div><small>NEXT OPERATING RISK</small><h3>F-201 differential pressure</h3><p>Complete the P-204 response and review its residual risk to continue managing the production train.</p></div><b>LOCKED</b>
+                      </section>
+                    )}
+
+                    {operationsActive && !filterOutcome && (
+                      <section className="filter-incident">
+                        <header><div><small>ACTIVE INCIDENT · F-201</small><h3>Filtration restriction is reducing sustainable output</h3><p>The pump decision stabilized feed pressure. The constraint has moved downstream. Choose a response that protects both production and product quality.</p></div><span>DECISION 02</span></header>
+                        <div className="filter-evidence">
+                          {FILTER_EVIDENCE.map((item) => <article key={item.code}><i>{item.code}</i><div><small>{item.label}</small><strong>{item.value}</strong><p>{item.meaning}</p></div></article>)}
+                        </div>
+                        <div className="filter-decision-grid">
+                          {FILTER_DECISIONS.map((option) => (
+                            <button key={option.id} className={filterChoice === option.id ? "selected" : ""} onClick={() => setFilterChoice(option.id)}>
+                              <header><span>{option.number}</span><div><small>OPERATING RESPONSE</small><strong>{option.title}</strong></div><i>{filterChoice === option.id ? "●" : "○"}</i></header>
+                              <p>{option.command}</p>
+                              <dl><div><dt>PROTECTS</dt><dd>{option.protects}</dd></div><div><dt>EXPOSES</dt><dd>{option.exposes}</dd></div><div><dt>CONTROL</dt><dd>{option.control}</dd></div></dl>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="filter-authorize"><p>{filterChoice ? "Response ready. The plant metrics will update from this choice." : "Choose the response you can defend across flow, buffer, and quality."}</p><button disabled={!filterChoice} onClick={authorizeFilterResponse}>AUTHORIZE PLANT RESPONSE <span>→</span></button></div>
+                      </section>
+                    )}
+
+                    {operationsActive && filterOutcome && (
+                      <section className={`filter-result tone-${filterOutcome.tone}`}>
+                        <header><div><small>FACTORY RESPONSE · F-201</small><h3>{filterOutcome.label}</h3><p>{filterOutcome.verdict}</p></div><span>CONTROL QUALITY <b>{filterOutcome.score}</b></span></header>
+                        <div className="factory-cascade">
+                          <article><small>01 · CONSTRAINT</small><strong>Loaded F-201 media</strong><p>Differential pressure restricts the rate the plant can sustain.</p></article>
+                          <article><small>02 · RESPONSE</small><strong>{FILTER_DECISIONS.find((item) => item.id === filterOutcome.id)?.title}</strong><p>{filterOutcome.event}</p></article>
+                          <article><small>03 · SYSTEM EFFECT</small><strong>Production state changed</strong><p>{filterOutcome.consequence}</p></article>
+                          <article><small>04 · RESIDUAL RISK</small><strong>{filterOutcome.residual.split(":")[0]}</strong><p>{filterOutcome.residual}</p></article>
+                        </div>
+                        <div className="factory-treatment"><div><small>TREATMENT</small><p>{filterOutcome.treatment}</p></div><div><small>OPERATIONS LESSON</small><p>{filterOutcome.lesson}</p></div></div>
+                        <button className="plant-retry" onClick={() => { setFilterChoice(null); setConfirmedFilterChoice(null); }}>Reassess F-201 <span>↻</span></button>
+                      </section>
+                    )}
+                  </>
+                )}
+
                 {activeApp === "inspection" && (
                   <>
                     <div className="window-heading"><div><small>INSPECTION · P-204</small><h2>Evidence board</h2></div><span className="capture-count">{captured.length}/4 CAPTURED</span></div>
@@ -616,7 +717,10 @@ export default function FactoryExperience() {
                       <div className="metric-panel"><h3>Decision lenses</h3>{["Safety", "Continuity", "Asset protection"].map((label, index) => <div key={label}><span>{label}</span><i><b style={{ width: `${outcome.metrics[index]}%` }} /></i><strong>{outcome.metrics[index]}</strong></div>)}</div>
                       <div className="counterfactuals"><h3>Other available paths</h3>{DECISIONS.filter((item) => item.id !== confirmedChoice).map((item) => <article key={item.id}><span>{item.number}</span><div><b>{item.title}</b><small>{OUTCOMES[item.id].verdict}</small></div><strong>{OUTCOMES[item.id].score}</strong></article>)}</div>
                     </div>
-                    <button className="tablet-primary replay" onClick={restartScenario}><span>Run scenario again</span><b>↻</b></button>
+                    <div className="debrief-actions">
+                      <button className="tablet-primary continue-operations" onClick={continueToOperations}><span>Continue to factory operations</span><b>02</b></button>
+                      <button className="debrief-replay" onClick={restartScenario}>Run P-204 again <span>↻</span></button>
+                    </div>
                   </section>
                 )}
               </section>
@@ -648,7 +752,7 @@ export default function FactoryExperience() {
             {phase === "inspection" && <button onClick={loadCompletedWalkdown}>Load the four observations <span>→</span></button>}
             {phase === "decision" && <button onClick={runRecommendedResponse}>Run the recommended response <span>→</span></button>}
             {phase === "consequence" && <button onClick={openRecommendedDebrief}>Open the debrief now <span>→</span></button>}
-            {phase === "debrief" && <button onClick={restartGuidedDemo}>Restart the guided run <span>↻</span></button>}
+            {phase === "debrief" && <button onClick={continueToOperations}>Open factory operations <span>→</span></button>}
             <button className="presenter-exit" onClick={restartScenario}>Exit to title</button>
           </div>
           <footer><kbd>P</kbd> show / hide · Presentation controls are separate from player input</footer>

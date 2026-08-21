@@ -1,6 +1,6 @@
 # RiskMulate: Factory Shift
 
-Factory Shift is a browser-based operational risk simulation. The player enters an industrial filtration yard, inspects a degraded process pump, reconciles conflicting evidence, and commits to one of three operating responses.
+Factory Shift is a browser-based operational risk simulation. The player enters an industrial filtration yard, inspects a degraded process pump, reconciles conflicting evidence, and commits to one of three operating responses. The first decision then unlocks a connected factory-operations view where the player manages a downstream filtration constraint.
 
 The scenario teaches risk reasoning through action rather than a quiz. Its debrief presents the cause, event, consequence, treatment, and residual risk created by the player’s decision.
 
@@ -15,6 +15,10 @@ The player must:
 3. Compare sensor data, equipment condition, an operator report, and the standby path.
 4. Choose whether to monitor P-204, transfer flow to P-205, or stop for repair.
 5. Observe the plant response and review the risk debrief.
+6. Continue into the live plant network and see how the pump response changes throughput, buffer, quality, and open risk.
+7. Resolve a second incident at filter F-201, then trace its effect through the full production system.
+
+The second decision asks the player to push through the loaded filter, open a bypass, or perform a controlled backwash. Each response changes the factory KPIs and exposes a visible constraint-to-consequence chain.
 
 ## Controls
 
@@ -37,6 +41,7 @@ Choose **Guided presentation** on the title screen for a staged three-minute wal
 - Every response states what it protects, what exposure remains, and its control condition.
 - The debrief compares safety, continuity, and asset-protection outcomes.
 - Residual risk is reported after treatment.
+- The factory layer shows how a local control changes downstream capacity, quality, inventory, and risk.
 
 ## Technology
 

@@ -106,6 +106,116 @@ export const DECISIONS: DecisionOption[] = [
   },
 ];
 
+export type FilterDecisionId = "push" | "bypass" | "backwash";
+
+export type FilterDecisionOption = {
+  id: FilterDecisionId;
+  number: string;
+  title: string;
+  command: string;
+  protects: string;
+  exposes: string;
+  control: string;
+};
+
+export const FILTER_EVIDENCE = [
+  { code: "F1", label: "Differential pressure", value: "2.6 bar", meaning: "Above the 2.2 bar backwash trigger." },
+  { code: "F2", label: "Finished-water turbidity", value: "0.21 NTU", meaning: "Quality is compliant before intervention." },
+  { code: "F3", label: "Backwash status", value: "+9 h overdue", meaning: "Media loading is the credible restriction." },
+  { code: "F4", label: "Clearwell buffer", value: "68%", meaning: "Enough stored water exists for one controlled wash." },
+] as const;
+
+export const FILTER_DECISIONS: FilterDecisionOption[] = [
+  {
+    id: "push",
+    number: "01",
+    title: "Push through F-201",
+    command: "Hold the current valve lineup and increase feed pressure.",
+    protects: "Immediate filtration rate",
+    exposes: "Media breakthrough and pump load",
+    control: "Stop at 2.9 bar or 0.30 NTU",
+  },
+  {
+    id: "bypass",
+    number: "02",
+    title: "Open the bypass",
+    command: "Route flow around F-201 until the restart target is met.",
+    protects: "Throughput and clearwell level",
+    exposes: "Finished-water quality",
+    control: "Blend only while turbidity remains compliant",
+  },
+  {
+    id: "backwash",
+    number: "03",
+    title: "Controlled backwash",
+    command: "Draw from the clearwell, isolate F-201, and complete the wash cycle.",
+    protects: "Quality and sustainable throughput",
+    exposes: "Temporary buffer drawdown",
+    control: "Resume feed after 1.1 bar clean-bed proof",
+  },
+];
+
+export type FilterOutcome = {
+  id: FilterDecisionId;
+  label: string;
+  verdict: string;
+  score: number;
+  tone: "poor" | "balanced" | "critical";
+  event: string;
+  consequence: string;
+  treatment: string;
+  residual: string;
+  lesson: string;
+  metrics: {
+    throughput: number;
+    buffer: number;
+    quality: number;
+    openRisks: number;
+  };
+};
+
+export const FILTER_OUTCOMES: Record<FilterDecisionId, FilterOutcome> = {
+  push: {
+    id: "push",
+    label: "Restriction forced online",
+    verdict: "Short-term flow protected; filter integrity deteriorated",
+    score: 43,
+    tone: "poor",
+    event: "Feed pressure drives the loaded media beyond its stable operating band.",
+    consequence: "Differential pressure reaches 3.0 bar and turbidity begins to rise as the bed channels.",
+    treatment: "The line is stopped for an unplanned wash after control limits are crossed.",
+    residual: "High: F-201 remains unstable and the clearwell has lost recovery time.",
+    lesson: "Increasing effort cannot remove a physical restriction; it transfers stress into the wider system.",
+    metrics: { throughput: 58, buffer: 34, quality: 78, openRisks: 4 },
+  },
+  bypass: {
+    id: "bypass",
+    label: "F-201 bypassed",
+    verdict: "Output maximized by crossing the quality boundary",
+    score: 31,
+    tone: "critical",
+    event: "Unfiltered flow enters the finished-water header faster than blending can control it.",
+    consequence: "Throughput rises, but turbidity exceeds the release criterion and the batch is quarantined.",
+    treatment: "The bypass is shut and the affected volume is diverted for reprocessing.",
+    residual: "Critical: production volume exists, yet none of it can be released.",
+    lesson: "A continuity response fails when it preserves output by violating the product objective.",
+    metrics: { throughput: 96, buffer: 67, quality: 48, openRisks: 5 },
+  },
+  backwash: {
+    id: "backwash",
+    label: "F-201 restored",
+    verdict: "Temporary drawdown restored stable production capacity",
+    score: 91,
+    tone: "balanced",
+    event: "The clearwell supports the line while F-201 completes a controlled backwash.",
+    consequence: "Buffer falls for six minutes, then filtration returns at a proven 1.1 bar differential.",
+    treatment: "F-201 returns to duty and the overdue wash becomes a monitored recurring control.",
+    residual: "Low: throughput is stable with one-hour media and turbidity checks assigned.",
+    lesson: "A deliberate short interruption can protect both product quality and sustained factory output.",
+    metrics: { throughput: 79, buffer: 54, quality: 99, openRisks: 1 },
+  },
+};
+
 export type DecisionOutcome = {
   id: DecisionId;
   label: string;
