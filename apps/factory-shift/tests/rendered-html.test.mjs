@@ -50,6 +50,12 @@ test("includes the physical F-201 field interaction", async () => {
   assert.match(experience, /FILTER-CONTROL/i);
   assert.match(experience, /SHIFT COMPLETE · TWO CONNECTED INCIDENTS/i);
   assert.match(experience, /Arm controlled backwash/i);
+  assert.match(experience, /P‑204 → P‑205 TRANSFER/i);
+  assert.match(experience, /Complete the P-205 transfer/i);
+  assert.match(scene, /P-205 physical start console/i);
+  assert.match(scene, /P-204 physical isolation valve/i);
+  assert.match(scene, /hero\.fallbackBody\.visible = false/i);
+  assert.match(scenario, /P205-START/i);
   assert.match(scenario, /Inlet and outlet gauge panel/i);
   assert.match(scenario, /Clean-bed pressure proves at 1\.1 bar/i);
 });

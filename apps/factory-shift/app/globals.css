@@ -613,6 +613,16 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 }
 
 /* Factory operations expansion */
+.pump-control-hud { border-color: rgba(87,185,156,.2); background: linear-gradient(115deg,rgba(5,22,18,.84),rgba(7,17,17,.58)); }
+.pump-control-hud > small { color: var(--green); }
+.pump-control-hud > div.focused { color: #eef6f3; background: rgba(87,185,156,.09); }
+.pump-control-hud > div.focused i { color: #07120f; border-color: var(--green); background: var(--green); box-shadow: 0 0 12px rgba(87,185,156,.42); }
+.pump-control-prompt { border-color: rgba(87,185,156,.54); box-shadow: 0 0 28px rgba(87,185,156,.12); }
+.pump-control-prompt kbd { color: var(--green); border-color: rgba(87,185,156,.48); }
+.pump-control-tip { border-left-color: var(--green); }
+.pump-control-tip b { color: var(--green); }
+.pump-control-toast { border-color: rgba(87,185,156,.38); border-left-color: var(--green); }
+
 .plant-risk-tag { padding: 8px 10px; border: 1px solid rgba(241,162,42,.34); color: var(--amber); font: 800 8px "Courier New",monospace; letter-spacing: .09em; }
 .plant-risk-tag.risks-1 { border-color: rgba(87,185,156,.4); color: var(--green); }
 .plant-risk-tag.risks-4,.plant-risk-tag.risks-5 { border-color: rgba(225,105,85,.42); color: var(--red); }

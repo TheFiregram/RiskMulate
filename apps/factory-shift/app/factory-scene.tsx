@@ -13,6 +13,7 @@ import { buildIndustrialPipeSystem, PIPE_VALVE_MOUNTS } from "./industrial-pipes
 import {
   EVIDENCE_POINTS,
   FILTER_EVIDENCE,
+  PUMP_CONTROL_TASKS,
   type DecisionId,
   type EvidenceId,
   type FilterDecisionId,
@@ -20,6 +21,7 @@ import {
   type FilterEvidencePoint,
   type FilterFieldStage,
   type FilterWorldTarget,
+  type PumpControlTarget,
   type ScenarioPhase,
 } from "./scenario-data";
 
@@ -46,9 +48,12 @@ type FactorySceneProps = {
   filterCaptured: FilterEvidenceId[];
   filterChoice: FilterDecisionId | null;
   filterDecision: FilterDecisionId | null;
+  pumpControlStep: PumpControlTarget | null;
+  completedPumpControls: PumpControlTarget[];
   touchControls: RefObject<TouchControls>;
   onNearChange: (near: boolean, distance: number) => void;
   onTargetChange: (target: EvidenceId | null, distance: number) => void;
+  onPumpControlTargetChange: (target: PumpControlTarget | null, distance: number) => void;
   onFilterTargetChange: (target: FilterWorldTarget | null, distance: number) => void;
 };
 
@@ -207,7 +212,7 @@ function createSign(text: string, accent = "#f0a128", width = 700) {
 
 function createInspectionMarker(
   point: (typeof EVIDENCE_POINTS)[number] | FilterEvidencePoint | {
-    id: FilterDecisionId;
+    id: FilterDecisionId | PumpControlTarget;
     code: string;
     worldLabel: string;
     position: readonly [number, number, number];
@@ -293,12 +298,15 @@ function createGauge(materials: Materials) {
 function buildHeroPump(parent: THREE.Object3D, materials: Materials, x: number, z: number, standby = false) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
+  const fallbackBody = new THREE.Group();
+  fallbackBody.name = standby ? "P-205 procedural body" : "P-204 procedural body";
+  group.add(fallbackBody);
   const accent = standby ? new THREE.MeshStandardMaterial({ color: 0x3b8e79, roughness: 0.38, metalness: 0.48 }) : materials.paintedOrange;
 
-  group.add(makeMesh(new THREE.BoxGeometry(5.9, 0.3, 3.4), materials.darkSteel, [0, 0.2, 0]));
-  group.add(makeMesh(new THREE.BoxGeometry(5.25, 0.18, 2.85), materials.concrete, [0, 0.46, 0]));
+  fallbackBody.add(makeMesh(new THREE.BoxGeometry(5.9, 0.3, 3.4), materials.darkSteel, [0, 0.2, 0]));
+  fallbackBody.add(makeMesh(new THREE.BoxGeometry(5.25, 0.18, 2.85), materials.concrete, [0, 0.46, 0]));
   for (const bx of [-2.3, 2.3]) {
-    for (const bz of [-1.1, 1.1]) group.add(makeMesh(new THREE.CylinderGeometry(0.1, 0.1, 0.25, 12), materials.brass, [bx, 0.62, bz]));
+    for (const bz of [-1.1, 1.1]) fallbackBody.add(makeMesh(new THREE.CylinderGeometry(0.1, 0.1, 0.25, 12), materials.brass, [bx, 0.62, bz]));
   }
 
   const motor = new THREE.Group();
@@ -310,7 +318,7 @@ function buildHeroPump(parent: THREE.Object3D, materials: Materials, x: number, 
   }
   const terminal = makeMesh(new THREE.BoxGeometry(0.82, 0.5, 0.68), materials.darkSteel, [-0.35, 0.95, 0]);
   motor.add(terminal);
-  group.add(motor);
+  fallbackBody.add(motor);
 
   const pumpBody = new THREE.Group();
   pumpBody.position.set(1.3, 1.55, 0);
@@ -322,19 +330,26 @@ function buildHeroPump(parent: THREE.Object3D, materials: Materials, x: number, 
   pumpBody.add(makeMesh(new THREE.CylinderGeometry(0.72, 0.72, 0.18, 24), accent, [0.1, 1.88, 0]));
   pumpBody.add(makeMesh(new THREE.CylinderGeometry(0.44, 0.44, 1.25, 24), materials.steel, [1.38, 0.02, 0], [0, 0, Math.PI / 2]));
   pumpBody.add(makeMesh(new THREE.CylinderGeometry(0.65, 0.65, 0.18, 24), accent, [2.02, 0.02, 0], [0, 0, Math.PI / 2]));
-  group.add(pumpBody);
+  fallbackBody.add(pumpBody);
 
   const coupling = makeMesh(new THREE.BoxGeometry(0.82, 0.9, 1.15), accent, [0.36, 1.45, 0]);
   coupling.rotation.z = 0.03;
-  group.add(coupling);
+  fallbackBody.add(coupling);
   const statusBulb = makeMesh(new THREE.SphereGeometry(0.12, 18, 12), standby ? materials.glass : materials.warningRed, [0.36, 2.05, 0.48]);
   group.add(statusBulb);
 
   const { gauge, needle } = createGauge(materials);
-  gauge.position.set(1.55, 3.25, 0.72);
+  gauge.position.set(standby ? 1.55 : 2.35, standby ? 3.25 : 2.72, standby ? 0.72 : 1.02);
   gauge.rotation.set(-0.08, 0, 0);
   group.add(gauge);
-  pipeBetween(group, new THREE.Vector3(1.55, 2.45, 0), new THREE.Vector3(1.55, 3.05, 0.45), 0.08, materials.brass, 10);
+  pipeBetween(
+    group,
+    new THREE.Vector3(standby ? 1.55 : 2.2, standby ? 2.45 : 1.92, 0),
+    new THREE.Vector3(standby ? 1.55 : 2.35, standby ? 3.05 : 2.47, standby ? 0.45 : 0.72),
+    0.08,
+    materials.brass,
+    10,
+  );
 
   const cableCurve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(-1.4, 2.4, -0.42),
@@ -348,7 +363,7 @@ function buildHeroPump(parent: THREE.Object3D, materials: Materials, x: number, 
   sign.scale.set(standby ? 4.5 : 4.25, 1.02, 1);
   group.add(sign);
   parent.add(group);
-  return { group, motor, pumpBody, needle, statusBulb };
+  return { group, fallbackBody, motor, pumpBody, needle, statusBulb };
 }
 
 function createValveWheel(material: THREE.Material, radius = 0.48) {
@@ -588,9 +603,12 @@ export default function FactoryScene({
   filterCaptured,
   filterChoice,
   filterDecision,
+  pumpControlStep,
+  completedPumpControls,
   touchControls,
   onNearChange,
   onTargetChange,
+  onPumpControlTargetChange,
   onFilterTargetChange,
 }: FactorySceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -603,6 +621,8 @@ export default function FactoryScene({
   const filterCapturedRef = useRef(filterCaptured);
   const filterChoiceRef = useRef(filterChoice);
   const filterDecisionRef = useRef(filterDecision);
+  const pumpControlStepRef = useRef(pumpControlStep);
+  const completedPumpControlsRef = useRef(completedPumpControls);
 
   useEffect(() => { startedRef.current = started; }, [started]);
   useEffect(() => { phaseRef.current = scenarioPhase; }, [scenarioPhase]);
@@ -612,6 +632,8 @@ export default function FactoryScene({
   useEffect(() => { filterCapturedRef.current = filterCaptured; }, [filterCaptured]);
   useEffect(() => { filterChoiceRef.current = filterChoice; }, [filterChoice]);
   useEffect(() => { filterDecisionRef.current = filterDecision; }, [filterDecision]);
+  useEffect(() => { pumpControlStepRef.current = pumpControlStep; }, [pumpControlStep]);
+  useEffect(() => { completedPumpControlsRef.current = completedPumpControls; }, [completedPumpControls]);
   useEffect(() => {
     tabletRef.current = tabletOpen;
     if (tabletOpen && document.pointerLockElement) document.exitPointerLock();
@@ -903,6 +925,30 @@ export default function FactoryScene({
     const hero = buildHeroPump(facility, materials, 0, -10, false);
     const standby = buildHeroPump(facility, materials, 9, -10.5, true);
     standby.group.scale.setScalar(0.85);
+    const p205StartMaterial = new THREE.MeshStandardMaterial({ color: 0x34564e, emissive: 0x12352d, emissiveIntensity: 0.35, roughness: 0.32, metalness: 0.42 });
+    const transferScreenMaterial = new THREE.MeshStandardMaterial({ color: 0x1b2725, emissive: 0xe49224, emissiveIntensity: 1.15, roughness: 0.25, metalness: 0.28 });
+    const transferConsole = new THREE.Group();
+    transferConsole.name = "P-205 physical start console";
+    transferConsole.position.set(7.15, 0, -8.66);
+    transferConsole.add(makeMesh(new THREE.BoxGeometry(0.92, 1.72, 0.42), materials.darkSteel, [0, 0.94, 0]));
+    transferConsole.add(makeMesh(new THREE.BoxGeometry(0.66, 0.42, 0.035), transferScreenMaterial, [0, 1.31, 0.23], [0, 0, 0], false));
+    const p205StartButton = makeMesh(new THREE.CylinderGeometry(0.13, 0.13, 0.075, 20), p205StartMaterial, [0, 0.84, 0.25], [Math.PI / 2, 0, 0]);
+    transferConsole.add(p205StartButton);
+    const transferLabel = createSign("P-205 · TRANSFER", "#57b99c", 820);
+    transferLabel.position.set(0, 2.1, 0);
+    transferLabel.scale.set(2.45, 0.55, 1);
+    transferConsole.add(transferLabel);
+    facility.add(transferConsole);
+
+    const p204IsolationAssembly = new THREE.Group();
+    p204IsolationAssembly.name = "P-204 physical isolation valve";
+    p204IsolationAssembly.position.set(2.92, 1.46, -8.62);
+    p204IsolationAssembly.add(makeMesh(new THREE.CylinderGeometry(0.22, 0.22, 0.62, 18), materials.steel, [0, 0, -0.18], [0, 0, Math.PI / 2]));
+    const p204IsolationWheel = createValveWheel(materials.warningRed, 0.42);
+    p204IsolationWheel.position.z = 0.18;
+    p204IsolationAssembly.add(p204IsolationWheel);
+    facility.add(p204IsolationAssembly);
+
     const pipeSystem = buildIndustrialPipeSystem(facility, {
       teal: pipeTeal,
       orange: pipeOrange,
@@ -961,6 +1007,12 @@ export default function FactoryScene({
     const inspectionMarkers = EVIDENCE_POINTS.map((point) => createInspectionMarker(point, 0xf1a22a));
     inspectionMarkers.forEach((marker) => markerRoot.add(marker.group));
     scene.add(markerRoot);
+
+    const pumpControlMarkerRoot = new THREE.Group();
+    pumpControlMarkerRoot.name = "P-204 transfer control markers";
+    const pumpControlMarkers = PUMP_CONTROL_TASKS.map((task) => createInspectionMarker(task, 0x5cdbb2));
+    pumpControlMarkers.forEach((marker) => pumpControlMarkerRoot.add(marker.group));
+    scene.add(pumpControlMarkerRoot);
 
     const filterMarkerRoot = new THREE.Group();
     filterMarkerRoot.name = "F-201 inspection markers";
@@ -1065,11 +1117,10 @@ export default function FactoryScene({
       const model = prepareImportedModel(gltf.scene, 3.45);
       model.name = "Meshy P-204 centrifugal pump";
       model.position.set(0, 0.08, -10);
+      model.rotation.y = -0.14;
       facility.add(model);
       importedHeroPump = model;
-      hero.group.traverse((object) => {
-        if (object instanceof THREE.Mesh) object.visible = false;
-      });
+      hero.fallbackBody.visible = false;
     });
 
     gltfLoader.load(assetUrl("/models/industrial-valve.glb"), (gltf) => {
@@ -1181,6 +1232,8 @@ export default function FactoryScene({
     let lastDistanceReport = 0;
     let lastTargetReport = 0;
     let reportedTarget: EvidenceId | null = null;
+    let lastPumpControlTargetReport = 0;
+    let reportedPumpControlTarget: PumpControlTarget | null = null;
     let lastFilterTargetReport = 0;
     let reportedFilterTarget: FilterWorldTarget | null = null;
     let activeDecision: DecisionId | null = null;
@@ -1295,6 +1348,58 @@ export default function FactoryScene({
         onTargetChange(currentTarget, currentTargetDistance);
         lastTargetReport = now;
       }
+
+      const pumpControlStep = pumpControlStepRef.current;
+      const pumpActuationActive = startedRef.current && !tabletRef.current && phaseRef.current === "actuation" && Boolean(pumpControlStep);
+      pumpControlMarkers.forEach((marker, index) => {
+        const markerDistance = camera.position.distanceTo(marker.group.position);
+        const available = pumpActuationActive && marker.id === pumpControlStep && markerDistance < 18;
+        marker.group.visible = available;
+        if (!available) return;
+        marker.ring.quaternion.copy(camera.quaternion);
+        marker.core.rotation.y += dt * 2.2;
+        marker.core.rotation.x += dt * 0.9;
+        const pulse = 1 + Math.sin(elapsed * 4.1 + index) * 0.13;
+        marker.ring.scale.setScalar(pulse);
+        marker.core.scale.setScalar(pulse);
+        const fade = THREE.MathUtils.clamp(1 - Math.max(0, markerDistance - 10) / 8, 0.25, 1);
+        (marker.ring.material as THREE.MeshBasicMaterial).opacity = 0.92 * fade;
+        (marker.core.material as THREE.MeshBasicMaterial).opacity = 0.98 * fade;
+        (marker.label.material as THREE.SpriteMaterial).opacity = 0.94 * fade;
+      });
+
+      let currentPumpControlTarget: PumpControlTarget | null = null;
+      let currentPumpControlDistance = 0;
+      if (pumpActuationActive) {
+        const candidate = pumpControlMarkers.find((marker) => marker.id === pumpControlStep && marker.group.visible);
+        if (candidate) {
+          raycaster.setFromCamera(screenCenter, camera);
+          const hit = raycaster.intersectObject(candidate.hitbox, false)[0];
+          if (hit && hit.distance <= candidate.range) {
+            currentPumpControlTarget = candidate.id as PumpControlTarget;
+            currentPumpControlDistance = hit.distance;
+          }
+        }
+      }
+      if (currentPumpControlTarget !== reportedPumpControlTarget || now - lastPumpControlTargetReport > 220) {
+        reportedPumpControlTarget = currentPumpControlTarget;
+        onPumpControlTargetChange(currentPumpControlTarget, currentPumpControlDistance);
+        lastPumpControlTargetReport = now;
+      }
+
+      const completedPumpControls = completedPumpControlsRef.current;
+      const standbyStarted = completedPumpControls.includes("P205-START");
+      const pressureProven = completedPumpControls.includes("P205-GAUGE");
+      const dutyIsolated = completedPumpControls.includes("P204-ISOLATE");
+      p205StartMaterial.color.set(standbyStarted ? 0x4fd1a8 : 0x34564e);
+      p205StartMaterial.emissive.set(standbyStarted ? 0x168663 : 0x12352d);
+      p205StartMaterial.emissiveIntensity = standbyStarted ? 2.7 : 0.35;
+      transferScreenMaterial.emissive.set(pressureProven ? 0x20bc8c : standbyStarted ? 0xe5a12f : 0x7b4a15);
+      transferScreenMaterial.emissiveIntensity = standbyStarted ? 1.75 : 0.72;
+      const standbyNeedleTarget = pressureProven ? 0.06 : standbyStarted ? -0.08 : -0.72;
+      standby.needle.rotation.z = THREE.MathUtils.lerp(standby.needle.rotation.z, standbyNeedleTarget, 1 - Math.exp(-dt * 2.4));
+      p204IsolationWheel.rotation.z = THREE.MathUtils.lerp(p204IsolationWheel.rotation.z, dutyIsolated ? -1.28 : 0, 1 - Math.exp(-dt * 4.2));
+      if (standbyStarted && phaseRef.current === "actuation") standby.motor.rotation.x += dt * 4.6;
 
       const currentFilterStage = filterStageRef.current;
       const filterInspectionActive = startedRef.current && !tabletRef.current && currentFilterStage === "inspection";
@@ -1552,6 +1657,7 @@ export default function FactoryScene({
       sunTexture.dispose();
       steamTexture.dispose();
       inspectionMarkers.forEach((marker) => marker.texture.dispose());
+      pumpControlMarkers.forEach((marker) => marker.texture.dispose());
       filterInspectionMarkers.forEach((marker) => marker.texture.dispose());
       Object.values(filterControlMarkers).forEach((marker) => marker.texture.dispose());
       scene.traverse((object) => {
@@ -1561,7 +1667,7 @@ export default function FactoryScene({
       });
       assetLibrary.dispose();
     };
-  }, [onFilterTargetChange, onNearChange, onTargetChange, touchControls]);
+  }, [onFilterTargetChange, onNearChange, onPumpControlTargetChange, onTargetChange, touchControls]);
 
   return <div className="factory-canvas" ref={mountRef} />;
 }

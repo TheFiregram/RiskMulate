@@ -14,13 +14,16 @@ The player must:
 2. Inspect four marked components in the 3D yard.
 3. Compare sensor data, equipment condition, an operator report, and the standby path.
 4. Choose whether to monitor P-204, transfer flow to P-205, or stop for repair.
-5. Observe the plant response and review the risk debrief.
-6. Continue into the live plant network and see how the pump response changes throughput, buffer, quality, and open risk.
-7. Follow the in-world beacon to the physical F-201 filter skid.
-8. Inspect its pressure panel, turbidity analyzer, wash controller, and clearwell indicator.
-9. Select a response on the tablet, then operate the matching valve or backwash control in the yard.
-10. Watch the equipment react and trace the result through the full production system.
-11. Review one combined shift score covering both decisions, all eight observations, and the remaining factory risk.
+5. For the recommended transfer, start P-205 at its field console, prove 4.9 bar on the physical meter, and turn the P-204 isolation wheel.
+6. Observe the plant response and review the risk debrief.
+7. Continue into the live plant network and see how the pump response changes throughput, buffer, quality, and open risk.
+8. Follow the in-world beacon to the physical F-201 filter skid.
+9. Inspect its pressure panel, turbidity analyzer, wash controller, and clearwell indicator.
+10. Select a response on the tablet, then operate the matching valve or backwash control in the yard.
+11. Watch the equipment react and trace the result through the full production system.
+12. Review one combined shift score covering both decisions, all eight observations, and the remaining factory risk.
+
+The P-204 scene uses the optimized Meshy engine body as a hero asset, paired with a live gauge, warning lamp, inspection sensors, standby start console, and isolation valve. The recommended response is now a three-control field procedure instead of an automatic animation.
 
 The second decision asks the player to push through the loaded filter, open a bypass, or perform a controlled backwash. Each path has a separate physical control and visible equipment reaction. The choice then changes the factory KPIs and exposes a constraint-to-consequence chain.
 

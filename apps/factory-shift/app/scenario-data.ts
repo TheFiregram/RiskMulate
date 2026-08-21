@@ -1,6 +1,7 @@
 export type EvidenceId = "EV-01" | "EV-02" | "EV-03" | "EV-04";
 export type DecisionId = "monitor" | "transfer" | "repair";
-export type ScenarioPhase = "briefing" | "inspection" | "decision" | "consequence" | "debrief";
+export type ScenarioPhase = "briefing" | "inspection" | "decision" | "actuation" | "consequence" | "debrief";
+export type PumpControlTarget = "P205-START" | "P205-GAUGE" | "P204-ISOLATE";
 export type FilterEvidenceId = "F1" | "F2" | "F3" | "F4";
 export type FilterFieldStage = "idle" | "briefing" | "inspection" | "decision" | "actuation" | "reaction" | "result";
 export type FilterWorldTarget = FilterEvidenceId | "FILTER-CONTROL";
@@ -66,6 +67,50 @@ export const EVIDENCE_POINTS: EvidencePoint[] = [
     significance: "A controlled alternative exists without leaving the filtration line unsupported.",
     position: [5.55, 2.42, -9.98],
     range: 5.6,
+  },
+];
+
+export type PumpControlTask = {
+  id: PumpControlTarget;
+  code: string;
+  worldLabel: string;
+  title: string;
+  prompt: string;
+  completion: string;
+  position: readonly [number, number, number];
+  range: number;
+};
+
+export const PUMP_CONTROL_TASKS: PumpControlTask[] = [
+  {
+    id: "P205-START",
+    code: "01",
+    worldLabel: "P-205 START",
+    title: "Start standby engine P-205",
+    prompt: "Press the P-205 start control",
+    completion: "Standby motor running",
+    position: [7.15, 1.72, -8.52],
+    range: 4.8,
+  },
+  {
+    id: "P205-GAUGE",
+    code: "02",
+    worldLabel: "PROVE 4.9 BAR",
+    title: "Confirm P-205 discharge pressure",
+    prompt: "Read and confirm the pressure meter",
+    completion: "Discharge pressure proven at 4.9 bar",
+    position: [10.32, 2.82, -9.82],
+    range: 5.2,
+  },
+  {
+    id: "P204-ISOLATE",
+    code: "03",
+    worldLabel: "ISOLATE P-204",
+    title: "Close the damaged engine isolation",
+    prompt: "Turn the P-204 isolation wheel",
+    completion: "P-204 removed from duty",
+    position: [2.92, 1.46, -8.54],
+    range: 4.6,
   },
 ];
 
