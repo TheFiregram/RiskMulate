@@ -12,6 +12,12 @@ import { createGeneratedAssetLibrary } from "./generated-assets";
 import { buildIndustrialPipeSystem, PIPE_VALVE_MOUNTS } from "./industrial-pipes";
 import { EVIDENCE_POINTS, type DecisionId, type EvidenceId, type ScenarioPhase } from "./scenario-data";
 
+const VERCEL_ASSET_CDN = "https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@6488af39d2837b2ba49b6de9c94b41d954e592e6/apps/factory-shift/public";
+
+function assetUrl(path: string) {
+  return window.location.hostname.endsWith(".vercel.app") ? `${VERCEL_ASSET_CDN}${path}` : path;
+}
+
 export type TouchControls = {
   forward: number;
   side: number;
@@ -505,7 +511,7 @@ export default function FactoryScene({
       colorTexture: boolean,
       apply: (texture: THREE.Texture) => void,
     ) => {
-      textureLoader.load(url, (texture) => {
+      textureLoader.load(assetUrl(url), (texture) => {
         if (disposed) {
           texture.dispose();
           return;
@@ -590,7 +596,7 @@ export default function FactoryScene({
       pipeOrange.needsUpdate = true;
     });
 
-    new RGBELoader().load("/hdri/overcast-industrial-courtyard-1k.hdr", (texture) => {
+    new RGBELoader().load(assetUrl("/hdri/overcast-industrial-courtyard-1k.hdr"), (texture) => {
       if (disposed) {
         texture.dispose();
         return;
@@ -788,7 +794,7 @@ export default function FactoryScene({
     extinguisher.add(makeMesh(new THREE.BoxGeometry(0.32, 0.18, 0.22), materials.darkSteel, [0, 1.28, 0]));
     scene.add(extinguisher);
 
-    gltfLoader.load("/models/p204-pump.glb", (gltf) => {
+    gltfLoader.load(assetUrl("/models/p204-pump.glb"), (gltf) => {
       if (disposed) return;
       const model = prepareImportedModel(gltf.scene, 3.45);
       model.name = "Meshy P-204 centrifugal pump";
@@ -800,7 +806,7 @@ export default function FactoryScene({
       });
     });
 
-    gltfLoader.load("/models/industrial-valve.glb", (gltf) => {
+    gltfLoader.load(assetUrl("/models/industrial-valve.glb"), (gltf) => {
       if (disposed) return;
       const template = prepareImportedModel(gltf.scene, 1.82, false);
       template.name = "Meshy industrial gate valve";
@@ -813,7 +819,7 @@ export default function FactoryScene({
       proceduralValves.forEach((object) => { object.visible = false; });
     });
 
-    gltfLoader.load("/models/traffic-cone.glb", (gltf) => {
+    gltfLoader.load(assetUrl("/models/traffic-cone.glb"), (gltf) => {
       if (disposed) return;
       const template = prepareImportedModel(gltf.scene, 0.86);
       template.name = "Meshy weathered traffic cone";
@@ -826,7 +832,7 @@ export default function FactoryScene({
       proceduralCones.forEach((cone) => { cone.visible = false; });
     });
 
-    gltfLoader.load("/models/polyhaven-rock-09.glb", (gltf) => {
+    gltfLoader.load(assetUrl("/models/polyhaven-rock-09.glb"), (gltf) => {
       if (disposed) return;
       const template = prepareImportedModel(gltf.scene, 1.05);
       template.name = "Poly Haven weathered rock";
