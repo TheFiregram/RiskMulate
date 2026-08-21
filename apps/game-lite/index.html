@@ -2,225 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#081016" />
-  <title>RiskMulate — Continuity Under Disruption</title>
-  <link rel="stylesheet" href="./styles.css" />
-  <link rel="stylesheet" href="./tablet-ui.css" />
-  <link rel="stylesheet" href="./tablet-nav.css" />
-  <link rel="stylesheet" href="./tablet-motion.css" />
-  <link rel="stylesheet" href="./tablet-beautiful.css" />
-  <link rel="stylesheet" href="./hud-compact.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="theme-color" content="#071011" />
+  <meta name="description" content="RiskMulate Factory Shift: a playable first-person operational risk simulation." />
+  <title>RiskMulate | Factory Shift</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23071011'/%3E%3Cpath d='M15 48V17h20c9 0 14 5 14 13 0 6-3 10-9 12l10 6H38l-9-6h-4v6zm10-15h9c3 0 5-1 5-4s-2-4-5-4h-9z' fill='%23f0b94d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@6a2d115df7e4fe507dc2b4bbba076399496d0cc5/apps/factory-shift/standalone/app.css" />
+  <style>
+    html,body,#riskmulate-root{width:100%;height:100%;margin:0;background:#071011}
+    .release-loader{height:100%;display:grid;place-items:center;color:#e8ece8;font:600 14px/1.4 system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;background:radial-gradient(circle at 50% 35%,#183033 0,#071011 58%)}
+    .release-loader span{padding:14px 18px;border:1px solid rgba(240,185,77,.38);border-radius:6px;background:rgba(7,16,17,.72);box-shadow:0 18px 70px rgba(0,0,0,.42)}
+  </style>
   <script type="importmap">
     {
       "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"
+        "react": "https://esm.sh/react@19.2.6",
+        "react/jsx-runtime": "https://esm.sh/react@19.2.6/jsx-runtime",
+        "react-dom/client": "https://esm.sh/react-dom@19.2.6/client?external=react",
+        "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+        "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
       }
     }
   </script>
 </head>
 <body>
-  <main id="game" aria-label="RiskMulate first-person supply continuity simulation"></main>
-
-  <div class="hud-state-sink" aria-hidden="true">
-    <span id="score">0</span>
-    <span id="stage">Inspection</span>
-  </div>
-
-  <div class="hud mission-chip" aria-label="Current scenario">
-    <span class="mission-kicker">CONTINUITY ROTATION 03</span>
-    <strong>NORTHBRIDGE FILTRATION</strong>
-  </div>
-
-  <div class="hud risk-cycle" id="riskCycle" aria-label="Risk management cycle">
-    <span class="cycle-step" data-stage="Context">Context</span><i></i>
-    <span class="cycle-step" data-stage="Identify">Identify</span><i></i>
-    <span class="cycle-step" data-stage="Analyze">Analyze</span><i></i>
-    <span class="cycle-step" data-stage="Evaluate">Evaluate</span><i></i>
-    <span class="cycle-step" data-stage="Treat">Treat</span><i></i>
-    <span class="cycle-step" data-stage="Monitor & Review">Review</span>
-  </div>
-
-  <div class="hud phase-chip" aria-live="polite">
-    <span id="phaseOrdinal">FIELD</span>
-    <strong id="phaseName">Inspection</strong>
-  </div>
-
-  <div class="hud objective-toast" id="objectiveToast" role="status">
-    <span>FIELD OBJECTIVE</span>
-    <p>Core loop: inspect evidence → field FIX at the equipment → residual risk changes. Six pathways. Access is multipath — plant-side and rear egress both feed emergency-access residual.</p>
-  </div>
-
-  <div class="hud field-readout" aria-label="Field status">
-    <div><span>RISK</span><strong id="hudRiskCount">0/6</strong></div>
-    <div><span>EVID</span><strong id="hudEvidenceCount">0/16</strong></div>
-    <div><span>SCORE</span><strong id="hudScore">0</strong></div>
-    <div class="field-time"><span>TIME</span><strong id="hudElapsed">00:00</strong></div>
-  </div>
-
-  <div class="hud crosshair" aria-hidden="true">
-    <span class="crosshair-arm crosshair-left"></span><span class="crosshair-arm crosshair-right"></span>
-    <span class="crosshair-arm crosshair-top"></span><span class="crosshair-arm crosshair-bottom"></span>
-    <span class="crosshair-dot"></span>
-  </div>
-  <div class="hud prompt" id="prompt"></div>
-  <div class="paused" id="paused">Click the scene to resume mouse look.</div>
-
-  <section class="start" id="start">
-    <div class="start-card">
-      <div class="start-briefing"><span>SUPPLY CONTINUITY BRIEF</span><b>WEEK 01 · NORTHBRIDGE WORKS</b></div>
-      <span class="start-eyebrow">CONTINUITY MANAGER · ROTATION 03</span>
-      <h1>Under <em>Disruption</em></h1>
-      <p>A critical production window opens today. Inspect the filtration-unit line, distinguish material evidence from noise, then commit a proportionate continuity response before authorizing startup.</p>
-      <div class="start-mission-grid">
-        <div><span>OBJECTIVE</span><strong>Protect 90% planned output</strong></div>
-        <div><span>TOLERANCE</span><strong>Quality limits · zero release</strong></div>
-        <div><span>AUTHORITY</span><strong>23-minute response window</strong></div>
-      </div>
-      <div class="start-controls"><kbd>WASD</kbd> MOVE <kbd>E</kbd> INSPECT <kbd>F</kbd> FIELD FIX <kbd>TAB</kbd> TABLET <kbd>SHIFT</kbd> SPRINT</div>
-      <button class="primary" id="startButton"><span>BEGIN CONTINUITY ASSESSMENT</span><b>ENTER WORKS →</b></button>
-      <div class="small"><i></i> SESSION READY · PROGRESS SAVES LOCALLY</div>
-    </div>
-  </section>
-
-  <section class="tablet" id="tablet" aria-label="RiskMulate field risk tablet">
-    <div class="tablet-screen">
-      <div class="tablet-system-bar" aria-label="Tablet device status">
-        <div class="tablet-signal-bars" aria-label="Strong signal" title="Strong signal"><i></i><i></i><i></i><i></i></div>
-        <div class="tablet-system-right">
-          <time id="tabletClock">--:--</time>
-          <div class="tablet-battery" id="tabletBattery" aria-label="Battery 81 percent" title="Battery 81%">
-            <span class="tablet-battery-shell"><i id="tabletBatteryFill"></i></span><span class="tablet-battery-cap" aria-hidden="true"></span>
-          </div>
-          <span class="tablet-battery-level" id="tabletBatteryLevel">81%</span>
-        </div>
-      </div>
-
-      <header class="tablet-head">
-        <div class="tablet-brand-lockup">
-          <button class="tablet-back-icon" id="tabletBackIcon" type="button" aria-label="Go to previous tablet page">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5-1.4 1.4L5.2 12l8.9-8.9 1.4 1.4Z"/></svg>
-          </button>
-          <span class="tablet-mark" aria-hidden="true">RM</span>
-          <div><b>RISKMULATE</b><span>RISK OFFICER TABLET</span></div>
-        </div>
-        <div class="tablet-session"><strong>CONTINUITY 03</strong><span>SESSION ACTIVE</span></div>
-        <div class="tablet-device-status"><button class="close-tablet" type="button" onclick="closeTablet()" aria-label="Close field tablet">Close</button></div>
-      </header>
-
-      <main class="tablet-main-panel" id="tabletMainPanel" data-tablet-view="overview" data-register-filter="all">
-        <div class="tablet-toolbar">
-          <div class="tablet-view-heading"><span id="tabletViewEyebrow">FIELD STATUS</span><strong id="tabletViewTitle">Overview</strong></div>
-          <nav class="tablet-view-nav" id="tabletViewNav" aria-label="Tablet pages">
-            <button type="button" data-tablet-view="overview" aria-selected="true">Overview</button>
-            <button type="button" data-tablet-view="assess">Assess</button>
-            <button type="button" data-tablet-view="evidence">Evidence</button>
-            <button type="button" data-tablet-view="matrix">Matrix</button>
-            <button type="button" data-tablet-view="register">Register</button>
-            <button type="button" data-tablet-view="treat">Treat</button>
-            <button type="button" data-tablet-view="debrief">Debrief</button>
-          </nav>
-        </div>
-
-        <div class="tablet-page-viewport" id="tabletPageViewport">
-          <div class="tablet-page-stage" id="tabletPageStage" data-render-view="overview">
-            <section class="tablet-statusbar" aria-label="Scenario status">
-              <div class="tablet-stat"><span>RISKS</span><strong id="tabletRiskCount">0</strong></div>
-              <div class="tablet-stat"><span>INHERENT</span><strong id="tabletInherent">—</strong></div>
-              <div class="tablet-stat"><span>RESIDUAL</span><strong id="tabletResidual">—</strong></div>
-              <div class="tablet-stat tablet-stat-progress"><span>PROGRESS</span><strong id="tabletTreatmentPct">0%</strong></div>
-            </section>
-
-            <section class="tablet-overview-panel" id="tabletOverviewPanel">
-              <article class="tablet-insight-card">
-                <div class="tablet-insight-topline"><span>DECISION SUPPORT</span><i id="tabletInsightPulse"></i></div>
-                <strong id="tabletInsightHeadline">Complete the field walkdown</strong>
-                <p id="tabletInsightDetail">Collect evidence before the formal assessment begins.</p>
-                <div class="tablet-insight-meta"><span id="tabletPhase">Inspection</span><b id="tabletScenarioPct">0%</b></div>
-                <div class="tablet-progress-track"><i id="tabletScenarioBar"></i></div>
-              </article>
-
-              <section class="tablet-task-card">
-                <header><span>RISK PROCESS</span><b id="tabletTaskSummary">0 / 6</b></header>
-                <div class="tablet-task-rows" id="tabletTaskRows"></div>
-              </section>
-
-              <div class="tablet-overview-actions">
-                <button type="button" data-jump-view="assess">Continue assessment</button>
-                <button type="button" data-jump-view="evidence">Review evidence</button>
-              </div>
-            </section>
-
-            <section class="tablet-evidence-panel" id="tabletEvidencePanel">
-              <div class="tablet-section-intro">
-                <div><span>CONTEXT SOURCES</span><strong>Evidence Vault</strong></div>
-                <b id="tabletEvidenceSummary">0 items</b>
-              </div>
-              <div class="tablet-context-list" id="tabletEvidenceList"></div>
-            </section>
-
-            <section class="tablet-treatment-panel" id="tabletTreatmentPanel">
-              <article class="tablet-recommendation-card">
-                <div class="tablet-rec-header">
-                  <span>RECOMMENDED RESPONSE</span>
-                  <b id="tabletTreatmentState">PENDING</b>
-                </div>
-                <strong id="tabletTreatmentHeadline">Control the initiating pathways before startup</strong>
-                <p id="tabletTreatmentCopy">The strongest immediate response should act on each material risk pathway and stay within the available response window.</p>
-                <div class="tablet-confidence-row"><span>Evidence strength</span><div><i></i><i></i><i></i><i></i><i></i></div><b id="tabletTreatmentConfidence">0%</b></div>
-                <div class="tablet-treatment-actions-list" id="tabletTreatmentActionsList"></div>
-                <div class="tablet-treatment-footer">
-                  <div><span>CAPACITY</span><strong id="tabletTreatmentCapacity">0 / 23 min</strong></div>
-                  <button type="button" data-jump-view="assess" id="tabletTreatmentAction">Review decision</button>
-                </div>
-              </article>
-            </section>
-
-            <section class="tablet-register-tools" id="tabletRegisterTools">
-              <div class="tablet-filter-row" role="group" aria-label="Risk register filters">
-                <button type="button" data-register-filter="all" aria-pressed="true">All</button>
-                <button type="button" data-register-filter="above">Above criteria</button>
-                <button type="button" data-register-filter="monitor">Monitor</button>
-              </div>
-              <span id="tabletRegisterCount">0 records</span>
-            </section>
-
-            <section class="tablet-workspace" id="tabletWorkspace">
-              <div class="tablet-workspace-head">
-                <div><span class="tablet-eyebrow">RISK PROCESS</span><strong id="tabletWorkspaceTitle">Field assessment</strong></div>
-                <nav class="tabs" id="tabletTabs" aria-label="Risk management stages"></nav>
-              </div>
-              <div class="tablet-body view-assess" id="tabletBody">
-                <div class="question">Inspect the highlighted flange in the plant to begin the assessment.</div>
-              </div>
-            </section>
-          </div>
-        </div>
-      </main>
-
-      <footer class="tablet-foot"><span id="tabletNavHint">Tap a page · swipe left/right</span><span class="tablet-sync">● DEVICE SYNCED</span></footer>
-    </div>
-  </section>
-
-  <div class="mobile" aria-label="Touch controls">
-    <div class="look-zone" id="lookZone"></div>
-    <div class="stick-zone" id="stickZone" aria-hidden="true"><span class="stick-ring"></span><div class="stick-knob" id="stickKnob"></div></div>
-    <div class="mobile-actions">
-      <button class="mobile-fix" id="mobileFix" type="button" aria-label="Apply field control at targeted equipment">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span>Fix</span>
-      </button>
-      <button class="mobile-interact" id="mobileInteract" type="button" aria-label="Inspect targeted object">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 0 4.8 12.1L21 21l1-1-4.2-4.2A7 7 0 0 0 12 5Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"/></svg><span>Inspect</span>
-      </button>
-      <button class="mobile-tablet" id="mobileTablet" type="button" aria-label="Open field tablet">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm0 2v16h12V4H6Zm5 13h2v1h-2v-1Z"/></svg><span>Tablet</span>
-      </button>
-    </div>
-  </div>
-
-  <script type="module" src="./bootstrap.js"></script>
-  <script type="module" src="./tablet-ui.js"></script>
-  <script type="module" src="./hud.js"></script>
+  <div id="riskmulate-root"><div class="release-loader"><span>Loading Factory Shift</span></div></div>
+  <script type="module" src="https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@6a2d115df7e4fe507dc2b4bbba076399496d0cc5/apps/factory-shift/standalone/app.js"></script>
 </body>
 </html>
