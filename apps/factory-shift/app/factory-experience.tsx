@@ -31,6 +31,69 @@ import {
 } from "./scenario-data";
 
 type TabletApp = "work" | "plant" | "inspection" | "messages" | "risk" | "decision";
+type KeyboardDirection = "up" | "down" | "left" | "right";
+
+const DIRECTION_KEYS: Partial<Record<string, KeyboardDirection>> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+};
+
+const FOCUSABLE_SELECTOR = [
+  "button:not(:disabled)",
+  "a[href]",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function focusableElements(root: HTMLElement) {
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+    return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+  });
+}
+
+function moveDirectionalFocus(root: HTMLElement, direction: KeyboardDirection) {
+  const elements = focusableElements(root);
+  if (elements.length === 0) return;
+
+  const current = document.activeElement instanceof HTMLElement && root.contains(document.activeElement)
+    ? document.activeElement
+    : null;
+
+  if (!current || !elements.includes(current)) {
+    const first = direction === "up" || direction === "left" ? elements.at(-1) : elements[0];
+    first?.focus({ preventScroll: true });
+    first?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    return;
+  }
+
+  const currentRect = current.getBoundingClientRect();
+  const currentX = currentRect.left + currentRect.width / 2;
+  const currentY = currentRect.top + currentRect.height / 2;
+  const horizontal = direction === "left" || direction === "right";
+  const sign = direction === "left" || direction === "up" ? -1 : 1;
+
+  const ranked = elements
+    .filter((element) => element !== current)
+    .map((element) => {
+      const rect = element.getBoundingClientRect();
+      const deltaX = rect.left + rect.width / 2 - currentX;
+      const deltaY = rect.top + rect.height / 2 - currentY;
+      const primary = horizontal ? deltaX : deltaY;
+      const crossAxis = horizontal ? deltaY : deltaX;
+      return { element, primary, score: Math.abs(primary) + Math.abs(crossAxis) * 2.4 };
+    })
+    .filter((candidate) => candidate.primary * sign > 2)
+    .sort((a, b) => a.score - b.score);
+
+  const currentIndex = elements.indexOf(current);
+  const fallbackOffset = sign > 0 ? 1 : -1;
+  const next = ranked[0]?.element ?? elements[(currentIndex + fallbackOffset + elements.length) % elements.length];
+  next.focus({ preventScroll: true });
+  next.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
 
 const apps: { id: TabletApp; label: string; glyph: string }[] = [
   { id: "work", label: "Work order", glyph: "WO" },
@@ -169,6 +232,9 @@ export default function FactoryExperience() {
   const lookPointerRef = useRef<number | null>(null);
   const lookPositionRef = useRef({ x: 0, y: 0 });
   const joystickKnobRef = useRef<HTMLSpanElement>(null);
+  const startScreenElementRef = useRef<HTMLElement>(null);
+  const tabletElementRef = useRef<HTMLDivElement>(null);
+  const presenterElementRef = useRef<HTMLElement>(null);
 
   useEffect(() => { startedRef.current = started; }, [started]);
   useEffect(() => { tabletRef.current = tabletOpen; }, [tabletOpen]);
@@ -582,16 +648,71 @@ export default function FactoryExperience() {
   }, []);
 
   useEffect(() => {
+    if (started) return;
+    const frame = window.requestAnimationFrame(() => {
+      startScreenElementRef.current?.querySelector<HTMLElement>(".primary-action")?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [started]);
+
+  useEffect(() => {
+    const tablet = tabletElementRef.current;
+    if (!tabletOpen || !tablet) {
+      if (tablet?.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      if (tablet.contains(document.activeElement)) return;
+      const activeAppButton = tablet.querySelector<HTMLElement>(".app-rail button.active:not(:disabled)");
+      (activeAppButton ?? focusableElements(tablet)[0])?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [tabletOpen]);
+
+  useEffect(() => {
+    const presenter = presenterElementRef.current;
+    if (!presenterOpen || tabletOpen || !presenter) return;
+    const frame = window.requestAnimationFrame(() => {
+      const firstAction = presenter.querySelector<HTMLElement>(".presenter-actions button:not(:disabled)");
+      (firstAction ?? focusableElements(presenter)[0])?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [presenterOpen, tabletOpen]);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      const direction = DIRECTION_KEYS[event.code];
+      if (direction) {
+        const activeElement = document.activeElement;
+        const presenterHasFocus = presenterElementRef.current?.contains(activeElement) ?? false;
+        const surface = !startedRef.current
+          ? startScreenElementRef.current
+          : tabletRef.current
+            ? tabletElementRef.current
+            : presenterHasFocus
+              ? presenterElementRef.current
+              : null;
+        if (surface) {
+          event.preventDefault();
+          moveDirectionalFocus(surface, direction);
+          return;
+        }
+      }
+
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const interactiveTarget = target?.closest("button, a, input, select, textarea, [contenteditable='true']");
       if (event.code === "KeyP" && !event.repeat && startedRef.current) setPresenterOpen((open) => !open);
       if (event.code === "KeyT" && !event.repeat) toggleTablet();
-      if (event.code === "KeyE" && !event.repeat) {
+      if (event.code === "KeyE" && !event.repeat && !interactiveTarget) {
         if (phaseRef.current === "actuation") executePumpControl();
         else if (filterStageRef.current === "inspection") captureFilterInspection();
         else if (filterStageRef.current === "actuation") executeFilterControl();
         else captureInspection();
       }
-      if (event.code === "Escape" && tabletRef.current && phaseRef.current !== "actuation" && phaseRef.current !== "consequence") setTabletOpen(false);
+      if (event.code === "Escape") {
+        if (tabletRef.current && phaseRef.current !== "actuation" && phaseRef.current !== "consequence") setTabletOpen(false);
+        else if (presenterOpen) setPresenterOpen(false);
+      }
       if (event.code === "F9" && !event.repeat && startedRef.current) {
         event.preventDefault();
         if (operationsActiveRef.current && (filterStageRef.current === "briefing" || filterStageRef.current === "inspection")) {
@@ -606,14 +727,16 @@ export default function FactoryExperience() {
           loadCompletedWalkdown();
         }
       }
-      if (event.code === "Enter" && !startedRef.current) {
+      if (event.code === "Enter" && !startedRef.current && !interactiveTarget) {
+        startedRef.current = true;
+        tabletRef.current = true;
         setStarted(true);
         setTabletOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [captureFilterInspection, captureInspection, completePumpTransfer, executeFilterControl, executePumpControl, loadCompletedWalkdown, loadFilterWalkdown, openRecommendedDebrief, runRecommendedFilterResponse, toggleTablet]);
+  }, [captureFilterInspection, captureInspection, completePumpTransfer, executeFilterControl, executePumpControl, loadCompletedWalkdown, loadFilterWalkdown, openRecommendedDebrief, presenterOpen, runRecommendedFilterResponse, toggleTablet]);
 
   const beginShift = () => {
     startedRef.current = true;
@@ -838,7 +961,7 @@ export default function FactoryExperience() {
       </div>
 
       {!started && (
-        <section className="start-screen">
+        <section className="start-screen" ref={startScreenElementRef} aria-label="Factory Shift start menu">
           <div className="start-meta"><span>06:42</span><span>18°C</span><span>DAWN SHIFT</span></div>
           <div className="start-kicker"><span /> RISKMULATE · PLAYABLE OPERATIONS PROTOTYPE</div>
           <h1>FACTORY<br /><em>SHIFT</em></h1>
@@ -857,8 +980,9 @@ export default function FactoryExperience() {
             <span><i>P‑204</i><b>Degrading pump</b></span><em>→</em><span><i>F‑201</i><b>Restricted filter</b></span><em>→</em><span><i>LINE 2</i><b>Factory outcome</b></span>
           </div>
           <div className="control-grid">
-            <span><kbd>WASD</kbd> Move</span><span><kbd>MOUSE</kbd> Look</span>
-            <span><kbd>T</kbd> Tablet</span><span><kbd>E</kbd> Inspect</span>
+            <span><kbd>↑ ↓</kbd> Walk</span><span><kbd>← →</kbd> Turn</span>
+            <span><kbd>WASD</kbd> Move / strafe</span><span><kbd>PG ↑↓</kbd> Aim</span>
+            <span><kbd>T</kbd> Tablet</span><span><kbd>E</kbd> Inspect / operate</span>
           </div>
           <div className="touch-control-note">Touch controls activate after the work order.</div>
           <div className="location-stamp"><i /> Kestrel Valley · East Process Yard</div>
@@ -1026,7 +1150,7 @@ export default function FactoryExperience() {
         </>
       )}
 
-      <div className={`tablet-rig ${tabletOpen ? "is-open" : ""}`} aria-hidden={!tabletOpen}>
+      <div className={`tablet-rig ${tabletOpen ? "is-open" : ""}`} ref={tabletElementRef} aria-hidden={!tabletOpen} aria-label="Field tablet">
         <div className="forearm forearm-left" /><div className="forearm forearm-right" />
         <div className="glove glove-left"><i /><i /><i /></div><div className="glove glove-right"><i /><i /><i /></div>
         <div className="tablet-case">
@@ -1239,6 +1363,7 @@ export default function FactoryExperience() {
             </div>
           </div>
         </div>
+        <div className="tablet-keyboard-strip" aria-hidden="true"><span><kbd>ARROWS</kbd> NAVIGATE</span><span><kbd>ENTER</kbd> SELECT</span></div>
         {phase !== "consequence" && <button className="tablet-close" onClick={() => setTabletOpen(false)}><kbd className="desktop-key">T</kbd> LOWER TABLET</button>}
       </div>
 
@@ -1249,7 +1374,7 @@ export default function FactoryExperience() {
       )}
 
       {started && presenterOpen && (
-        <aside className="presenter-panel" aria-label="Presenter guide">
+        <aside className="presenter-panel" ref={presenterElementRef} aria-label="Presenter guide">
           <header>
             <div><small>{guidedMode ? "GUIDED DEMO DIRECTOR" : "LIVE DEMO GUIDE"}</small><strong>Step {guideMeterStep + 1} of {guideMeterSteps.length} · {guideMeterSteps[guideMeterStep]}</strong></div>
             <button onClick={() => setPresenterOpen(false)} aria-label="Close presenter guide">×</button>
@@ -1274,7 +1399,7 @@ export default function FactoryExperience() {
             {operationsActive && filterStage === "result" && <button onClick={reassessFilter}>Compare another response <span>↻</span></button>}
             <button className="presenter-exit" onClick={restartScenario}>Exit to title</button>
           </div>
-          <footer>{guidedMode ? "Use the amber button to reveal the next proof point." : <><kbd>P</kbd> show / hide · Presentation controls are separate from player input</>}</footer>
+          <footer>{guidedMode ? <><kbd>ARROWS</kbd> navigate · <kbd>ENTER</kbd> advance</> : <><kbd>ARROWS</kbd> navigate · <kbd>ENTER</kbd> select · <kbd>P</kbd> close</>}</footer>
         </aside>
       )}
     </main>

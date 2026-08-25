@@ -31,10 +31,16 @@ The second decision asks the player to push through the loaded filter, open a by
 
 | Action | Laptop | Phone or tablet |
 | --- | --- | --- |
-| Move | `WASD` | Left virtual stick |
-| Look | Mouse | Drag the right side of the scene |
+| Walk forward or back | `W` / `S` or `↑` / `↓` | Left virtual stick |
+| Turn | `←` / `→` or mouse | Drag the right side of the scene |
+| Strafe | `A` / `D` | Left virtual stick |
+| Aim up or down | `Page Up` / `Page Down` or mouse | Drag the right side of the scene |
+| Sprint | Hold `Shift` while moving | Push the virtual stick fully |
 | Inspect or operate | `E` | Context action button |
 | Field tablet | `T` | Tablet button |
+| Navigate tablet or menus | Arrow keys or `Tab` | Tap |
+| Select focused command | `Enter` or `Space` | Tap |
+| Close tablet or menu | `Escape` | Close button |
 | Presenter guide | `P` | On-screen guide button |
 | Presenter shortcut | `F9` | Not shown |
 

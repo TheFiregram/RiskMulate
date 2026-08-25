@@ -59,3 +59,20 @@ test("includes the physical F-201 field interaction", async () => {
   assert.match(scenario, /Inlet and outlet gauge panel/i);
   assert.match(scenario, /Clean-bed pressure proves at 1\.1 bar/i);
 });
+
+test("supports complete PC keyboard navigation", async () => {
+  const [scene, experience, readme] = await Promise.all([
+    readFile(new URL("../app/factory-scene.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/factory-experience.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../README.md", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(scene, /keys\.has\("ArrowUp"\)/);
+  assert.match(scene, /keys\.has\("ArrowLeft"\)/);
+  assert.match(scene, /keys\.has\("PageUp"\)/);
+  assert.match(scene, /visibilitychange/);
+  assert.match(experience, /moveDirectionalFocus/);
+  assert.match(experience, /ARROWS<\/kbd> NAVIGATE/);
+  assert.match(experience, /PG ↑↓/);
+  assert.match(readme, /Navigate tablet or menus/);
+});

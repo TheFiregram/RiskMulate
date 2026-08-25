@@ -1240,8 +1240,23 @@ export default function FactoryScene({
     let decisionElapsed = 0;
     let activeFilterDecision: FilterDecisionId | null = null;
     let filterDecisionElapsed = 0;
-    const onKeyDown = (event: KeyboardEvent) => keys.add(event.code);
+    const keyboardControlCodes = new Set([
+      "KeyW", "KeyA", "KeyS", "KeyD",
+      "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+      "PageUp", "PageDown", "ShiftLeft", "ShiftRight",
+    ]);
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest("button, a, input, select, textarea, [contenteditable='true']")) return;
+      if (!startedRef.current || tabletRef.current || !keyboardControlCodes.has(event.code)) return;
+      event.preventDefault();
+      keys.add(event.code);
+    };
     const onKeyUp = (event: KeyboardEvent) => keys.delete(event.code);
+    const clearKeys = () => keys.clear();
+    const onVisibilityChange = () => {
+      if (document.hidden) clearKeys();
+    };
     const onMouseMove = (event: MouseEvent) => {
       if (document.pointerLockElement !== renderer.domElement || tabletRef.current) return;
       yaw -= event.movementX * 0.00175;
@@ -1262,6 +1277,8 @@ export default function FactoryScene({
     };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", clearKeys);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("resize", onResize);
     renderer.domElement.addEventListener("click", onCanvasClick);
@@ -1282,8 +1299,13 @@ export default function FactoryScene({
           touch.yawDelta = 0;
           touch.pitchDelta = 0;
         }
+        const sprinting = keys.has("ShiftLeft") || keys.has("ShiftRight");
+        const turnAmount = Number(keys.has("ArrowLeft")) - Number(keys.has("ArrowRight"));
+        const verticalLookAmount = Number(keys.has("PageUp")) - Number(keys.has("PageDown"));
+        yaw += turnAmount * dt * (sprinting ? 2.45 : 1.72);
+        pitch = THREE.MathUtils.clamp(pitch + verticalLookAmount * dt * 1.12, -1.08, 1.08);
         const forwardAmount = THREE.MathUtils.clamp(
-          Number(keys.has("KeyW")) - Number(keys.has("KeyS")) + (touch?.forward ?? 0),
+          Number(keys.has("KeyW") || keys.has("ArrowUp")) - Number(keys.has("KeyS") || keys.has("ArrowDown")) + (touch?.forward ?? 0),
           -1,
           1,
         );
@@ -1293,7 +1315,7 @@ export default function FactoryScene({
           1,
         );
         const moving = forwardAmount !== 0 || sideAmount !== 0;
-        const speed = keys.has("ShiftLeft") ? 6.7 : 3.9;
+        const speed = sprinting ? 6.7 : 3.9;
         const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
         const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
         const direction = forward.multiplyScalar(forwardAmount).add(right.multiplyScalar(sideAmount));
@@ -1303,7 +1325,7 @@ export default function FactoryScene({
         if (!isBlocked(candidateX, camera.position.z)) camera.position.x = candidateX;
         const candidateZ = camera.position.z + movement.z;
         if (!isBlocked(camera.position.x, candidateZ)) camera.position.z = candidateZ;
-        bob += moving ? dt * (keys.has("ShiftLeft") ? 13 : 8.6) : dt * 2.2;
+        bob += moving ? dt * (sprinting ? 13 : 8.6) : dt * 2.2;
         camera.position.y = 1.72 + Math.sin(bob) * 0.028 * (moving ? 1 : 0.12);
       }
       camera.rotation.set(pitch + Math.sin(elapsed * 0.45) * 0.0018, yaw, 0);
@@ -1644,6 +1666,8 @@ export default function FactoryScene({
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", clearKeys);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", onResize);
       renderer.domElement.removeEventListener("click", onCanvasClick);
