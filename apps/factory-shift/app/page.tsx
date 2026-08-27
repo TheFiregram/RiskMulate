@@ -1,5 +1,5 @@
-import FactoryExperience from "./factory-experience";
+import ExperienceUpgrades from "./experience-upgrades";
 
 export default function Home() {
-  return <FactoryExperience />;
+  return <ExperienceUpgrades />;
 }
