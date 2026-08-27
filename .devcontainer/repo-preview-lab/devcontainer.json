@@ -1,0 +1,36 @@
+{
+  "name": "RiskMulate Repo Preview Lab",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "forwardPorts": [4000, 4101, 4102, 4103, 4104],
+  "portsAttributes": {
+    "4000": {
+      "label": "Repo Preview Launcher",
+      "onAutoForward": "openBrowser"
+    },
+    "4101": {
+      "label": "Smart Factory",
+      "onAutoForward": "silent"
+    },
+    "4102": {
+      "label": "Three FPS",
+      "onAutoForward": "silent"
+    },
+    "4103": {
+      "label": "Digital Twin",
+      "onAutoForward": "silent"
+    },
+    "4104": {
+      "label": "APEX Hazard Training",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "bash tools/repo-preview-lab/setup.sh",
+  "postStartCommand": "bash tools/repo-preview-lab/start-all.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}
