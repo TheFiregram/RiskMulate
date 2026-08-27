@@ -1015,8 +1015,6 @@ export default function FactoryExperience() {
       )}
 
       <div className={`tablet-rig ${tabletOpen ? "is-open" : ""}`} ref={tabletElementRef} aria-hidden={!tabletOpen} aria-label="Field tablet">
-        <div className="forearm forearm-left" /><div className="forearm forearm-right" />
-        <div className="glove glove-left"><i /><i /><i /></div><div className="glove glove-right"><i /><i /><i /></div>
         <div className="tablet-case">
           <span className="case-bolt bolt-1" /><span className="case-bolt bolt-2" /><span className="case-bolt bolt-3" /><span className="case-bolt bolt-4" />
           <span className="bumper bumper-tl" /><span className="bumper bumper-tr" /><span className="bumper bumper-bl" /><span className="bumper bumper-br" />

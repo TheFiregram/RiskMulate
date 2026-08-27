@@ -87,3 +87,16 @@ test("uses a simplified HUD and action-led field coach", async () => {
   assert.doesNotMatch(experience, /className="scenario-loop"/);
   assert.doesNotMatch(experience, /className="evidence-hud/);
 });
+
+test("shows the character hands without tablet gloves", async () => {
+  const [scene, experience] = await Promise.all([
+    readFile(new URL("../app/factory-scene.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/factory-experience.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(scene, /First-person bare hands/);
+  assert.match(scene, /Left character hand/);
+  assert.match(scene, /characterHands\.rig\.visible = startedRef\.current && !tabletRef\.current/);
+  assert.doesNotMatch(experience, /className="glove/);
+  assert.doesNotMatch(experience, /className="forearm/);
+});

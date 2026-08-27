@@ -579,6 +579,87 @@ function addTree(parent: THREE.Object3D, x: number, z: number, scale: number, wa
   parent.add(tree);
 }
 
+function buildFirstPersonHands(camera: THREE.PerspectiveCamera) {
+  const rig = new THREE.Group();
+  rig.name = "First-person bare hands";
+  rig.position.set(0, -0.34, -0.72);
+
+  const skin = new THREE.MeshStandardMaterial({
+    color: 0x87583f,
+    roughness: 0.72,
+    metalness: 0,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const sleeve = new THREE.MeshStandardMaterial({
+    color: 0x263b39,
+    roughness: 0.84,
+    metalness: 0.02,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const cuff = new THREE.MeshStandardMaterial({
+    color: 0x111a1a,
+    roughness: 0.62,
+    metalness: 0.16,
+    depthTest: false,
+    depthWrite: false,
+  });
+
+  const createArm = (side: -1 | 1) => {
+    const arm = new THREE.Group();
+    arm.name = side < 0 ? "Left character hand" : "Right character hand";
+    arm.position.set(side * 0.37, -0.18, 0);
+    arm.rotation.set(-0.08, side * 0.08, side * 0.2);
+
+    const sleeveMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.115, 0.34, 6, 10), sleeve);
+    sleeveMesh.position.y = -0.2;
+    sleeveMesh.scale.z = 0.84;
+    arm.add(sleeveMesh);
+
+    const cuffMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.12, 0.09, 12), cuff);
+    cuffMesh.position.y = 0.02;
+    arm.add(cuffMesh);
+
+    const palm = new THREE.Mesh(new THREE.CapsuleGeometry(0.078, 0.12, 7, 12), skin);
+    palm.position.y = 0.14;
+    palm.scale.set(1.12, 1, 0.58);
+    arm.add(palm);
+
+    const fingerGeometry = new THREE.CapsuleGeometry(0.018, 0.075, 5, 8);
+    [-0.055, -0.018, 0.019, 0.054].forEach((x, index) => {
+      const finger = new THREE.Mesh(fingerGeometry, skin);
+      finger.position.set(x, 0.265 - Math.abs(index - 1.5) * 0.006, -0.004);
+      finger.rotation.z = (index - 1.5) * -0.025;
+      arm.add(finger);
+    });
+
+    const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.022, 0.07, 5, 8), skin);
+    thumb.position.set(side * -0.087, 0.145, -0.006);
+    thumb.rotation.z = side * 0.72;
+    arm.add(thumb);
+
+    arm.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = false;
+        child.receiveShadow = false;
+        child.frustumCulled = false;
+        child.renderOrder = 50;
+      }
+    });
+    rig.add(arm);
+    return arm;
+  };
+
+  const left = createArm(-1);
+  const right = createArm(1);
+  const viewLight = new THREE.PointLight(0xffd6b8, 0.65, 2.2);
+  viewLight.position.set(0, 0.35, 0.15);
+  rig.add(viewLight);
+  camera.add(rig);
+  return { rig, left, right };
+}
+
 function addFallback(mount: HTMLDivElement) {
   const fallback = document.createElement("div");
   fallback.className = "fallback-scene fallback-sunrise";
@@ -665,6 +746,8 @@ export default function FactoryScene({
     const camera = new THREE.PerspectiveCamera(66, 1, 0.08, 220);
     camera.position.set(0, 1.72, 15.5);
     camera.rotation.order = "YXZ";
+    const characterHands = buildFirstPersonHands(camera);
+    scene.add(camera);
 
     const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
     const renderPixelRatio = Math.min(window.devicePixelRatio, softwareRenderer ? 0.78 : coarsePointer ? 1.1 : 1.4);
@@ -1291,6 +1374,8 @@ export default function FactoryScene({
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       const elapsed = clock.getElapsedTime();
+      let playerMoving = false;
+      let playerSprinting = false;
       if (startedRef.current && !tabletRef.current) {
         const touch = touchControls.current;
         if (touch) {
@@ -1315,6 +1400,8 @@ export default function FactoryScene({
           1,
         );
         const moving = forwardAmount !== 0 || sideAmount !== 0;
+        playerMoving = moving;
+        playerSprinting = sprinting;
         const speed = sprinting ? 6.7 : 3.9;
         const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
         const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
@@ -1329,6 +1416,18 @@ export default function FactoryScene({
         camera.position.y = 1.72 + Math.sin(bob) * 0.028 * (moving ? 1 : 0.12);
       }
       camera.rotation.set(pitch + Math.sin(elapsed * 0.45) * 0.0018, yaw, 0);
+      characterHands.rig.visible = startedRef.current && !tabletRef.current;
+      if (characterHands.rig.visible) {
+        const idle = Math.sin(elapsed * 1.45) * 0.004;
+        const stride = playerMoving ? Math.sin(bob) : 0;
+        const strideStrength = playerSprinting ? 0.055 : 0.032;
+        characterHands.rig.position.y = -0.34 + idle - Math.abs(stride) * 0.012;
+        characterHands.rig.position.x = playerMoving ? Math.sin(bob * 0.5) * 0.012 : 0;
+        characterHands.left.rotation.z = -0.2 + stride * strideStrength;
+        characterHands.right.rotation.z = 0.2 - stride * strideStrength;
+        characterHands.left.rotation.x = -0.08 - stride * strideStrength * 0.55;
+        characterHands.right.rotation.x = -0.08 + stride * strideStrength * 0.55;
+      }
 
       const inspectionActive = startedRef.current && !tabletRef.current && phaseRef.current === "inspection";
       const capturedIds = capturedRef.current;
