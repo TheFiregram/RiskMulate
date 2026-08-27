@@ -1,0 +1,81 @@
+name: Publish Factory Standalone
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/factory-shift/app/**"
+      - "apps/factory-shift/standalone/entry.tsx"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-factory-standalone
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install workspace dependencies
+        run: npm install
+
+      - name: Build standalone Factory Shift
+        run: npm run build:standalone --workspace factory-shift-prototype
+
+      - name: Commit standalone assets
+        id: assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/factory-shift/standalone/app.js apps/factory-shift/standalone/app.css
+          if git diff --cached --quiet; then
+            echo "No standalone bundle changes."
+          else
+            git commit -m "Build Factory Shift standalone release [skip ci]"
+            git push origin HEAD:main
+          fi
+          echo "artifact_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Point game-lite at the new standalone release
+        env:
+          ARTIFACT_SHA: ${{ steps.assets.outputs.artifact_sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("apps/game-lite/index.html")
+          text = path.read_text()
+          sha = os.environ["ARTIFACT_SHA"]
+          pattern = r"(RiskMulate@)[0-9a-f]{40}(/apps/factory-shift/standalone/app\.(?:css|js))"
+          updated, count = re.subn(pattern, rf"\g<1>{sha}\2", text)
+          if count != 2:
+              raise SystemExit(f"Expected 2 standalone release references, replaced {count}")
+          path.write_text(updated)
+          PY
+
+      - name: Publish release pointer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add apps/game-lite/index.html
+          if git diff --cached --quiet; then
+            echo "Game-lite already points at the built standalone release."
+          else
+            git commit -m "Publish Factory Shift UI release [skip ci]"
+            git push origin HEAD:main
+          fi
