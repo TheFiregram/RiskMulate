@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#17201c" />
+  <meta name="description" content="RiskMulate — an isometric factory risk management simulation." />
+  <title>RiskMulate — Factory Risk Simulation</title>
+  <link rel="icon" href="./assets/riskmulate-mark.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game-canvas" aria-label="RiskMulate factory simulation"></canvas>
+
+    <header class="topbar glass">
+      <div class="brand-wrap">
+        <img class="brand-mark" src="./assets/riskmulate-mark.svg" alt="" />
+        <div>
+          <div class="brand">RISKMULATE</div>
+          <div class="shift-label" id="shift-label">FOUNDRY DISTRICT · DAY 1</div>
+        </div>
+      </div>
+      <div class="resource-row" id="resource-row"></div>
+      <div class="clock-control">
+        <button class="speed-btn" data-speed="0" aria-label="Pause">Ⅱ</button>
+        <button class="speed-btn active" data-speed="1">1×</button>
+        <button class="speed-btn" data-speed="2">2×</button>
+        <button class="speed-btn" data-speed="4">4×</button>
+      </div>
+    </header>
+
+    <aside class="mission-card glass" id="mission-card">
+      <div class="eyebrow">CURRENT CONTRACT</div>
+      <h2>First Production Run</h2>
+      <p>Build a stable process line and deliver <strong>1,000 units</strong> without letting safety fall below 70.</p>
+      <div class="mission-progress"><span id="mission-progress-fill"></span></div>
+      <div class="mission-stats"><span id="mission-produced">0 / 1,000</span><span id="mission-days">Day 1 / 10</span></div>
+    </aside>
+
+    <aside class="alerts glass" id="alerts" aria-live="polite"></aside>
+
+    <section class="selection-panel glass hidden" id="selection-panel">
+      <button class="panel-close" id="selection-close" aria-label="Close panel">×</button>
+      <div class="eyebrow" id="selection-category">ASSET</div>
+      <h2 id="selection-name">Asset</h2>
+      <div id="selection-content"></div>
+    </section>
+
+    <nav class="bottom-dock glass">
+      <button class="dock-btn active" data-tab="build"><span class="dock-icon">▦</span><span>Build</span></button>
+      <button class="dock-btn" data-tab="operations"><span class="dock-icon">⌁</span><span>Operations</span></button>
+      <button class="dock-btn" data-tab="people"><span class="dock-icon">◉</span><span>People</span></button>
+      <button class="dock-btn" data-tab="risk"><span class="dock-icon">◇</span><span>Risk</span></button>
+      <button class="dock-btn" data-tab="reports"><span class="dock-icon">▤</span><span>Reports</span></button>
+    </nav>
+
+    <section class="drawer glass open" id="drawer">
+      <div class="drawer-head">
+        <div>
+          <div class="eyebrow" id="drawer-eyebrow">CONSTRUCTION</div>
+          <h3 id="drawer-title">Build the factory</h3>
+        </div>
+        <button class="drawer-collapse" id="drawer-collapse">⌄</button>
+      </div>
+      <div class="drawer-body" id="drawer-body"></div>
+    </section>
+
+    <section class="modal-backdrop hidden" id="risk-modal">
+      <div class="modal glass">
+        <button class="panel-close" id="risk-modal-close" aria-label="Close risk register">×</button>
+        <div class="eyebrow">ISO 31000 WORKSPACE</div>
+        <h2>Risk Register</h2>
+        <p class="modal-intro">Risks are recorded as uncertainty affecting factory objectives. Review the cause → event → consequence chain before selecting a treatment.</p>
+        <div id="risk-register"></div>
+      </div>
+    </section>
+
+    <section class="toast-stack" id="toast-stack" aria-live="polite"></section>
+
+    <div class="camera-hint">Drag to pan · Wheel/pinch to zoom · Tap assets to inspect</div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

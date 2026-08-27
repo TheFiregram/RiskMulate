@@ -1,0 +1,10 @@
+{
+  "name": "riskmulate-factory-sim",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 4173",
+    "check": "node --check src/main.js && node --check src/game.js && node --check src/world.js && node --check src/simulation.js && node --check src/ui.js && node --check src/data.js"
+  }
+}
