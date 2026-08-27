@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./apex-shell.css";
 
 export const metadata: Metadata = {
   title: "RiskMulate | Factory Shift",
