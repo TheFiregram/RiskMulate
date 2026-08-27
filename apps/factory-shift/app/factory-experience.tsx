@@ -104,77 +104,6 @@ const apps: { id: TabletApp; label: string; glyph: string }[] = [
   { id: "decision", label: "Decision", glyph: "DC" },
 ];
 
-const PRESENTATION_STEPS = ["Brief", "Observe", "Decide", "Act", "Review"] as const;
-const FILTER_PRESENTATION_STEPS = ["Locate", "Inspect", "Decide", "Operate", "Review"] as const;
-const GUIDED_DEMO_STEPS = [
-  "Pump brief",
-  "Pump walkdown",
-  "Pump decision",
-  "Pump response",
-  "Pump review",
-  "Connected system",
-  "Filter walkdown",
-  "Filter decision",
-  "Physical control",
-  "Shift score",
-] as const;
-
-const FILTER_STAGE_STEP: Record<FilterFieldStage, number> = {
-  idle: 0,
-  briefing: 0,
-  inspection: 1,
-  decision: 2,
-  actuation: 3,
-  reaction: 3,
-  result: 4,
-};
-
-const PHASE_STEP: Record<ScenarioPhase, number> = {
-  briefing: 0,
-  inspection: 1,
-  decision: 2,
-  actuation: 3,
-  consequence: 3,
-  debrief: 4,
-};
-
-const PRESENTER_GUIDE: Record<ScenarioPhase, { title: string; note: string }> = {
-  briefing: {
-    title: "Frame the operating tension",
-    note: "The plant needs flow in twelve minutes, yet P-204 is degrading. The player must protect more than one objective.",
-  },
-  inspection: {
-    title: "Turn observations into evidence",
-    note: "Four field readings establish condition, contradict an operator assumption, and reveal a viable standby control.",
-  },
-  decision: {
-    title: "Make the trade-off visible",
-    note: "Each response protects one objective and exposes another. The player must defend a proportionate treatment.",
-  },
-  actuation: {
-    title: "Make the recovery physical",
-    note: "The player starts P-205, proves pressure on its meter, and isolates P-204 before the system accepts the transfer.",
-  },
-  consequence: {
-    title: "Let the factory answer",
-    note: "The selected control changes equipment state, process continuity, and the risk left after treatment.",
-  },
-  debrief: {
-    title: "Close the reasoning loop",
-    note: "Use the causal chain and counterfactual scores to show why the decision worked—and what remained at risk.",
-  },
-};
-
-const FILTER_PRESENTER_GUIDE: Record<FilterFieldStage, { title: string; note: string }> = {
-  idle: { title: "Open factory operations", note: "The pump result becomes the starting condition for the next connected risk." },
-  briefing: { title: "Move the incident into the yard", note: "F-201 now exists as physical equipment. The player must locate it before seeing the decision options." },
-  inspection: { title: "Collect four filter readings", note: "Pressure, quality, maintenance status, and available buffer build the second fault picture." },
-  decision: { title: "Choose across three objectives", note: "Every response changes output, product quality, and the operating buffer in a different way." },
-  actuation: { title: "Make the choice physical", note: "The tablet sends the command, but the player must return to F-201 and operate the correct control." },
-  reaction: { title: "Watch the process answer", note: "Gauges, valves, status lights, water flow, and plant metrics react to the selected control." },
-  result: { title: "Review the system effect", note: "The final screen links the local action to the factory-wide consequence and residual risk." },
-};
-
 function formatCountdown(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
@@ -354,13 +283,6 @@ export default function FactoryExperience() {
       window.setTimeout(() => completePumpTransfer(), 520);
     }
   }, [completePumpTransfer]);
-
-  const advancePumpTransfer = useCallback(() => {
-    const step = pumpControlStepRef.current;
-    if (!step) return;
-    focusedPumpControlRef.current = step;
-    executePumpControl();
-  }, [executePumpControl]);
 
   const executeFilterControl = useCallback(() => {
     const selected = filterChoiceRef.current;
@@ -582,8 +504,6 @@ export default function FactoryExperience() {
     setTabletOpen(false);
   }, []);
 
-  const runRecommendedResponse = useCallback(() => armPumpTransfer(), [armPumpTransfer]);
-
   const openRecommendedDebrief = useCallback(() => {
     const completeEvidence = EVIDENCE_POINTS.map((point) => point.id);
     startedRef.current = true;
@@ -635,18 +555,6 @@ export default function FactoryExperience() {
     setTabletOpen(false);
   }, []);
 
-  const armRecommendedFilterResponse = useCallback(() => {
-    filterChoiceRef.current = "backwash";
-    filterStageRef.current = "actuation";
-    tabletRef.current = false;
-    setFilterChoice("backwash");
-    setConfirmedFilterChoice(null);
-    setFilterReactionStage(0);
-    setFocusedFilterTarget(null);
-    setFilterStage("actuation");
-    setTabletOpen(false);
-  }, []);
-
   useEffect(() => {
     if (started) return;
     const frame = window.requestAnimationFrame(() => {
@@ -668,16 +576,6 @@ export default function FactoryExperience() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [tabletOpen]);
-
-  useEffect(() => {
-    const presenter = presenterElementRef.current;
-    if (!presenterOpen || tabletOpen || !presenter) return;
-    const frame = window.requestAnimationFrame(() => {
-      const firstAction = presenter.querySelector<HTMLElement>(".presenter-actions button:not(:disabled)");
-      (firstAction ?? focusableElements(presenter)[0])?.focus({ preventScroll: true });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [presenterOpen, tabletOpen]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -792,7 +690,7 @@ export default function FactoryExperience() {
     setFilterReactionStage(0);
     setActiveApp("plant");
     setTabletOpen(true);
-    setPresenterOpen(false);
+    if (!guidedMode) setPresenterOpen(false);
   };
 
   const beginFilterInspection = () => {
@@ -876,22 +774,6 @@ export default function FactoryExperience() {
   const newlyFilterCaptured = filterEvidenceById(lastFilterCapture);
   const activePumpControlTask = PUMP_CONTROL_TASKS.find((task) => task.id === pumpControlStep) ?? null;
   const newlyCompletedPumpTask = PUMP_CONTROL_TASKS.find((task) => task.id === lastPumpControl) ?? null;
-  const presentationStep = operationsActive ? FILTER_STAGE_STEP[filterStage] : PHASE_STEP[phase];
-  const presentationSteps = operationsActive ? FILTER_PRESENTATION_STEPS : PRESENTATION_STEPS;
-  const presenterGuide = operationsActive ? FILTER_PRESENTER_GUIDE[filterStage] : PRESENTER_GUIDE[phase];
-  const guidedDemoStep = !operationsActive
-    ? PHASE_STEP[phase]
-    : filterStage === "idle" || filterStage === "briefing"
-      ? 5
-      : filterStage === "inspection"
-        ? 6
-        : filterStage === "decision"
-          ? 7
-          : filterStage === "actuation" || filterStage === "reaction"
-            ? 8
-            : 9;
-  const guideMeterSteps = guidedMode ? GUIDED_DEMO_STEPS : presentationSteps;
-  const guideMeterStep = guidedMode ? guidedDemoStep : presentationStep;
   const filterFieldActive = filterStage === "inspection" || filterStage === "actuation";
   const filterControlLabel = filterChoice === "push"
     ? "OPEN F-201 FEED VALVE"
@@ -925,6 +807,30 @@ export default function FactoryExperience() {
     : combinedScore >= 75
       ? { label: "SOUND RESPONSE", detail: "The plant recovered, with a meaningful exposure left for the next shift to manage." }
       : { label: "HIGH EXPOSURE", detail: "The chosen controls moved risk into another part of the production system." };
+
+  const tutorialCue = !operationsActive
+    ? phase === "briefing"
+      ? { step: 1, title: "Accept the assignment", note: "Read the work order, focus Accept work order, then press Enter. The tablet lowers when the field task begins.", keys: ["ARROWS", "ENTER"], status: "WORK ORDER" }
+      : phase === "inspection"
+        ? { step: 2, title: captured.length === 0 ? "Find the first amber tag" : "Log the next field reading", note: "Walk and turn until the reticle locks onto marked equipment. Press E to record the reading.", keys: ["↑ ↓", "← →", "E"], status: `${captured.length}/4 READINGS` }
+        : phase === "decision"
+          ? { step: 3, title: "Compare the three responses", note: "Read what each response protects and exposes. Choose one from the evidence, then authorize it.", keys: ["ARROWS", "ENTER"], status: "DECISION" }
+          : phase === "actuation"
+            ? { step: 4, title: activePumpControlTask?.title ?? "Complete the transfer", note: `Find the green ${activePumpControlTask?.worldLabel.toLowerCase() ?? "control"} tag. Press E when its name appears.`, keys: ["↑ ↓", "← →", "E"], status: `${completedPumpControls.length}/3 CONTROLS` }
+            : phase === "consequence"
+              ? { step: 4, title: "Watch the plant respond", note: "Pause and watch the engine, meter, pipework, and status lights. The physical system shows the result of your choice.", keys: ["WAIT"], status: "RESPONSE" }
+              : { step: 5, title: "Review the risk chain", note: "Read cause, event, consequence, treatment, and residual risk. Continue when you can explain why the result changed.", keys: ["ARROWS", "ENTER"], status: "PUMP REVIEW" }
+    : filterStage === "idle" || filterStage === "briefing"
+      ? { step: 6, title: "Start the connected incident", note: "Your pump response changed the factory condition. Begin the F-201 field inspection from the plant tablet.", keys: ["ARROWS", "ENTER"], status: "F-201 BRIEF" }
+      : filterStage === "inspection"
+        ? { step: 7, title: "Inspect the restricted filter", note: "Follow the F-201 marker. Aim at each amber tag and press E to log its field reading.", keys: ["↑ ↓", "← →", "E"], status: `${filterCaptured.length}/4 READINGS` }
+        : filterStage === "decision"
+          ? { step: 8, title: "Choose the filter response", note: "Compare output, buffer, and product-quality exposure. Select the response you can defend.", keys: ["ARROWS", "ENTER"], status: "FILTER DECISION" }
+          : filterStage === "actuation"
+            ? { step: 9, title: "Operate the chosen control", note: `Find the green field tag and ${filterControlLabel.toLowerCase()}. Press E when the prompt appears.`, keys: ["↑ ↓", "← →", "E"], status: "FIELD CONTROL" }
+            : filterStage === "reaction"
+              ? { step: 9, title: "Read the process reaction", note: "Watch the gauges, valve position, water flow, and factory metrics change before opening the result.", keys: ["WAIT"], status: "PROCESS RESPONSE" }
+              : { step: 10, title: "Close the shift", note: "Review both decisions, the combined score, and the risk still open for the next shift.", keys: ["ARROWS", "ENTER"], status: "SHIFT REVIEW" };
 
   return (
     <main className={`experience-shell phase-${phase} ${tabletOpen ? "tablet-active" : ""}`}>
@@ -974,7 +880,7 @@ export default function FactoryExperience() {
           </div>
           <div className="start-actions">
             <button className="primary-action" onClick={beginShift}><span>Play the full shift</span><b>ENTER</b></button>
-            <button className="guided-action" onClick={beginGuidedDemo}><span><strong>Run guided demo</strong><small>Curated proof points · presenter controls</small></span><b>3 MIN</b></button>
+            <button className="guided-action" onClick={beginGuidedDemo}><span><strong>Start guided tutorial</strong><small>Learn each control by completing the task</small></span><b>COACH</b></button>
           </div>
           <div className="start-scenario-chain">
             <span><i>P‑204</i><b>Degrading pump</b></span><em>→</em><span><i>F‑201</i><b>Restricted filter</b></span><em>→</em><span><i>LINE 2</i><b>Factory outcome</b></span>
@@ -992,58 +898,16 @@ export default function FactoryExperience() {
       {started && (
         <>
           <header className="hud-top">
-            <div className="site-id"><span className={`live-dot ${phase === "consequence" ? "alert" : ""}`} /><div><b>EAST FILTRATION</b><small>KESTREL VALLEY · ZONE 2</small></div></div>
-            <div className="weather-readout"><span>DAWN</span><b>18°</b><i>NE 08</i></div>
-            <div className="shift-clock"><small>RESTART WINDOW</small><b>{formatCountdown(secondsRemaining)}</b></div>
+            <div className="site-id"><span className={`live-dot ${phase === "consequence" ? "alert" : ""}`} /><b>{operationsActive ? "F-201" : "P-204"}</b></div>
+            <div className="shift-clock"><small>RESTART</small><b>{formatCountdown(secondsRemaining)}</b></div>
           </header>
-          <section className="scenario-loop" aria-label="Scenario progress">
-            {presentationSteps.map((step, index) => (
-              <span key={step} className={index < presentationStep ? "complete" : index === presentationStep ? "active" : ""}>
-                <i>{index < presentationStep ? "✓" : index + 1}</i>{step}
-              </span>
-            ))}
-          </section>
-          {guidedMode && <div className="guided-mode-chip"><i /> GUIDED DEMO <b>{String(guidedDemoStep + 1).padStart(2, "0")}/{GUIDED_DEMO_STEPS.length}</b></div>}
           <section className="objective-panel">
-            <small>CURRENT OBJECTIVE</small>
+            <small>OBJECTIVE · {tutorialCue.status}</small>
             <strong>{objective.title}</strong>
             <div className="objective-track"><i style={{ width: `${objective.progress}%` }} /></div>
             <span>{objective.detail}</span>
           </section>
           {!tabletOpen && (phase === "inspection" || phase === "actuation" || filterFieldActive) && <div className={`reticle ${focusedTarget || focusedPumpControlTarget || focusedFilterTarget ? "has-target" : ""}`}><i /><i /><span /></div>}
-
-          {phase === "inspection" && !tabletOpen && (
-            <aside className="evidence-hud" aria-label="Inspection progress">
-              <small>P-204 WALKDOWN</small>
-              {EVIDENCE_POINTS.map((point) => (
-                <div key={point.id} className={`${captured.includes(point.id) ? "done" : ""} ${focusedTarget === point.id ? "focused" : ""}`}>
-                  <i>{captured.includes(point.id) ? "✓" : point.code}</i><span>{point.worldLabel}</span>
-                </div>
-              ))}
-            </aside>
-          )}
-
-          {phase === "actuation" && !tabletOpen && (
-            <aside className="evidence-hud pump-control-hud" aria-label="P-205 transfer progress">
-              <small>P‑204 → P‑205 TRANSFER</small>
-              {PUMP_CONTROL_TASKS.map((task) => (
-                <div key={task.id} className={`${completedPumpControls.includes(task.id) ? "done" : ""} ${pumpControlStep === task.id ? "focused" : ""}`}>
-                  <i>{completedPumpControls.includes(task.id) ? "✓" : task.code}</i><span>{task.worldLabel}</span>
-                </div>
-              ))}
-            </aside>
-          )}
-
-          {filterStage === "inspection" && !tabletOpen && (
-            <aside className="evidence-hud filter-walkdown" aria-label="F-201 inspection progress">
-              <small>F-201 FIELD INSPECTION</small>
-              {FILTER_EVIDENCE.map((point) => (
-                <div key={point.id} className={`${filterCaptured.includes(point.id) ? "done" : ""} ${focusedFilterTarget === point.id ? "focused" : ""}`}>
-                  <i>{filterCaptured.includes(point.id) ? "✓" : point.code}</i><span>{point.worldLabel}</span>
-                </div>
-              ))}
-            </aside>
-          )}
 
           {phase === "inspection" && !tabletOpen && focusedEvidence && (
             <button className="world-prompt" onClick={() => captureInspection(focusedEvidence.id)}>
@@ -1369,37 +1233,26 @@ export default function FactoryExperience() {
 
       {started && (
         <button className={`presenter-toggle ${presenterOpen ? "active" : ""}`} onClick={() => setPresenterOpen((open) => !open)}>
-          <span>P</span>{presenterOpen ? "HIDE GUIDE" : "PRESENTER GUIDE"}
+          <span>P</span>{presenterOpen ? "HIDE COACH" : "TASK HELP"}
         </button>
       )}
 
       {started && presenterOpen && (
-        <aside className="presenter-panel" ref={presenterElementRef} aria-label="Presenter guide">
+        <aside className="presenter-panel coach-panel" ref={presenterElementRef} aria-label="Task coach">
           <header>
-            <div><small>{guidedMode ? "GUIDED DEMO DIRECTOR" : "LIVE DEMO GUIDE"}</small><strong>Step {guideMeterStep + 1} of {guideMeterSteps.length} · {guideMeterSteps[guideMeterStep]}</strong></div>
-            <button onClick={() => setPresenterOpen(false)} aria-label="Close presenter guide">×</button>
+            <div><small>{guidedMode ? "GUIDED TUTORIAL" : "TASK HELP"}</small><strong>Step {tutorialCue.step} of 10 · {tutorialCue.status}</strong></div>
+            <button onClick={() => setPresenterOpen(false)} aria-label="Close task coach">×</button>
           </header>
-          <div className={`presenter-meter ${guidedMode ? "full-route" : ""}`} aria-hidden="true">
-            {guideMeterSteps.map((step, index) => <i key={step} className={index <= guideMeterStep ? "active" : ""} />)}
+          <div className="presenter-meter full-route" aria-hidden="true">
+            {Array.from({ length: 10 }, (_, index) => <i key={index} className={index < tutorialCue.step ? "active" : ""} />)}
           </div>
-          <h2>{presenterGuide.title}</h2>
-          <p>{presenterGuide.note}</p>
-          <div className="presenter-actions">
-            {!operationsActive && phase === "briefing" && <button onClick={acceptWorkOrder}>Start the walkdown <span>→</span></button>}
-            {!operationsActive && phase === "inspection" && <button onClick={loadCompletedWalkdown}>Load the four observations <span>→</span></button>}
-            {!operationsActive && phase === "decision" && <button onClick={runRecommendedResponse}>Run the recommended response <span>→</span></button>}
-            {!operationsActive && phase === "actuation" && activePumpControlTask && <button onClick={advancePumpTransfer}>{activePumpControlTask.prompt} <span>→</span></button>}
-            {!operationsActive && phase === "consequence" && <button onClick={openRecommendedDebrief}>Open the debrief now <span>→</span></button>}
-            {!operationsActive && phase === "debrief" && <button onClick={continueToOperations}>Open factory operations <span>→</span></button>}
-            {operationsActive && filterStage === "briefing" && <button onClick={beginFilterInspection}>Enter the F-201 yard task <span>→</span></button>}
-            {operationsActive && filterStage === "inspection" && <button onClick={loadFilterWalkdown}>Load the four filter readings <span>→</span></button>}
-            {operationsActive && filterStage === "decision" && <button onClick={armRecommendedFilterResponse}>Arm controlled backwash <span>→</span></button>}
-            {operationsActive && filterStage === "actuation" && <button onClick={runRecommendedFilterResponse}>Operate the backwash control <span>→</span></button>}
-            {operationsActive && filterStage === "reaction" && <button disabled>Plant response in progress <span>···</span></button>}
-            {operationsActive && filterStage === "result" && <button onClick={reassessFilter}>Compare another response <span>↻</span></button>}
-            <button className="presenter-exit" onClick={restartScenario}>Exit to title</button>
+          <h2>{tutorialCue.title}</h2>
+          <p>{tutorialCue.note}</p>
+          <div className="coach-keys" aria-label="Controls for this step">
+            {tutorialCue.keys.map((key) => <kbd key={key}>{key}</kbd>)}
+            <span>{tutorialCue.keys.includes("WAIT") ? "WATCH THE EQUIPMENT" : "DO THIS IN THE SIMULATION"}</span>
           </div>
-          <footer>{guidedMode ? <><kbd>ARROWS</kbd> navigate · <kbd>ENTER</kbd> advance</> : <><kbd>ARROWS</kbd> navigate · <kbd>ENTER</kbd> select · <kbd>P</kbd> close</>}</footer>
+          <footer>{guidedMode ? "The coach moves forward after you complete the task." : <><kbd>P</kbd> close help</>}</footer>
         </aside>
       )}
     </main>

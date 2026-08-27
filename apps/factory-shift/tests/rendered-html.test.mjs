@@ -31,7 +31,7 @@ test("renders the production simulation shell", async () => {
   assert.match(html, /<title>RiskMulate \| Factory Shift<\/title>/i);
   assert.match(html, /PLAYABLE OPERATIONS PROTOTYPE/i);
   assert.match(html, /Restart East Filtration/i);
-  assert.match(html, /Run guided demo/i);
+  assert.match(html, /Start guided tutorial/i);
   assert.match(html, /Walk the floor/i);
   assert.match(html, /Plant network/i);
   assert.doesNotMatch(html, /codex-preview/i);
@@ -49,8 +49,8 @@ test("includes the physical F-201 field interaction", async () => {
   assert.match(experience, /Begin F-201 field inspection/i);
   assert.match(experience, /FILTER-CONTROL/i);
   assert.match(experience, /SHIFT COMPLETE · TWO CONNECTED INCIDENTS/i);
-  assert.match(experience, /Arm controlled backwash/i);
-  assert.match(experience, /P‑204 → P‑205 TRANSFER/i);
+  assert.match(experience, /The coach moves forward after you complete the task/i);
+  assert.match(experience, /TRANSFER STEP/i);
   assert.match(experience, /Complete the P-205 transfer/i);
   assert.match(scene, /P-205 physical start console/i);
   assert.match(scene, /P-204 physical isolation valve/i);
@@ -75,4 +75,15 @@ test("supports complete PC keyboard navigation", async () => {
   assert.match(experience, /ARROWS<\/kbd> NAVIGATE/);
   assert.match(experience, /PG ↑↓/);
   assert.match(readme, /Navigate tablet or menus/);
+});
+
+test("uses a simplified HUD and action-led field coach", async () => {
+  const experience = await readFile(new URL("../app/factory-experience.tsx", import.meta.url), "utf8");
+
+  assert.match(experience, /OBJECTIVE · \{tutorialCue\.status\}/);
+  assert.match(experience, /DO THIS IN THE SIMULATION/);
+  assert.match(experience, /Find the first amber tag/);
+  assert.doesNotMatch(experience, /className="weather-readout"/);
+  assert.doesNotMatch(experience, /className="scenario-loop"/);
+  assert.doesNotMatch(experience, /className="evidence-hud/);
 });

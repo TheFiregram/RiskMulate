@@ -44,7 +44,7 @@ The second decision asks the player to push through the loaded filter, open a by
 | Presenter guide | `P` | On-screen guide button |
 | Presenter shortcut | `F9` | Not shown |
 
-Choose **Run guided demo** on the title screen for a ten-beat presentation route. One amber presenter control reveals each proof point in order: pump brief, field evidence, decision, plant response, connected system, F-201 inspection, physical backwash control, and combined shift score. Press `F9` once after starting to open the completed pump evidence screen. Press it again to open the recommended P-205 transfer debrief. After entering factory operations, `F9` can load the four F-201 readings and run the controlled-backwash demonstration.
+Choose **Start guided tutorial** on the title screen for a ten-step field coach. It introduces one action at a time, shows the exact controls for that step, and advances after the player completes the task. The coach never completes evidence, decisions, or equipment controls for the player. Press `P` to hide or reopen task help. `F9` remains a private presenter shortcut for jumping between completed proof points.
 
 ## Risk learning model
 

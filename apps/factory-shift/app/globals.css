@@ -548,6 +548,29 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 .presenter-panel footer { margin-top: 12px; color: #60736f; font: 700 7px "Courier New",monospace; letter-spacing: .08em; }
 .presenter-panel footer kbd { min-width: 19px; height: 18px; margin-right: 3px; padding: 0 4px; font-size: 7px; }
 
+/* Reduced field HUD: one asset tag, one objective, one timer. */
+.hud-top { top: 24px; left: 28px; right: 28px; align-items: center; }
+.site-id { min-height: 30px; padding: 0 10px; gap: 8px; border: 1px solid rgba(218,233,229,.1); background: rgba(5,13,14,.58); backdrop-filter: blur(8px); }
+.site-id b { font: 800 8px "Courier New",monospace; letter-spacing: .13em; }
+.site-id div,.site-id small { display: none; }
+.live-dot { width: 6px; height: 6px; box-shadow: 0 0 10px var(--green); }
+.shift-clock { min-height: 30px; padding: 0 10px; display: flex; flex-direction: row; align-items: center; gap: 8px; border: 1px solid rgba(218,233,229,.1); background: rgba(5,13,14,.58); backdrop-filter: blur(8px); }
+.shift-clock small { margin: 0; font-size: 6px; }
+.shift-clock b { font-size: 14px; letter-spacing: -.02em; }
+.objective-panel { top: 68px; left: 28px; width: min(310px,calc(100vw - 56px)); padding: 14px 15px 13px; border: 1px solid rgba(218,233,229,.1); border-left: 2px solid var(--amber); background: linear-gradient(105deg,rgba(6,15,16,.84),rgba(11,25,25,.58)); box-shadow: 10px 14px 36px rgba(0,0,0,.16); }
+.objective-panel small { font-size: 6px; letter-spacing: .14em; }
+.objective-panel strong { margin-top: 6px; font-size: 12px; }
+.objective-panel > span { margin-top: 6px; font-size: 8px; }
+.objective-track { margin-top: 10px; }
+
+/* The coach teaches an action, then waits for the player to perform it. */
+.coach-panel { width: min(360px,calc(100vw - 44px)); }
+.coach-panel h2 { font-size: 18px; }
+.coach-panel > p { margin-bottom: 13px; font-size: 10px; line-height: 1.55; }
+.coach-keys { min-height: 46px; padding: 8px 10px; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(241,162,42,.2); background: rgba(241,162,42,.055); }
+.coach-keys kbd { min-width: 32px; height: 25px; margin: 0; border-color: rgba(241,162,42,.38); color: #f0c27c; font-size: 7px; }
+.coach-keys span { margin-left: auto; color: #869793; font: 800 6px "Courier New",monospace; letter-spacing: .09em; text-align: right; }
+
 .debrief-proof { display: grid; grid-template-columns: .72fr .82fr .72fr 1.75fr; gap: 7px; margin: 10px 0; }
 .debrief-proof > div,.debrief-proof > p { min-height: 70px; margin: 0; padding: 11px 12px; border: 1px solid rgba(210,228,223,.1); background: rgba(255,255,255,.018); }
 .debrief-proof > div { display: flex; flex-direction: column; }
@@ -604,6 +627,10 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
   .presenter-panel { left: 10px; right: 10px; bottom: 52px; width: auto; padding: 14px; }
   .presenter-panel h2 { font-size: 15px; }
   .presenter-panel > p { font-size: 9px; }
+  .hud-top { top: max(14px,env(safe-area-inset-top)); left: 12px; right: 12px; }
+  .objective-panel { top: 58px; left: 12px; width: min(280px,calc(100vw - 24px)); }
+  .coach-panel { bottom: 52px; }
+  .coach-keys span { display: none; }
   .debrief-proof { grid-template-columns: 1fr 1fr; }
   .debrief-proof > div:nth-child(3) { grid-column: 1 / -1; }
   .shift-complete-banner { grid-template-columns: 64px 1fr; padding: 10px; }
