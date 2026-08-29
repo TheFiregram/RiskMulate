@@ -1,4 +1,5 @@
 import './asset-patch.js';
+import './road-system.js';
 import { Game } from './game.js';
 import { UI } from './ui.js';
 
