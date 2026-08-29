@@ -1,6 +1,0 @@
-node_modules/
-dist/
-target/
-coverage/
-Cargo.lock
-package-lock.json

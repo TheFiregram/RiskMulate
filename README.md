@@ -1,74 +1,56 @@
-# RiskMulator Studio
+# RiskMulate — Factory Risk Simulation
 
-RiskMulator Studio is an offline-first desktop environment for safe risk-simulation training, education, and decision practice. The [Studio Bible](docs/studio-bible/README.md), governed by [Document 00](docs/studio-bible/00-project-charter.md), is the authoritative specification.
+RiskMulate is being rebuilt as a lightweight isometric factory-management simulation. The player starts with a small industrial site, grows production capacity, manages workers and machinery, and protects business objectives through risk-management decisions.
 
-## Foundation status
+This branch intentionally replaces the previous monorepo implementation with a small dependency-free browser app.
 
-Milestone 1 provides a working local workflow for user profiles, workspaces, scenario CRUD, and a deterministic Simulation Engine lifecycle skeleton. It intentionally contains no scenario evaluation rules, external integrations, production data, or live-system connectivity.
+## Current vertical slice
 
-## Technology stack
+- Original isometric Canvas 2D renderer with no external art/runtime dependencies
+- Pan, zoom and click/tap selection
+- Central site office and seven construction pads
+- Generator, raw-material tank, pump station, process hall, warehouse, maintenance bay and worker clinic
+- Visible construction progress
+- Moving worker figures and generator smoke
+- Cash, raw material, finished goods, workforce, energy and safety resources
+- 10-day production contract
+- Equipment condition/degradation
+- Risk alerts tied to factory conditions
+- ISO 31000-style cause → event → consequence entries
+- Interactive 5×5 likelihood-impact matrix
+- Inherent and residual risk values
+- Risk treatments with cost and simulation effects
+- Scenario success/failure debrief
+- Responsive desktop/mobile interface
 
-- **Desktop:** Tauri 2, using the operating system webview for a small distributable and a Rust security boundary.
-- **Interface:** React 19 and TypeScript 5, built by Vite.
-- **Core:** Rust 2024 workspace crates with strict lint configuration and no unsafe code.
-- **Dependency management:** npm workspaces for the interface and Cargo workspaces for the desktop host and core crates.
-- **Quality:** Prettier, ESLint, TypeScript strict mode, Vitest, rustfmt, Clippy, and Cargo test.
+## Run locally
 
-Tauri keeps the application installable and executable offline, while the split workspace prevents presentation and desktop concerns from becoming simulation-domain dependencies.
+The app has no runtime dependencies.
+
+```bash
+python3 -m http.server 4173
+```
+
+Open `http://localhost:4173`.
+
+Run JavaScript syntax checks:
+
+```bash
+npm run check
+```
 
 ## Architecture
 
-```text
-apps/
-└── studio/
-    ├── src/                 React presentation shell
-    └── src-tauri/           Tauri desktop host and packaging
-crates/
-├── studio-core/             Local SQLite CRUD and migrations
-├── simulation-engine/       Deterministic lifecycle skeleton
-├── rule-engine/             Configurable rule interface
-├── event-engine/            Event scheduling interface
-├── asset-engine/            Simulated asset interface
-├── ai-engine/               Sandboxed actor interface
-├── plugin-manager/          Offline extension interface
-├── analytics-engine/        Measurement interface
-├── replay-engine/           Deterministic replay interface
-└── reporting-engine/        Offline reporting interface
-schemas/                     Reserved versioned data contracts
-examples/                    Reserved synthetic scenario fixtures
-tests/                       Reserved cross-cutting assurance suites
-tools/                       Reserved offline development tooling
-docs/studio-bible/           Governing specification
-```
+- `src/world.js` — isometric renderer, camera, procedural factory assets and worker animation
+- `src/simulation.js` — time, production, resources, degradation, incidents and risk state
+- `src/game.js` — orchestration and player actions
+- `src/ui.js` — HUD, build menu, inspector, alerts, risk register, matrix and debrief
+- `src/data.js` — buildings, risks, treatments and build-pad data
 
-The Tauri host is the composition root. `studio-core` owns local SQLite persistence, while `simulation-engine` owns lifecycle state. The remaining core crates are framework-independent marker interfaces. Core crates do not depend on the desktop application. See the [Milestone 1 design](docs/milestones/01-foundation.md) for data ownership, lifecycle, and safety details.
+## Performance position
 
-## Safety and dependency rules
+This first version uses Canvas 2D rather than a full 3D scene. It is a deliberate reset after the previous build became too heavy. The isometric presentation gives the management-game feel we want with a very small runtime cost. WebGL can be introduced selectively later where it provides a clear visual benefit.
 
-1. Simulation execution must never require network access.
-2. No production banks, wallets, payment rails, exchanges, APIs, or databases may be connected.
-3. Core modules must remain deterministic and replayable where applicable.
-4. Cross-module contracts and persisted schemas must be typed, documented, and versioned.
-5. Plugins and AI capabilities must run behind explicit sandbox boundaries once specified.
-6. Important actions must be locally auditable; telemetry must not export user or simulation data.
-7. Scenario behavior belongs in validated configuration, not application source code.
+## Educational position
 
-## Development
-
-Prerequisites are Node.js 22 or newer, npm 10 or newer, the stable Rust toolchain, and the [Tauri platform prerequisites](https://tauri.app/start/prerequisites/) for the target operating system.
-
-```bash
-npm install
-npm run tauri dev
-```
-
-Quality commands:
-
-```bash
-npm run format:check
-npm run lint
-npm test
-npm run build
-```
-
-Dependency installation may require Internet access during development or packaging; the installed application and simulation runtime must not.
+Risk is represented as the effect of uncertainty on objectives. Scenario risks use a cause → event → consequence chain, distinguish inherent and residual exposure, and make treatments affect likelihood and/or impact. Numerical risk scores are paired with scenario criteria rather than treated as universal acceptance rules.
