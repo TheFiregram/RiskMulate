@@ -1,3 +1,4 @@
+import './asset-patch.js';
 import { Game } from './game.js';
 import { UI } from './ui.js';
 
