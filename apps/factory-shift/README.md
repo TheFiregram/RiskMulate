@@ -63,28 +63,14 @@ Choose **Start guided tutorial** on the title screen for a ten-step field coach.
 - Static-first deployment on Vercel
 - Local scenario state with no required backend service
 
-## Local development
+## Local development and distribution
 
-Requires Node.js 22.13 or newer.
+From the repository root run `npm ci`, then `npm run dev`. The game opens at `http://127.0.0.1:4173` using locally bundled dependencies and assets.
 
-```bash
-npm ci
-npm run dev
-```
+`npm run build` creates `apps/factory-shift/dist`; `npm run preview` serves it locally. Internet is needed for dependency installation, not gameplay. Direct `file://` launch is unsupported. Native desktop installers remain pending.
 
-Release checks:
-
-```bash
-npm run lint
-npm run build:vercel
-npm run build:standalone
-npm test
-```
-
-## Deployment
-
-For the RiskMulate monorepo, set the Vercel Root Directory to `apps/factory-shift`. The project build command is defined in `vercel.json`. `npm run build:standalone` produces a static CDN release in `standalone/` for the public submission shell.
+The standalone entry is the active immersive scene. The 2D isometric experiment is retired. Third-person characters, additional risks, save/resume and local reports are the next delivery targets; the existing first-person gameplay remains playable during that work.
 
 ## Asset credits
 
-Meshy-generated props and CC0 environment resources from Poly Haven and ambientCG are listed in [ASSET_CREDITS.md](ASSET_CREDITS.md).
+See [ASSET_CREDITS.md](ASSET_CREDITS.md).
