@@ -1,22 +1,24 @@
 {
-  "name": "riskmulator-studio",
+  "name": "riskmulate",
   "version": "0.1.0",
   "private": true,
-  "description": "Offline-first risk simulation studio",
+  "description": "Immersive single-player factory risk training",
   "workspaces": [
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @riskmulator/studio",
-    "build": "npm run build --workspace @riskmulator/studio",
+    "dev": "npm run dev:offline --workspace factory-shift-prototype",
+    "build": "npm run build:offline --workspace factory-shift-prototype",
     "format": "prettier --write \"apps/studio/**/*.{js,json,ts,tsx,css,html}\" \"*.json\" \".github/**/*.{yml,yaml}\"",
     "format:check": "prettier --check \"apps/studio/**/*.{js,json,ts,tsx,css,html}\" \"*.json\" \".github/**/*.{yml,yaml}\"",
     "lint": "npm run lint --workspace @riskmulator/studio && cargo clippy --workspace --all-targets --all-features -- -D warnings",
-    "test": "npm run test --workspace @riskmulator/studio && cargo test --workspace --all-targets --all-features",
+    "test": "npm run build && node --test apps/factory-shift/tests/offline-build.test.mjs && node --test --test-name-pattern='physical F-201|PC keyboard|simplified HUD|character hands' apps/factory-shift/tests/rendered-html.test.mjs",
     "tauri": "npm run tauri --workspace @riskmulator/studio",
     "browserless:smoke": "node scripts/browserless-smoke.mjs",
     "format:rust": "cargo fmt --all",
-    "format:rust:check": "cargo fmt --all --check"
+    "format:rust:check": "cargo fmt --all --check",
+    "preview": "npm run preview:offline --workspace factory-shift-prototype",
+    "test:legacy": "npm run test --workspace @riskmulator/studio && cargo test --workspace --all-targets --all-features"
   },
   "devDependencies": {
     "prettier": "3.6.2",

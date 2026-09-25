@@ -1,74 +1,50 @@
-# RiskMulator Studio
+# RiskMulate — Immersive Factory Training
 
-RiskMulator Studio is an offline-first desktop environment for safe risk-simulation training, education, and decision practice. The [Studio Bible](docs/studio-bible/README.md), governed by [Document 00](docs/studio-bible/00-project-charter.md), is the authoritative specification.
+The active game is **Factory Shift**, in `apps/factory-shift`. It is a single-player 3D factory risk simulation for students. The September 25, 2026 direction replaces the 2D isometric proposal and the broader multi-industry Studio product direction.
 
-## Foundation status
+## Run the existing immersive game
 
-Milestone 1 provides a working local workflow for user profiles, workspaces, scenario CRUD, and a deterministic Simulation Engine lifecycle skeleton. It intentionally contains no scenario evaluation rules, external integrations, production data, or live-system connectivity.
+Install Node.js 22.13 or newer, then run from the repository root:
 
-## Technology stack
-
-- **Desktop:** Tauri 2, using the operating system webview for a small distributable and a Rust security boundary.
-- **Interface:** React 19 and TypeScript 5, built by Vite.
-- **Core:** Rust 2024 workspace crates with strict lint configuration and no unsafe code.
-- **Dependency management:** npm workspaces for the interface and Cargo workspaces for the desktop host and core crates.
-- **Quality:** Prettier, ESLint, TypeScript strict mode, Vitest, rustfmt, Clippy, and Cargo test.
-
-Tauri keeps the application installable and executable offline, while the split workspace prevents presentation and desktop concerns from becoming simulation-domain dependencies.
-
-## Architecture
-
-```text
-apps/
-└── studio/
-    ├── src/                 React presentation shell
-    └── src-tauri/           Tauri desktop host and packaging
-crates/
-├── studio-core/             Local SQLite CRUD and migrations
-├── simulation-engine/       Deterministic lifecycle skeleton
-├── rule-engine/             Configurable rule interface
-├── event-engine/            Event scheduling interface
-├── asset-engine/            Simulated asset interface
-├── ai-engine/               Sandboxed actor interface
-├── plugin-manager/          Offline extension interface
-├── analytics-engine/        Measurement interface
-├── replay-engine/           Deterministic replay interface
-└── reporting-engine/        Offline reporting interface
-schemas/                     Reserved versioned data contracts
-examples/                    Reserved synthetic scenario fixtures
-tests/                       Reserved cross-cutting assurance suites
-tools/                       Reserved offline development tooling
-docs/studio-bible/           Governing specification
+```sh
+npm ci
+npm run dev
 ```
 
-The Tauri host is the composition root. `studio-core` owns local SQLite persistence, while `simulation-engine` owns lifecycle state. The remaining core crates are framework-independent marker interfaces. Core crates do not depend on the desktop application. See the [Milestone 1 design](docs/milestones/01-foundation.md) for data ownership, lifecycle, and safety details.
+Open `http://127.0.0.1:4173`. This address serves files from your own computer. It does not connect to a public game server. Dependency installation requires internet; after installation the local game build and gameplay do not.
 
-## Safety and dependency rules
-
-1. Simulation execution must never require network access.
-2. No production banks, wallets, payment rails, exchanges, APIs, or databases may be connected.
-3. Core modules must remain deterministic and replayable where applicable.
-4. Cross-module contracts and persisted schemas must be typed, documented, and versioned.
-5. Plugins and AI capabilities must run behind explicit sandbox boundaries once specified.
-6. Important actions must be locally auditable; telemetry must not export user or simulation data.
-7. Scenario behavior belongs in validated configuration, not application source code.
-
-## Development
-
-Prerequisites are Node.js 22 or newer, npm 10 or newer, the stable Rust toolchain, and the [Tauri platform prerequisites](https://tauri.app/start/prerequisites/) for the target operating system.
-
-```bash
-npm install
-npm run tauri dev
-```
-
-Quality commands:
-
-```bash
-npm run format:check
-npm run lint
-npm test
+```sh
 npm run build
+npm run preview
 ```
 
-Dependency installation may require Internet access during development or packaging; the installed application and simulation runtime must not.
+`apps/factory-shift/dist` contains the bundled application, models, textures and lighting assets. No CDN libraries are required during play. Serve this folder locally; opening its HTML through `file://` is not supported. Native Mac and Windows installers remain pending. Node is currently required for these developer commands.
+
+## Current playable content
+
+- First-person factory exploration with WASD and arrow controls.
+- Pump and filter evidence collection, equipment controls and connected decisions.
+- APEX-inspired menus, feedback, production outcomes and debrief.
+
+## Approved next delivery
+
+- Third-person character and free camera, workers and conversations.
+- Food and beverage factory with three to five distinct risks.
+- Fifteen to thirty minute shifts, save/resume and repeat play.
+- Local report export with decisions, reasons, scores and consequences.
+- Fully local Mac and Windows distribution, no accounts or multiplayer.
+- Baseline test device: 2018 Intel MacBook Air, 8 GB RAM, UHD 617.
+
+These are delivery targets, not completed features. Native packaging, save/resume, report export, third-person characters and Mac performance verification are still outstanding.
+
+## Repository boundaries
+
+- `apps/factory-shift`: active game source and offline build.
+- `apps/game-lite`: earlier 3D systems and reusable factory assets; not the default entry point.
+- `apps/studio` and `crates`: historical desktop foundation, available for packaging work. The compatibility Studio web build now bundles Factory Shift.
+- `tools/blender`: existing model preparation scripts. Blender is not required to run the game.
+- `docs/studio-bible`: historical broad-studio specifications. This README and the September 25 factory scope govern the active game.
+
+The unmerged `rebuild/factory-risk-core` 2D experiment is retired. Do not merge its renderer or replace the immersive game with it.
+
+Asset provenance is recorded in `apps/factory-shift/ASSET_CREDITS.md`.

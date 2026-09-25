@@ -25,10 +25,9 @@ import {
   type ScenarioPhase,
 } from "./scenario-data";
 
-const VERCEL_ASSET_CDN = "https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@6488af39d2837b2ba49b6de9c94b41d954e592e6/apps/factory-shift/public";
-
+// All game assets ship with the application, including offline builds.
 function assetUrl(path: string) {
-  return window.location.hostname.endsWith(".vercel.app") ? `${VERCEL_ASSET_CDN}${path}` : path;
+  return new URL(`.${path}`, document.baseURI).href;
 }
 
 export type TouchControls = {
