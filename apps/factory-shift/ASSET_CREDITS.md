@@ -1,6 +1,6 @@
 # Asset credits
 
-All third-party environment assets in this project are used under CC0 1.0.
+Poly Haven and ambientCG assets use CC0 1.0. Generated trees and their bundled textures use the EZ-Tree MIT licence.
 
 ## Poly Haven
 
@@ -17,3 +17,11 @@ All third-party environment assets in this project are used under CC0 1.0.
 ## Meshy
 
 - Pump, valve, and traffic-cone models supplied by the project owner and optimized for browser delivery.
+
+## EZ-Tree
+
+- [EZ-Tree](https://github.com/dgreenheck/ez-tree), version 1.1.0, by Daniel Greenheck, MIT licence.
+- Eight generated pine, spruce-form conifer, bare birch and oak GLBs in `public/models/trees/`, with two ages per species. Bark and leaf textures come from the same MIT-licensed npm distribution.
+- `treeline-atlas.png` is a transparent render of these generated trees under the yard light, baked by `tools/trees/generate-browser.mjs`.
+- Source settings, seeds and reproduction commands: `tools/trees/README.md` and `tools/trees/presets.json`.
+- The upstream copyright and licence notice is retained verbatim in `tools/trees/EZ-TREE-LICENSE.txt`.
