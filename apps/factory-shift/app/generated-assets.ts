@@ -58,14 +58,6 @@ function mesh(
   return result;
 }
 
-function branchBetween(parent: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3, radius: number, material: THREE.Material) {
-  const direction = new THREE.Vector3().subVectors(to, from);
-  const branch = mesh(new THREE.CylinderGeometry(radius * 0.68, radius, direction.length(), 7), material);
-  branch.position.copy(from).add(to).multiplyScalar(0.5);
-  branch.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
-  parent.add(branch);
-}
-
 function finish(group: THREE.Group, name: string) {
   group.name = name;
   group.traverse((object) => {
@@ -79,7 +71,6 @@ function finish(group: THREE.Group, name: string) {
 
 export function createGeneratedAssetLibrary() {
   const coneTexture = canvasTexture("#d97918", "#39270f", "speckle");
-  const barkTexture = canvasTexture("#4a392b", "#161813", "bark");
   const woodTexture = canvasTexture("#826641", "#30271b", "wood");
   const paintedTexture = canvasTexture("#365e5a", "#142a28", "speckle");
 
@@ -87,9 +78,6 @@ export function createGeneratedAssetLibrary() {
     cone: new THREE.MeshStandardMaterial({ color: 0xf0841f, map: coneTexture, roughness: 0.67, metalness: 0.02 }),
     reflective: new THREE.MeshStandardMaterial({ color: 0xf1eee2, emissive: 0x77746d, emissiveIntensity: 0.22, roughness: 0.34, metalness: 0.08 }),
     rubber: new THREE.MeshStandardMaterial({ color: 0x151817, roughness: 0.95, metalness: 0.01 }),
-    bark: new THREE.MeshStandardMaterial({ color: 0x554331, map: barkTexture, roughness: 1 }),
-    leafDark: new THREE.MeshStandardMaterial({ color: 0x244b38, roughness: 0.96, flatShading: true }),
-    leafMid: new THREE.MeshStandardMaterial({ color: 0x376448, roughness: 0.94, flatShading: true }),
     leafLight: new THREE.MeshStandardMaterial({ color: 0x55713e, roughness: 0.93, flatShading: true }),
     dryLeaf: new THREE.MeshStandardMaterial({ color: 0x767342, roughness: 0.95, flatShading: true }),
     wood: new THREE.MeshStandardMaterial({ color: 0x96734b, map: woodTexture, roughness: 0.88, metalness: 0.01 }),
@@ -115,7 +103,6 @@ export function createGeneratedAssetLibrary() {
     barrelRing: new THREE.TorusGeometry(0.435, 0.035, 8, 30),
     palletSlat: new THREE.BoxGeometry(0.22, 0.11, 2.2),
     palletRunner: new THREE.BoxGeometry(1.65, 0.19, 0.25),
-    root: new THREE.ConeGeometry(0.18, 0.9, 5),
   };
 
   function trafficCone(seed = 1, scale = 1) {
@@ -202,54 +189,6 @@ export function createGeneratedAssetLibrary() {
     return finish(group, "Generated safety barrier");
   }
 
-  function pineTree(seed = 1, scale = 1) {
-    const random = seeded(seed);
-    const group = new THREE.Group();
-    const height = 5.1 + random() * 1.8;
-    group.add(mesh(new THREE.CylinderGeometry(0.15, 0.31, height * 0.7, 9), materials.bark, [0, height * 0.35, 0]));
-    for (let i = 0; i < 4; i += 1) {
-      const y = 1.9 + i * height * 0.17;
-      const radius = 1.5 - i * 0.23 + random() * 0.12;
-      const foliage = mesh(new THREE.ConeGeometry(radius, 2.5, 9), i % 2 ? materials.leafDark : materials.leafMid, [(random() - 0.5) * 0.12, y, (random() - 0.5) * 0.12], [0, random() * Math.PI, (random() - 0.5) * 0.05]);
-      group.add(foliage);
-    }
-    for (let i = 0; i < 4; i += 1) {
-      const root = mesh(geometries.root, materials.bark, [Math.cos(i * Math.PI / 2) * 0.28, 0.25, Math.sin(i * Math.PI / 2) * 0.28], [Math.PI / 2, 0, i * Math.PI / 2]);
-      root.scale.set(0.7, 0.9, 0.5);
-      group.add(root);
-    }
-    group.rotation.y = random() * Math.PI * 2;
-    group.scale.setScalar(scale);
-    group.userData.swayPhase = random() * Math.PI * 2;
-    return finish(group, "Generated pine tree");
-  }
-
-  function broadleafTree(seed = 1, scale = 1) {
-    const random = seeded(seed);
-    const group = new THREE.Group();
-    const height = 4.6 + random() * 1.6;
-    group.add(mesh(new THREE.CylinderGeometry(0.2, 0.38, height * 0.72, 9), materials.bark, [0, height * 0.36, 0], [0, 0, (random() - 0.5) * 0.05]));
-    const branches = [
-      [new THREE.Vector3(0, 2.4, 0), new THREE.Vector3(1.2, 4.1, 0.25)],
-      [new THREE.Vector3(0, 2.7, 0), new THREE.Vector3(-1.15, 4.35, -0.35)],
-      [new THREE.Vector3(0, 3.1, 0), new THREE.Vector3(0.35, 4.8, -0.95)],
-    ] as const;
-    branches.forEach(([from, to]) => branchBetween(group, from, to, 0.13, materials.bark));
-    const clusters: [number, number, number, number][] = [
-      [0, height, 0, 1.35], [1.1, height * 0.82, 0.2, 1.08], [-1.05, height * 0.85, -0.3, 1.12],
-      [0.35, height * 0.75, -1, 1.0], [-0.45, height * 0.74, 0.95, 1.0], [0, height * 0.92, 0.6, 0.88],
-    ];
-    clusters.forEach(([x, y, z, size], index) => {
-      const crown = mesh(new THREE.IcosahedronGeometry(size * (0.88 + random() * 0.22), 1), index % 3 === 0 ? materials.leafLight : index % 2 ? materials.leafDark : materials.leafMid, [x, y, z], [random(), random(), random()]);
-      crown.scale.y = 0.82 + random() * 0.23;
-      group.add(crown);
-    });
-    group.rotation.y = random() * Math.PI * 2;
-    group.scale.setScalar(scale);
-    group.userData.swayPhase = random() * Math.PI * 2;
-    return finish(group, "Generated broadleaf tree");
-  }
-
   function grassPatch(seed = 1, scale = 1) {
     const random = seeded(seed);
     const positions: number[] = [];
@@ -279,12 +218,11 @@ export function createGeneratedAssetLibrary() {
     Object.values(geometries).forEach((geometry) => geometry.dispose());
     Object.values(materials).forEach((material) => material.dispose());
     coneTexture.dispose();
-    barkTexture.dispose();
     woodTexture.dispose();
     paintedTexture.dispose();
   }
 
-  return { trafficCone, barrel, pallet, equipmentCrate, safetyBarrier, pineTree, broadleafTree, grassPatch, dispose };
+  return { trafficCone, barrel, pallet, equipmentCrate, safetyBarrier, grassPatch, dispose };
 }
 
 export type GeneratedAssetLibrary = ReturnType<typeof createGeneratedAssetLibrary>;
