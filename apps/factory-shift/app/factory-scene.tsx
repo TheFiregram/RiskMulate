@@ -8,6 +8,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
+import { createValleyTrees } from "./trees";
 import { createGeneratedAssetLibrary } from "./generated-assets";
 import { buildIndustrialPipeSystem, PIPE_VALVE_MOUNTS } from "./industrial-pipes";
 import {
@@ -25,7 +26,7 @@ import {
   type ScenarioPhase,
 } from "./scenario-data";
 
-const VERCEL_ASSET_CDN = "https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@6488af39d2837b2ba49b6de9c94b41d954e592e6/apps/factory-shift/public";
+const VERCEL_ASSET_CDN = "https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@cdc4d9c60a24e3d1dd136bf563727c80f0001c11/apps/factory-shift/public";
 
 function assetUrl(path: string) {
   return window.location.hostname.endsWith(".vercel.app") ? `${VERCEL_ASSET_CDN}${path}` : path;
@@ -567,18 +568,6 @@ function addTank(parent: THREE.Object3D, materials: Materials, x: number, z: num
   parent.add(tank);
 }
 
-function addTree(parent: THREE.Object3D, x: number, z: number, scale: number, warm = false) {
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x453d32, roughness: 1 });
-  const leafMat = new THREE.MeshStandardMaterial({ color: warm ? 0x53672f : 0x315a45, roughness: 0.96 });
-  const tree = new THREE.Group();
-  tree.position.set(x, 0, z);
-  tree.scale.setScalar(scale);
-  tree.add(makeMesh(new THREE.CylinderGeometry(0.16, 0.26, 2.1, 7), trunkMat, [0, 1, 0], [0, 0, 0], false));
-  tree.add(makeMesh(new THREE.ConeGeometry(1.15, 3.3, 8), leafMat, [0, 3.0, 0], [0, 0.3, 0], false));
-  tree.add(makeMesh(new THREE.ConeGeometry(0.87, 2.7, 8), leafMat, [0, 4.2, 0], [0, -0.2, 0], false));
-  parent.add(tree);
-}
-
 function buildFirstPersonHands(camera: THREE.PerspectiveCamera) {
   const rig = new THREE.Group();
   rig.name = "First-person bare hands";
@@ -972,18 +961,10 @@ export default function FactoryScene({
       mountain.scale.z = 1.28;
       scene.add(mountain);
     }
-    for (let i = 0; i < 30; i += 1) {
-      const side = i % 2 ? 1 : -1;
-      addTree(scene, side * (31 + Math.random() * 28), -42 + Math.random() * 75, 0.8 + Math.random() * 1.7, i % 3 === 0);
-    }
-    const animatedTrees: THREE.Group[] = [];
-    for (let i = 0; i < 14; i += 1) {
-      const side = i % 2 ? 1 : -1;
-      const tree = i % 4 === 0 ? assetLibrary.broadleafTree(30 + i, 0.78 + (i % 3) * 0.13) : assetLibrary.pineTree(30 + i, 0.68 + (i % 4) * 0.1);
-      tree.position.set(side * (27.8 + (i % 3) * 2.4), 0, 21 - i * 4.1);
-      scene.add(tree);
-      animatedTrees.push(tree);
-    }
+    const valleyTrees = createValleyTrees(scene, assetUrl, coarsePointer, softwareRenderer);
+    const treeDiagnostics = ["localhost", "127.0.0.1", "terminal.local"].includes(window.location.hostname);
+    if (treeDiagnostics) renderer.info.autoReset = false;
+    let lastTreeReport = -10;
     for (let i = 0; i < 34; i += 1) {
       const patch = assetLibrary.grassPatch(90 + i, 0.7 + (i % 5) * 0.11);
       const side = i % 2 ? 1 : -1;
@@ -1751,12 +1732,20 @@ export default function FactoryScene({
         sprite.scale.setScalar(0.5 + t * 2.35);
         (sprite.material as THREE.SpriteMaterial).opacity = Math.sin(Math.PI * t) * 0.18 * steamFactor;
       });
-      animatedTrees.forEach((tree, index) => {
-        tree.rotation.z = Math.sin(elapsed * 0.43 + tree.userData.swayPhase + index * 0.11) * 0.0055;
-        tree.rotation.x = Math.cos(elapsed * 0.31 + tree.userData.swayPhase) * 0.0025;
-      });
+      valleyTrees.update(elapsed);
+      if (treeDiagnostics) renderer.info.reset();
+      const treeFrameStart = treeDiagnostics ? performance.now() : 0;
       if (softwareRenderer) renderer.render(scene, camera);
       else composer.render();
+      if (treeDiagnostics && elapsed - lastTreeReport >= 10 && valleyTrees.getStats().ready) {
+        lastTreeReport = elapsed;
+        console.info("[trees] Scene render (all passes)", {
+          ...renderer.info.render,
+          cpuSubmitMs: performance.now() - treeFrameStart,
+          pixelRatio: renderer.getPixelRatio(),
+          treeGeometry: valleyTrees.getStats(),
+        });
+      }
     };
     render(performance.now());
 
@@ -1788,6 +1777,7 @@ export default function FactoryScene({
         candidate.geometry?.dispose();
         if (candidate.material) (Array.isArray(candidate.material) ? candidate.material : [candidate.material]).forEach((material) => material.dispose());
       });
+      valleyTrees.dispose();
       assetLibrary.dispose();
     };
   }, [onFilterTargetChange, onNearChange, onPumpControlTargetChange, onTargetChange, touchControls]);

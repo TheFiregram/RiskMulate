@@ -864,6 +864,8 @@ export default function FactoryExperience() {
         CC0 environment <a href="https://polyhaven.com" target="_blank" rel="noreferrer">Poly Haven</a>
         <span>+</span>
         <a href="https://ambientcg.com" target="_blank" rel="noreferrer">ambientCG</a>
+        <span>·</span>
+        Trees <a href="https://eztree.dev" target="_blank" rel="noreferrer">EZ-Tree (MIT)</a>
       </div>
 
       {!started && (
