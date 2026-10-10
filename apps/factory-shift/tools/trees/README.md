@@ -41,6 +41,7 @@ node capture.mjs after mobile
 node capture.mjs before software
 node capture.mjs after software
 node capture.mjs after fallback
+node report.mjs
 ```
 
 The baseline defaults to commit `5c86b8fa2ce6e38be302372a104c5f9f36ab8c65`; override with `BASELINE_REF`. The script builds the actual standalone entry in a temporary directory. Instrumentation and render-path overrides affect only that temporary bundle. It waits for imported models and tree assets, then captures title, yard, west and east views at 1600 by 900. Pixel ratios are desktop 1.4, phone 1.1 and software 0.78.
@@ -52,3 +53,5 @@ On localhost, scene counters, CPU submission time, pixel ratio and tree geometry
 ## Release
 
 Commit and push `public/models/trees` first. Verify those files on jsDelivr, set `VERCEL_ASSET_CDN` in `app/factory-scene.tsx` to the full asset commit SHA and push the runtime change. The existing main workflow builds standalone files and updates the game-lite release pointer. Assets and code use separate pins. No workflow path change is needed.
+
+After publication, run `node live.mjs` for a fresh production screenshot, observed bundle URLs, tree requests and browser errors. This uses native renderer detection without a production render-path override. `HTTPS_PROXY`, when configured, is passed to Chrome for the verification request.

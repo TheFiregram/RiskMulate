@@ -1,0 +1,33 @@
+{
+  "url": "https://riskmulate.vercel.app",
+  "capturedAt": "2026-10-10T23:05:41.916Z",
+  "renderer": "Native software WebGL detection in Chrome Headless Shell; no production render-path override.",
+  "budget": {
+    "ready": true,
+    "triangles": 960,
+    "budget": 150000,
+    "drawCalls": 1,
+    "near": 0,
+    "mid": 0,
+    "far": 240,
+    "failures": []
+  },
+  "assets": [
+    {
+      "url": "https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@cdc4d9c60a24e3d1dd136bf563727c80f0001c11/apps/factory-shift/public/models/trees/treeline-atlas.png",
+      "status": 200
+    }
+  ],
+  "bundles": [
+    {
+      "url": "https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@2f73d4e85ec01a43a84ade0bcf8adfe3938383c1/apps/factory-shift/standalone/app.css",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.jsdelivr.net/gh/TheFiregram/RiskMulate@2f73d4e85ec01a43a84ade0bcf8adfe3938383c1/apps/factory-shift/standalone/app.js",
+      "status": 200
+    }
+  ],
+  "errors": [],
+  "footer": "PROPS"
+}

@@ -1,0 +1,74 @@
+{
+  "renderer": "SwiftShader in the verification environment. Desktop/mobile paths forced for geometry checks. GPU-finish timings are software measurements.",
+  "errors": [],
+  "results": [
+    {
+      "view": "title",
+      "frame": 28,
+      "calls": 1644,
+      "triangles": 520434,
+      "points": 460,
+      "lines": 0,
+      "pixelRatio": 0.78,
+      "softwareRenderer": true,
+      "coarsePointer": false,
+      "frames": [
+        1822.3000000000466,
+        11.599999999976717,
+        8.400000000023283,
+        61.199999999953434
+      ]
+    },
+    {
+      "view": "yard",
+      "frame": 32,
+      "calls": 1642,
+      "triangles": 520338,
+      "points": 460,
+      "lines": 0,
+      "pixelRatio": 0.78,
+      "softwareRenderer": true,
+      "coarsePointer": false,
+      "frames": [
+        12.5,
+        11.399999999906868,
+        8.5,
+        8.20000000006985
+      ]
+    },
+    {
+      "view": "west",
+      "frame": 36,
+      "calls": 240,
+      "triangles": 67650,
+      "points": 460,
+      "lines": 0,
+      "pixelRatio": 0.78,
+      "softwareRenderer": true,
+      "coarsePointer": false,
+      "frames": [
+        5.099999999976717,
+        1.5,
+        1.1999999999534339,
+        1.400000000023283
+      ]
+    },
+    {
+      "view": "east",
+      "frame": 40,
+      "calls": 253,
+      "triangles": 58554,
+      "points": 460,
+      "lines": 0,
+      "pixelRatio": 0.78,
+      "softwareRenderer": true,
+      "coarsePointer": false,
+      "frames": [
+        3.200000000069849,
+        1.6999999999534339,
+        1.3000000000465661,
+        1.1999999999534339
+      ]
+    }
+  ]
+}

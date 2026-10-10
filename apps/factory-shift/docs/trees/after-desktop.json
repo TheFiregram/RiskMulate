@@ -1,0 +1,602 @@
+{
+  "renderer": "SwiftShader in the verification environment. Desktop/mobile paths forced for geometry checks. GPU-finish timings are software measurements.",
+  "errors": [],
+  "results": [
+    {
+      "view": "title",
+      "frame": 126,
+      "calls": 2187,
+      "triangles": 1046614,
+      "points": 460,
+      "lines": 0,
+      "pixelRatio": 1.399999976158142,
+      "softwareRenderer": false,
+      "coarsePointer": false,
+      "frames": [
+        2440.399999999965,
+        40,
+        23.29999999998836,
+        37.5
+      ],
+      "treeBudget": {
+        "ready": true,
+        "triangles": 82060,
+        "budget": 150000,
+        "drawCalls": 15,
+        "near": 16,
+        "mid": 48,
+        "far": 240,
+        "failures": []
+      },
+      "instances": [
+        {
+          "name": "Mid Baked valley treeline",
+          "count": 240,
+          "triangles": 960,
+          "height": 12,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near spruce mature bark",
+          "count": 5,
+          "triangles": 8720,
+          "height": 10.198169708251953,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near spruce mature needles",
+          "count": 5,
+          "triangles": 7680,
+          "height": 10.59999942779541,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid pine young bark",
+          "count": 25,
+          "triangles": 9350,
+          "height": 6.667062759399414,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid pine young needles",
+          "count": 25,
+          "triangles": 10800,
+          "height": 7,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near pine mature bark",
+          "count": 4,
+          "triangles": 6976,
+          "height": 8.863192558288574,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near pine mature needles",
+          "count": 4,
+          "triangles": 6144,
+          "height": 9.399999618530273,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near birch mature bark",
+          "count": 4,
+          "triangles": 6256,
+          "height": 9.094461441040039,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid birch young bark",
+          "count": 3,
+          "triangles": 1422,
+          "height": 6.778515815734863,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near oak mature bark",
+          "count": 3,
+          "triangles": 4692,
+          "height": 8.965925216674805,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near oak mature needles",
+          "count": 3,
+          "triangles": 3072,
+          "height": 9.39980697631836,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid spruce young bark",
+          "count": 17,
+          "triangles": 6358,
+          "height": 7.860070705413818,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid spruce young needles",
+          "count": 17,
+          "triangles": 7344,
+          "height": 8.199999809265137,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid oak young bark",
+          "count": 3,
+          "triangles": 1422,
+          "height": 6.727921009063721,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid oak young needles",
+          "count": 3,
+          "triangles": 864,
+          "height": 7,
+          "castShadow": false,
+          "receiveShadow": false
+        }
+      ]
+    },
+    {
+      "view": "yard",
+      "frame": 186,
+      "calls": 2183,
+      "triangles": 1046486,
+      "points": 460,
+      "lines": 0,
+      "pixelRatio": 1.399999976158142,
+      "softwareRenderer": false,
+      "coarsePointer": false,
+      "frames": [
+        17.400000000023283,
+        7.2999999999883585,
+        7.5,
+        7.400000000023283
+      ],
+      "treeBudget": {
+        "ready": true,
+        "triangles": 82060,
+        "budget": 150000,
+        "drawCalls": 15,
+        "near": 16,
+        "mid": 48,
+        "far": 240,
+        "failures": []
+      },
+      "instances": [
+        {
+          "name": "Mid Baked valley treeline",
+          "count": 240,
+          "triangles": 960,
+          "height": 12,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near spruce mature bark",
+          "count": 5,
+          "triangles": 8720,
+          "height": 10.198169708251953,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near spruce mature needles",
+          "count": 5,
+          "triangles": 7680,
+          "height": 10.59999942779541,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid pine young bark",
+          "count": 25,
+          "triangles": 9350,
+          "height": 6.667062759399414,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid pine young needles",
+          "count": 25,
+          "triangles": 10800,
+          "height": 7,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near pine mature bark",
+          "count": 4,
+          "triangles": 6976,
+          "height": 8.863192558288574,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near pine mature needles",
+          "count": 4,
+          "triangles": 6144,
+          "height": 9.399999618530273,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near birch mature bark",
+          "count": 4,
+          "triangles": 6256,
+          "height": 9.094461441040039,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid birch young bark",
+          "count": 3,
+          "triangles": 1422,
+          "height": 6.778515815734863,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near oak mature bark",
+          "count": 3,
+          "triangles": 4692,
+          "height": 8.965925216674805,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near oak mature needles",
+          "count": 3,
+          "triangles": 3072,
+          "height": 9.39980697631836,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid spruce young bark",
+          "count": 17,
+          "triangles": 6358,
+          "height": 7.860070705413818,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid spruce young needles",
+          "count": 17,
+          "triangles": 7344,
+          "height": 8.199999809265137,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid oak young bark",
+          "count": 3,
+          "triangles": 1422,
+          "height": 6.727921009063721,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid oak young needles",
+          "count": 3,
+          "triangles": 864,
+          "height": 7,
+          "castShadow": false,
+          "receiveShadow": false
+        }
+      ]
+    },
+    {
+      "view": "west",
+      "frame": 246,
+      "calls": 841,
+      "triangles": 513202,
+      "points": 460,
+      "lines": 0,
+      "pixelRatio": 1.399999976158142,
+      "softwareRenderer": false,
+      "coarsePointer": false,
+      "frames": [
+        5,
+        15.300000000046566,
+        4.199999999953434,
+        3.300000000046566
+      ],
+      "treeBudget": {
+        "ready": true,
+        "triangles": 82060,
+        "budget": 150000,
+        "drawCalls": 15,
+        "near": 16,
+        "mid": 48,
+        "far": 240,
+        "failures": []
+      },
+      "instances": [
+        {
+          "name": "Mid Baked valley treeline",
+          "count": 240,
+          "triangles": 960,
+          "height": 12,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near spruce mature bark",
+          "count": 5,
+          "triangles": 8720,
+          "height": 10.198169708251953,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near spruce mature needles",
+          "count": 5,
+          "triangles": 7680,
+          "height": 10.59999942779541,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid pine young bark",
+          "count": 25,
+          "triangles": 9350,
+          "height": 6.667062759399414,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid pine young needles",
+          "count": 25,
+          "triangles": 10800,
+          "height": 7,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near pine mature bark",
+          "count": 4,
+          "triangles": 6976,
+          "height": 8.863192558288574,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near pine mature needles",
+          "count": 4,
+          "triangles": 6144,
+          "height": 9.399999618530273,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near birch mature bark",
+          "count": 4,
+          "triangles": 6256,
+          "height": 9.094461441040039,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid birch young bark",
+          "count": 3,
+          "triangles": 1422,
+          "height": 6.778515815734863,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near oak mature bark",
+          "count": 3,
+          "triangles": 4692,
+          "height": 8.965925216674805,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near oak mature needles",
+          "count": 3,
+          "triangles": 3072,
+          "height": 9.39980697631836,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid spruce young bark",
+          "count": 17,
+          "triangles": 6358,
+          "height": 7.860070705413818,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid spruce young needles",
+          "count": 17,
+          "triangles": 7344,
+          "height": 8.199999809265137,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid oak young bark",
+          "count": 3,
+          "triangles": 1422,
+          "height": 6.727921009063721,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid oak young needles",
+          "count": 3,
+          "triangles": 864,
+          "height": 7,
+          "castShadow": false,
+          "receiveShadow": false
+        }
+      ]
+    },
+    {
+      "view": "east",
+      "frame": 306,
+      "calls": 862,
+      "triangles": 504148,
+      "points": 460,
+      "lines": 0,
+      "pixelRatio": 1.399999976158142,
+      "softwareRenderer": false,
+      "coarsePointer": false,
+      "frames": [
+        5,
+        3.7000000000116415,
+        3,
+        3.5
+      ],
+      "treeBudget": {
+        "ready": true,
+        "triangles": 82060,
+        "budget": 150000,
+        "drawCalls": 15,
+        "near": 16,
+        "mid": 48,
+        "far": 240,
+        "failures": []
+      },
+      "instances": [
+        {
+          "name": "Mid Baked valley treeline",
+          "count": 240,
+          "triangles": 960,
+          "height": 12,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near spruce mature bark",
+          "count": 5,
+          "triangles": 8720,
+          "height": 10.198169708251953,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near spruce mature needles",
+          "count": 5,
+          "triangles": 7680,
+          "height": 10.59999942779541,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid pine young bark",
+          "count": 25,
+          "triangles": 9350,
+          "height": 6.667062759399414,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid pine young needles",
+          "count": 25,
+          "triangles": 10800,
+          "height": 7,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near pine mature bark",
+          "count": 4,
+          "triangles": 6976,
+          "height": 8.863192558288574,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near pine mature needles",
+          "count": 4,
+          "triangles": 6144,
+          "height": 9.399999618530273,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near birch mature bark",
+          "count": 4,
+          "triangles": 6256,
+          "height": 9.094461441040039,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid birch young bark",
+          "count": 3,
+          "triangles": 1422,
+          "height": 6.778515815734863,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Near oak mature bark",
+          "count": 3,
+          "triangles": 4692,
+          "height": 8.965925216674805,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Near oak mature needles",
+          "count": 3,
+          "triangles": 3072,
+          "height": 9.39980697631836,
+          "castShadow": true,
+          "receiveShadow": true
+        },
+        {
+          "name": "Mid spruce young bark",
+          "count": 17,
+          "triangles": 6358,
+          "height": 7.860070705413818,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid spruce young needles",
+          "count": 17,
+          "triangles": 7344,
+          "height": 8.199999809265137,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid oak young bark",
+          "count": 3,
+          "triangles": 1422,
+          "height": 6.727921009063721,
+          "castShadow": false,
+          "receiveShadow": false
+        },
+        {
+          "name": "Mid oak young needles",
+          "count": 3,
+          "triangles": 864,
+          "height": 7,
+          "castShadow": false,
+          "receiveShadow": false
+        }
+      ]
+    }
+  ]
+}
